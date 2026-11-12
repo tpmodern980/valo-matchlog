@@ -24,8 +24,13 @@ Die Seite direkt als Datei zu öffnen (`file://`) funktioniert nicht, weil ES-Mo
 |---|---|
 | `index.html` | Grundgerüst der Seite |
 | `firebase-config.js` | Einstellungen, füllt der Admin aus |
+| `ANLEITUNG.md` | Firebase Schritt für Schritt einrichten |
+| `firestore.rules` | Zugriffsregeln für die Datenbank (in der Firebase-Konsole einfügen) |
 | `css/app.css` | Gesamtes Aussehen (hell und dunkel) |
 | `js/main.js` | Start und Rendern |
+| `js/firebase.js` | Lädt das Firebase-SDK vom CDN und startet es |
+| `js/auth.js` | Anmeldung und Freischaltung |
+| `js/team.js` | Team-Liste (wer die App benutzen darf) |
 | `js/views/` | Die einzelnen Ansichten |
 | `js/stats.js` | Berechnungen |
 | `js/demo.js` | Beispieldaten für die Vorschau |

@@ -98,4 +98,12 @@ export function loadDemo() {
     { id: "cdemo3", matchId: "mdemo5", title: "Overtime, letzte Runde", kind: "local", notes: [], deleted: false },
   ];
   S.loaded = { players: true, matches: true, clips: true };
+  // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
+  S.demo = true;
+  S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };
+  S.team = {
+    emails: ["kairo@example.com", "managerin@example.com", "mats@example.com", "lumo@example.com", "feli@example.com", "brix@example.com", "zeno@example.com"],
+    admins: ["kairo@example.com", "managerin@example.com"],
+  };
+  S.isAdmin = true;
 }

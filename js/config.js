@@ -15,5 +15,9 @@ export const cfg = {
 // Ohne diese Werte kann Firebase nicht starten: Dann zeigt die App die Einrichtungsseite.
 export const isConfigured = Boolean(cfg.firebase.apiKey && cfg.firebase.projectId && cfg.firebase.appId);
 
-// Vorschau mit Beispieldaten: index.html?demo=1 (nichts wird gespeichert).
-export const isDemo = new URLSearchParams(location.search).has("demo");
+// Vorschau mit Beispieldaten: index.html?demo=1 (nichts wird gespeichert, Firebase wird nicht geladen).
+// Die Seiten rund um die Anmeldung lassen sich einzeln ansehen:
+// ?demo=login, ?demo=verify, ?demo=blocked, ?demo=offline, ?demo=team-setup
+const params = new URLSearchParams(location.search);
+export const isDemo = params.has("demo");
+export const demoPage = params.get("demo") || "";

@@ -52,6 +52,18 @@ export function parseTime(str) {
   return parts.reduce((acc, x) => acc * 60 + x, 0);
 }
 
+// Text in die Zwischenablage legen. Liefert true, wenn es geklappt hat.
+export async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* älterer Browser: Ausweichweg unten */ }
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch (e) { /* bleibt false */ }
+  ta.remove();
+  return ok;
+}
+
 let toastTimer = null;
 export function toast(msg) {
   const el = $("#toast");

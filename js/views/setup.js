@@ -16,16 +16,6 @@ export function setupView() {
   </div>`;
 }
 
-// Config ist da, aber der Login wird erst in Etappe 2 gebaut
-export function pendingView() {
-  return `<div class="empty">
-    <div class="eyebrow">In Arbeit</div>
-    <h2>Anmeldung folgt</h2>
-    <p>Die Firebase-Angaben sind eingetragen. Die Anmeldung wird in der nächsten Etappe gebaut.</p>
-    <a class="btn" href="?demo=1">Vorschau mit Beispieldaten ansehen</a>
-  </div>`;
-}
-
 // Etwas ist beim Starten schiefgegangen
 export function errorView(message) {
   const safe = String(message || "Unbekannter Fehler").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));

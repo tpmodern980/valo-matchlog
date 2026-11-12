@@ -336,6 +336,50 @@ video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; di
 .empty ol { margin: 0; padding-left: 20px; color: var(--muted); max-width: 60ch; display: flex; flex-direction: column; gap: 4px; }
 .notice { padding: 10px 14px; background: var(--draw-soft); color: var(--ink); border-left: 3px solid var(--draw); }
 
+/* ---------- Anmeldung, Sperrseite, Team anlegen ---------- */
+.auth {
+  width: 100%; max-width: 440px; margin: 8px auto 0; background: var(--surface);
+  border: 1px solid var(--line); border-top: 3px solid var(--accent);
+  padding: 24px 22px; display: flex; flex-direction: column; gap: 16px;
+}
+.auth-head { display: flex; flex-direction: column; gap: 6px; }
+.auth-head h1 { font-size: 26px; }
+.auth-head p { margin: 0; color: var(--muted); }
+.auth-form { display: flex; flex-direction: column; gap: 12px; }
+.auth-form input, .auth-form textarea { width: 100%; padding: 10px 12px; }
+.auth > .linkish { align-self: flex-start; padding: 8px 0; }
+.auth-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.auth-btns .btn { min-height: 42px; }
+.nw { white-space: nowrap; }
+.btn.block { width: 100%; padding-block: 11px; }
+.btn.google { gap: 10px; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; }
+.seg button { border: 0; background: transparent; padding: 7px 8px; font-weight: 600; color: var(--muted); cursor: pointer; border-radius: 3px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.pw { position: relative; display: block; }
+.auth-form .pw input { padding-right: 96px; }
+.pw .linkish { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); font-size: 13px; padding: 6px 8px; }
+.msg { margin: 0; padding: 10px 12px; font-size: 14px; font-weight: 600; border-left: 3px solid var(--line); background: var(--surface-2); overflow-wrap: anywhere; }
+.msg.error { background: var(--loss-soft); border-left-color: var(--loss); }
+.msg.ok { background: var(--win-soft); border-left-color: var(--win); }
+.mail { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.copybox { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.copybox code { border: 0; background: none; padding: 0; font-size: 15px; -webkit-user-select: all; user-select: all; }
+.chip.user { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 640px) { .chip.user { display: none; } }
+
+/* ---------- Team-Liste ---------- */
+.member { min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.member .tag { margin-right: 0; }
+.team-add { display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: end; margin: 16px 0 10px; }
+.team-add .field { flex: 1 1 220px; }
+.team-add .field input { width: 100%; }
+.check { display: inline-flex; align-items: center; gap: 6px; padding-block: 8px; white-space: nowrap; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.panel-body > .msg { margin-bottom: 10px; }
+
 /* ---------- Editor ---------- */
 #editor { position: fixed; inset: 0; z-index: 30; background: var(--scrim); display: flex; justify-content: center; align-items: flex-start;
   padding: calc(env(safe-area-inset-top, 0px) + 24px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(16px, env(safe-area-inset-left, 0px));
@@ -364,7 +408,7 @@ video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; di
 
 /* ---------- Toast ---------- */
 #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar) + 18px); z-index: 40;
-  background: var(--ink); color: var(--bg); padding: 10px 16px; font-weight: 600; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
+  background: var(--ink); color: var(--bg); padding: 10px 16px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
 .loading { color: var(--muted); padding: 24px 0; }
 @media (prefers-reduced-motion: no-preference) {
   .mrow, .btn, .clip-item { transition: border-color .15s, background-color .15s, filter .15s; }

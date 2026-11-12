@@ -1,0 +1,30 @@
+// Firestore-Regeln für Valo Matchlog.
+// Einfügen in der Firebase-Konsole: Datenbanken und Speicher > Firestore > Regeln (siehe ANLEITUNG.md, Schritt 4).
+// Vorher ADMIN_EMAIL durch die E-Mail des Besitzers ersetzen: komplett kleingeschrieben, die Anführungszeichen bleiben.
+// Die echte E-Mail steht nur in der Konsole, nicht in dieser Datei.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function verified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() { return request.auth.token.email.lower(); }
+    function team() { return get(/databases/$(database)/documents/config/team).data; }
+    function isOwner() { return verified() && email() == "ADMIN_EMAIL"; }
+    function isAdmin() { return isOwner() || (verified() && email() in team().admins); }
+    function isMember() { return isOwner() || (verified() && email() in team().emails); }
+
+    // updatedAt muss der Server-Zeitstempel sein, sonst bricht das sparsame Laden
+    function stamped() { return request.resource.data.updatedAt == request.time; }
+    // Wiederherstellen (deleted true -> false) dürfen nur Admins
+    function restoring() { return resource.data.deleted == true && request.resource.data.deleted == false; }
+    function canCreate() { return isMember() && stamped() && (request.resource.data.deleted == false || isAdmin()); }
+    function canUpdate() { return isMember() && stamped() && (!restoring() || isAdmin()); }
+
+    match /config/team { allow read: if isMember(); allow write: if isAdmin() && stamped(); }
+    // Kein "delete": gelöscht wird nur weich (deleted: true)
+    match /players/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
+    match /matches/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
+    match /clips/{id}   { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
+  }
+}
