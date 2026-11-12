@@ -2,6 +2,7 @@
 // Ablauf: nicht angemeldet -> "login". Angemeldet, E-Mail unbestätigt -> "verify".
 // Bestätigt -> Team-Liste prüfen ("checking") -> "app", "blocked", "team-setup" oder "offline".
 import { S, changed } from "./state.js";
+import { cfg } from "./config.js";
 import { loadFirebase } from "./firebase.js";
 import { watchTeam, stopTeam } from "./team.js";
 
@@ -17,10 +18,23 @@ const say = (text) => Object.assign(new Error(text), { plain: true });
 // ---------- Start ----------
 
 export async function startAuth() {
+  // Kommt die Seite gerade von Google zurück? Dann zuerst den Ausweis aus der Adresszeile nehmen.
+  const answer = takeGoogleAnswer();
   fb = await loadFirebase();
+  if (answer) await finishGoogleLogin(answer).catch(showLoginError);
   // Meldet sich sofort mit dem gemerkten Nutzer (oder null) und danach bei jedem An- und Abmelden
   fb.A.onAuthStateChanged(fb.auth, evaluate);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") onReturn(); });
+  // Manche Geräte laden die Seite bei der Rückkehr von Google nicht neu, sondern ändern nur den Teil hinter dem #
+  window.addEventListener("hashchange", () => {
+    const late = takeGoogleAnswer();
+    if (late) finishGoogleLogin(late).catch((e) => { showLoginError(e); changed(); });
+  });
+}
+
+function showLoginError(e) {
+  if (!e.plain) console.warn("Google-Anmeldung fehlgeschlagen:", e.code || e.message);
+  S.msg = { kind: "error", text: errorText(e) };
 }
 
 function evaluate(user) {
@@ -79,11 +93,69 @@ function onReturn() {
 // ---------- Aktionen der Anmelde-Seiten ----------
 // Jede Funktion wirft bei einem Fehler. Ein zurückgegebener Text ist eine Erfolgsmeldung.
 
-// Wichtig fürs iPhone: Das Fenster muss direkt im Klick aufgehen, deshalb hier kein "await" vor signInWithPopup.
+// Google-Anmeldung. Mit googleClientId in firebase-config.js wechselt die ganze Seite zu Google und kommt
+// mit einem Ausweis (ID-Token) hinter dem # zurück. Damit meldet sich die App dann bei Firebase an.
+// Grund: Das Zwischenfenster von Firebase verliert in der installierten iPhone-App seinen Zustand
+// ("missing initial state"). Ohne googleClientId bleibt es beim Fenster (Popup).
+const GOOGLE_KEY = "valo-google-login";
+const GOOGLE_MAX_MS = 15 * 60 * 1000;
+const GOOGLE_MISMATCH = "Die Antwort von Google passt nicht zu dieser Anmeldung oder kam zu spät. Tipp noch einmal auf „Mit Google anmelden“.";
+
+const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+
+// Adresse dieser Seite ohne ?… und #…: Genau so muss sie bei Google als Weiterleitungs-URI eingetragen sein.
+export const appUrl = () => location.origin + location.pathname.replace(/index\.html$/, "");
+
 export function loginGoogle() {
-  const provider = new fb.A.GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
-  return fb.A.signInWithPopup(fb.auth, provider).then(() => "");
+  if (!cfg.googleClientId) {
+    // Das Fenster muss direkt im Klick aufgehen, deshalb hier kein "await" vor signInWithPopup
+    const provider = new fb.A.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    return fb.A.signInWithPopup(fb.auth, provider).then(() => "");
+  }
+  // Merkzettel für die Rückkehr: Nur eine Antwort, die dazu passt, wird angenommen
+  const ticket = { state: randomId(), nonce: randomId(), at: Date.now() };
+  try { localStorage.setItem(GOOGLE_KEY, JSON.stringify(ticket)); }
+  catch (e) { return Promise.reject(say("Dieser Browser speichert nichts (privater Modus?). Nimm ein normales Browserfenster oder E-Mail und Passwort.")); }
+  const query = new URLSearchParams({
+    client_id: cfg.googleClientId, redirect_uri: appUrl(), response_type: "id_token", scope: "openid email profile",
+    nonce: ticket.nonce, state: ticket.state, prompt: "select_account",
+  });
+  location.assign("https://accounts.google.com/o/oauth2/v2/auth?" + query);
+  return new Promise(() => {});   // die Seite wird verlassen
+}
+
+// Steht hinter dem # eine Antwort von Google? Dann herausnehmen, damit der Ausweis nicht in der Adresszeile bleibt.
+function takeGoogleAnswer() {
+  const hash = location.hash.slice(1);
+  if (!/(^|&)state=/.test(hash) || !/(^|&)(id_token|error)=/.test(hash)) return null;
+  const p = new URLSearchParams(hash);
+  history.replaceState(null, "", location.pathname + location.search);
+  return { idToken: p.get("id_token"), error: p.get("error"), state: p.get("state") };
+}
+
+// Inhalt eines ID-Tokens lesen (mittlerer Teil, base64url). Geprüft wird das Token von Firebase.
+function tokenClaims(token) {
+  try {
+    const part = String(token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(part), (c) => c.charCodeAt(0))));
+  } catch (e) { return {}; }
+}
+
+async function finishGoogleLogin(answer) {
+  let ticket = null;
+  try { ticket = JSON.parse(localStorage.getItem(GOOGLE_KEY) || "null"); localStorage.removeItem(GOOGLE_KEY); } catch (e) { /* bleibt null */ }
+  if (answer.error) {
+    throw say(answer.error === "access_denied" ? "Die Anmeldung bei Google wurde abgebrochen." : `Google hat die Anmeldung abgelehnt (${answer.error}).`);
+  }
+  const fresh = ticket && ticket.state === answer.state && Date.now() - ticket.at < GOOGLE_MAX_MS;
+  if (!fresh || tokenClaims(answer.idToken).nonce !== ticket.nonce) throw say(GOOGLE_MISMATCH);
+  try {
+    await fb.A.signInWithCredential(fb.auth, fb.A.GoogleAuthProvider.credential(answer.idToken));
+  } catch (e) {
+    if (e.code === "auth/invalid-credential") throw say("Firebase hat die Google-Anmeldung nicht angenommen. Stimmt googleClientId in firebase-config.js?");
+    throw e;
+  }
 }
 
 export async function loginEmail(email, password) {

@@ -8,6 +8,7 @@ export const FIREBASE_VERSION = "13.2.0";
 const raw = window.VALO_CONFIG || {};
 export const cfg = {
   firebase: raw.firebase || {},
+  googleClientId: raw.googleClientId || "",
   recaptchaSiteKey: raw.recaptchaSiteKey || "",
   aiModel: raw.aiModel || "gemini-3.6-flash",
 };

@@ -39,7 +39,7 @@ Kontrolle: Unten links in der Konsole steht der Tarif **Spark** (kostenlos). So 
 
 6. Öffne im Ordner `C:\dev\valo-matchlog` die Datei `firebase-config.js` mit dem Editor: **Rechtsklick → „Öffnen mit“ → Editor**. Kein Doppelklick, sonst versucht Windows, die Datei auszuführen.
 7. In der Datei stehen dieselben sechs Namen, aber mit leeren Anführungszeichen, zum Beispiel `apiKey: "",`. Kopiere für jede Zeile den Wert aus der Konsole zwischen die Anführungszeichen der Zeile mit demselben Namen. Aus `apiKey: "",` wird also `apiKey: "AIza...",` mit deinem Wert. Das Komma am Zeilenende bleibt stehen.
-8. Die Zeilen `recaptchaSiteKey` und `aiModel` nicht anfassen. Datei speichern (Strg+S).
+8. Die Zeilen `recaptchaSiteKey` und `aiModel` nicht anfassen. Die Zeile `googleClientId` kommt in Schritt 5 dran. Datei speichern (Strg+S).
 
 Den Block findest du später wieder unter Zahnrad → **Projekteinstellungen** → Allgemein → „Meine Apps“.
 
@@ -67,9 +67,27 @@ Deine echte E-Mail steht damit nur in der Konsole, nicht im Repo.
 
 ## Schritt 5: Adresse der App erlauben
 
+Die Adresse muss an zwei Stellen eingetragen sein: bei Firebase und bei Google.
+
+**Bei Firebase:**
+
 1. **Sicherheit → Authentifizierung** → Reiter **Einstellungen** → **Autorisierte Domains**.
 2. **Domain hinzufügen**: `tpmodern980.github.io`
 3. `localhost` steht schon in der Liste. Das brauchst du für den Test am eigenen Rechner.
+
+**Bei Google (für „Mit Google anmelden“):**
+
+1. Öffne <https://console.cloud.google.com/apis/credentials> und wähl oben dein Projekt aus (dasselbe wie in Firebase).
+2. Unter **OAuth 2.0-Client-IDs** auf **Web client (auto created by Google Service)** klicken.
+3. Auf der Seite gibt es **zwei Listen**, die sich ähnlich sehen. Die obere heißt „Autorisierte JavaScript-Quellen“: Dort nichts ändern. Meldet die Seite „Ungültiger Ursprung: URIs dürfen keinen Pfad enthalten“, bist du in dieser oberen Liste gelandet.
+4. Weiter unten bei **Autorisierte Weiterleitungs-URIs** auf **URI hinzufügen** und diese zwei Adressen eintragen, genau so, mit dem Schrägstrich am Ende:
+   - `https://tpmodern980.github.io/valo-matchlog/`
+   - `http://localhost:8123/`
+5. Den Eintrag, der dort schon steht (`…firebaseapp.com/__/auth/handler`), **nicht löschen**.
+6. **Speichern**. Es kann ein paar Minuten dauern, bis Google die Änderung übernimmt.
+7. Auf derselben Seite steht oben rechts die **Client-ID** (endet auf `.apps.googleusercontent.com`). Sie gehört in `firebase-config.js` in die Zeile `googleClientId`. Auch sie ist kein Geheimnis.
+
+Warum das nötig ist: Für die Google-Anmeldung wechselt die App kurz zu Google und kommt dann zurück. Google schickt niemanden an eine Adresse zurück, die nicht in dieser Liste steht.
 
 ## Schritt 6: Ausprobieren
 
@@ -89,7 +107,9 @@ Wer nicht auf der Liste steht, sieht nach der Anmeldung die Seite „Noch nicht 
 | „Keine Verbindung“, obwohl das Internet geht | Die Firestore-Datenbank ist noch nicht angelegt (Schritt 4). |
 | „Diese Anmeldeart ist in Firebase noch nicht eingeschaltet“ | Schritt 3 fehlt für Google oder für E-Mail/Passwort. |
 | „… nicht als autorisierte Domain eingetragen“ | Schritt 5 fehlt. |
-| Das Google-Fenster geht nicht auf | Der Browser blockiert Pop-ups. Für die Seite erlauben und noch einmal klicken. |
+| Google zeigt „Fehler 400: redirect_uri_mismatch“ | Die Adresse der App fehlt bei Google oder ist anders geschrieben (Schritt 5, Teil „Bei Google“). Nach dem Speichern ein paar Minuten warten. |
+| „Unable to process request due to missing initial state“ | In `firebase-config.js` fehlt die `googleClientId` (Schritt 5). Dann nutzt die App ein Google-Fenster, das in der installierten iPhone-App nicht zuverlässig funktioniert. |
+| „Die Antwort von Google passt nicht zu dieser Anmeldung“ | Die Anmeldung hat länger als 15 Minuten gedauert oder wurde in einem anderen Browser beendet. Noch einmal auf „Mit Google anmelden“ tippen. |
 
 ## Als App auf den Home-Bildschirm legen
 
