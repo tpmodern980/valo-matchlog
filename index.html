@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Valo Matchlog</title>
+<meta name="description" content="Team-Tracker: Matches, Statistiken und Clip-Review.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1318" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="fonts/barlow-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/chakra-petch-600-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#matches"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name" id="brand-name">Valo Matchlog</span></a>
+    <nav class="tabs" id="tabs" aria-label="Bereiche" hidden>
+      <a class="tab" href="#matches" data-tab="matches">Matches</a>
+      <a class="tab" href="#players" data-tab="players">Spieler</a>
+      <a class="tab" href="#maps" data-tab="maps">Maps</a>
+      <a class="tab" href="#opponents" data-tab="opponents">Gegner</a>
+      <a class="tab" href="#team" data-tab="team">Team</a>
+    </nav>
+    <div class="top-right" id="status"></div>
+  </div>
+</header>
+
+<main class="wrap" id="view"><p class="loading">Lädt …</p></main>
+
+<footer class="foot wrap">Fan-Projekt, nicht mit Riot Games verbunden.</footer>
+
+<div id="editor" hidden></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<datalist id="dl-maps"></datalist>
+<datalist id="dl-agents"></datalist>
+<datalist id="dl-players"></datalist>
+<datalist id="dl-opponents"></datalist>
+
+<noscript><p class="wrap">Diese App braucht JavaScript.</p></noscript>
+
+<!-- Einstellungen (füllt der Admin aus), danach die App -->
+<script src="firebase-config.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

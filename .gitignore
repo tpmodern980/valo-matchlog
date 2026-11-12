@@ -1,0 +1,13 @@
+# Planung liegt im OneDrive-Ordner und gehoert nicht ins oeffentliche Repo
+PLAN.md
+CLAUDE.md
+referenz/
+.claude/
+
+# Kein Build-Schritt: falls doch mal jemand npm benutzt, nichts davon einchecken
+node_modules/
+
+# Betriebssystem-Kram
+Thumbs.db
+desktop.ini
+.DS_Store
