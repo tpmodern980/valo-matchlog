@@ -228,8 +228,8 @@ select { padding-right: 28px; }
   .mrow { grid-template-columns: minmax(0, 1fr) auto; }
   .mrow-date { grid-column: 1 / -1; display: flex; gap: 8px; align-items: baseline; }
   .mrow-date b { display: inline; }
-  .res { grid-column: 2; grid-row: 3; }
-  .score { grid-column: 1; grid-row: 3; }
+  .mrow .res { grid-column: 2; grid-row: 3; }
+  .mrow .score { grid-column: 1; grid-row: 3; }
 }
 
 /* ---------- Panels & Tabellen ---------- */
@@ -270,6 +270,7 @@ td.name { font-weight: 600; }
   .detail-head .score { text-align: left; font-size: 36px; }
   .detail-head h1 { font-size: 28px; }
   .detail-score { justify-items: start; }
+  .detail-score .res { justify-self: start; }
 }
 
 /* ---------- Rundenverlauf ---------- */
