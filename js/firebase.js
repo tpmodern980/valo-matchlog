@@ -7,6 +7,7 @@ const CDN = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/`;
 
 let base = null;   // App + Anmeldung
 let data = null;   // Datenbank (erst nach der Anmeldung nötig)
+let cleanup = Promise.resolve();   // letztes Aufräumen (clearDb): Ein neuer Start der Datenbank wartet darauf
 
 // Liefert { app, auth, A }. A ist das Auth-Modul mit seinen Funktionen.
 export function loadFirebase() {
@@ -23,25 +24,47 @@ export function loadFirebase() {
   return base;
 }
 
+async function openDb() {
+  const { app } = await loadFirebase();
+  const F = await import(CDN + "firebase-firestore.js");
+  let db;
+  try {
+    // Dauerhafter Zwischenspeicher auf dem Gerät (PLAN.md Abschnitt 6): spart Lesezugriffe, Daten auch offline.
+    db = F.initializeFirestore(app, {
+      localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager(), cacheSizeBytes: F.CACHE_SIZE_UNLIMITED }),
+    });
+  } catch (e) {
+    // z. B. privater Modus ohne IndexedDB: dann nur im Arbeitsspeicher
+    db = F.getFirestore(app);
+  }
+  return { db, F };
+}
+
 // Liefert { db, F }. F ist das Firestore-Modul mit seinen Funktionen.
 export function loadDb() {
   if (!data) {
-    data = (async () => {
-      const { app } = await loadFirebase();
-      const F = await import(CDN + "firebase-firestore.js");
-      let db;
-      try {
-        // Dauerhafter Zwischenspeicher auf dem Gerät (PLAN.md Abschnitt 6): spart Lesezugriffe, Daten auch offline.
-        db = F.initializeFirestore(app, {
-          localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager(), cacheSizeBytes: F.CACHE_SIZE_UNLIMITED }),
-        });
-      } catch (e) {
-        // z. B. privater Modus ohne IndexedDB: dann nur im Arbeitsspeicher
-        db = F.getFirestore(app);
-      }
-      return { db, F };
-    })();
-    data.catch(() => { data = null; });
+    const mine = cleanup.then(openDb);
+    data = mine;
+    mine.catch(() => { if (data === mine) data = null; });
   }
   return data;
+}
+
+// Wurde die Datenbank in dieser Sitzung schon gestartet?
+export const dbLoaded = () => Boolean(data);
+
+// Zwischenspeicher dieses Geräts leeren (beim Abmelden und auf der Sperrseite), damit keine Daten
+// eines früheren Nutzers liegen bleiben. Firestore erlaubt das nur bei beendeter Datenbank:
+// Deshalb wird sie beendet und beim nächsten loadDb() frisch gestartet.
+// Vorher müssen alle Abos (onSnapshot) gestoppt sein.
+export function clearDb() {
+  const old = data;
+  data = null;
+  const job = cleanup.then(async () => {
+    const { db, F } = await (old || openDb());
+    await F.terminate(db);
+    await F.clearIndexedDbPersistence(db);
+  });
+  cleanup = job.catch(() => {});   // auch nach einem Fehlschlag darf die Datenbank wieder starten
+  return job;
 }

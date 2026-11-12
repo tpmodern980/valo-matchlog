@@ -10,6 +10,7 @@ import { soonView } from "./views/parts.js";
 import { setupView, errorView } from "./views/setup.js";
 import * as authPages from "./views/auth.js";
 import * as teamPages from "./views/team.js";
+import * as playerPages from "./views/players.js";
 
 // Darf der Nutzer die eigentliche App sehen? Nur angemeldet und freigeschaltet (oder in der Vorschau).
 const inApp = () => S.mode === "app";
@@ -31,7 +32,7 @@ function viewHtml(r) {
   if (!inApp()) return (GATES[S.mode] || GATES.boot)();
   switch (r.name) {
     case "match": return matchView(r.id);
-    case "players": return soonView("Statistik", "Spieler", "Tabelle aller Spieler mit ACS, K/D, KPR und Diagrammen. Stammspieler oben, Subs in einem eigenen Block. Dazu das Roster.", "5");
+    case "players": return playerPages.playersView();
     case "player": return soonView("Statistik", "Spieler-Detail", "Kennzahlen, Verlauf von ACS und K/D, ACS nach Map, Agents und Match-Historie.", "5");
     case "maps": return soonView("Statistik", "Maps", "Bilanz und Winrate pro Map, Angriff und Verteidigung getrennt, Pistol-Quote.", "5");
     case "opponents":
@@ -74,7 +75,8 @@ function render() {
 }
 
 onChange(render);
-window.addEventListener("hashchange", () => { render(); window.scrollTo(0, 0); });
+// Beim Seitenwechsel verschwindet eine alte Meldung (sonst stünde sie auf der nächsten Seite wieder da)
+window.addEventListener("hashchange", () => { S.msg = null; render(); window.scrollTo(0, 0); });
 
 // Filter oben (Art, Map, Zeitraum) gelten für alle Ansichten
 document.addEventListener("change", (e) => {
@@ -86,8 +88,15 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions };
-const FORMS = { ...authPages.forms, ...teamPages.forms };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions };
+const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms };
+// Auswahlfelder mit data-change speichern sofort beim Ändern
+const CHANGES = { ...playerPages.changes };
+
+document.addEventListener("change", (e) => {
+  const fn = e.target.dataset ? CHANGES[e.target.dataset.change] : null;
+  if (fn) fn(e.target);
+});
 
 document.addEventListener("click", (e) => {
   const el = e.target.closest ? e.target.closest("[data-action]") : null;

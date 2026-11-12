@@ -5,6 +5,7 @@ import { S, changed } from "./state.js";
 import { cfg } from "./config.js";
 import { loadFirebase } from "./firebase.js";
 import { watchTeam, stopTeam } from "./team.js";
+import { startData, stopData, wipeData } from "./data.js";
 
 let fb = null;          // { auth, A } sobald Firebase geladen ist
 let waitTimer = null;
@@ -39,9 +40,11 @@ function showLoginError(e) {
 
 function evaluate(user) {
   stopTeam();
+  stopData();
   clearTimeout(waitTimer);
   S.team = null; S.isAdmin = false;
-  if (!user) { S.user = null; go("login"); return; }
+  // Niemand (mehr) angemeldet: geladene Daten von diesem Gerät entfernen
+  if (!user) { S.user = null; wipeData(); go("login"); return; }
   S.user = { uid: user.uid, email: String(user.email || "").toLowerCase(), name: user.displayName || "" };
   if (!user.emailVerified) { go("verify"); return; }
   checkAccess();
@@ -67,13 +70,13 @@ function onTeam(r) {
     const same = S.mode === "app" && JSON.stringify(S.team) === JSON.stringify(r.team);
     S.team = r.team;
     S.isAdmin = r.team.admins.includes(S.user.email);
-    // Bis Etappe 3 kommen noch keine Daten aus Firestore: leere Listen zeigen statt endlos "Lade Matches …"
-    S.loaded = { players: true, matches: true, clips: true };
+    startData();   // Spieler, Matches und Clips laden (läuft es schon, passiert nichts)
     if (!same) go("app");
   } else if (r.state === "new") {
     if (S.mode !== "team-setup") go("team-setup");
   } else if (r.state === "blocked") {
     S.team = null; S.isAdmin = false;
+    wipeData();   // nicht (mehr) freigeschaltet: geladene Daten von diesem Gerät entfernen
     go("blocked");
   } else if (isOffline(r.error)) {
     go("offline");
@@ -198,6 +201,7 @@ export async function resendVerification() {
 
 export async function logout() {
   stopTeam();
+  stopData();   // der Zwischenspeicher wird geleert, sobald die Abmeldung durch ist (evaluate)
   S.authTab = "login";
   await fb.A.signOut(fb.auth);
 }

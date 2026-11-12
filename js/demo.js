@@ -1,6 +1,7 @@
 // Beispieldaten für die Vorschau (index.html?demo=1). Alles erfunden, nichts wird gespeichert.
 // Die Zahlen entstehen aus einem festen Zufalls-Startwert, sind also bei jedem Laden gleich.
 import { S } from "./state.js";
+import { setLocal } from "./data.js";
 import { daysAgo } from "./util.js";
 
 function rng(seed) {
@@ -10,7 +11,7 @@ function rng(seed) {
 
 const PLAYERS = [
   { id: "pdemo1", name: "Kairo", aliases: ["Kairo#EUW", "kairo2#7781"], role: "Duelist", status: "stamm", skill: 1.18, agents: ["Jett", "Raze", "Neon"] },
-  { id: "pdemo2", name: "Mats", aliases: ["matsn#4711"], role: "Initiator", status: "stamm", skill: 1.0, agents: ["Sova", "Fade", "Skye"] },
+  { id: "pdemo2", name: "Mats", aliases: ["matsn#4711"], role: "Initiator", role2: "Controller", status: "stamm", skill: 1.0, agents: ["Sova", "Fade", "Skye"] },
   { id: "pdemo3", name: "Lumo", aliases: ["Lumo#0001"], role: "Controller", status: "stamm", skill: 0.94, agents: ["Omen", "Viper", "Clove"] },
   { id: "pdemo4", name: "Feli", aliases: ["feli#cat"], role: "Sentinel", status: "stamm", skill: 0.9, agents: ["Killjoy", "Cypher", "Vyse"] },
   { id: "pdemo5", name: "Brix", aliases: ["Brix#EUW"], role: "Flex", status: "stamm", skill: 1.02, agents: ["KAY/O", "Breach", "Gekko"] },
@@ -74,8 +75,9 @@ function makeRow(p, rounds, won, rand) {
 export function loadDemo() {
   const rand = rng(20261112);
   const now = Date.now();
-  S.players = PLAYERS.map(({ skill, agents, ...p }) => ({ ...p, active: true, deleted: false }));
-  S.matches = GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
+  // setLocal legt die Daten so ab wie das echte Laden: Das Roster lässt sich in der Vorschau ändern (nur im Arbeitsspeicher)
+  setLocal("players", PLAYERS.map(({ skill, agents, ...p }) => ({ ...p, active: true, deleted: false })));
+  setLocal("matches", GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
     const open = us === null;
     const lineup = PLAYERS.filter((p) => withSub ? p.id !== "pdemo4" : p.status === "stamm");
     const rounds = open ? null : us + them;
@@ -91,13 +93,12 @@ export function loadDemo() {
         ? lineup.map((p) => ({ playerId: p.id, name: p.aliases[0], agent: p.agents[0], kills: null, deaths: null, assists: null, acs: null, hsPct: null, firstBloods: null, plants: null, defuses: null, trades: null }))
         : lineup.map((p) => makeRow(p, rounds, us > them, rand)),
     };
-  });
-  S.clips = [
+  }));
+  setLocal("clips", [
     { id: "cdemo1", matchId: "mdemo1", title: "Retake B, Runde 14", kind: "local", notes: [], deleted: false },
     { id: "cdemo2", matchId: "mdemo1", title: "Pistol Verteidigung", kind: "local", notes: [], deleted: false },
     { id: "cdemo3", matchId: "mdemo5", title: "Overtime, letzte Runde", kind: "local", notes: [], deleted: false },
-  ];
-  S.loaded = { players: true, matches: true, clips: true };
+  ]);
   // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
   S.demo = true;
   S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };
