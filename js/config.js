@@ -1,5 +1,5 @@
 // Zentrale Einstellungen der App.
-// Der App-Name steht außerdem in index.html (<title>, Kopfzeile) und später in manifest.webmanifest.
+// Der App-Name steht außerdem in index.html (<title>, Kopfzeile) und in manifest.webmanifest.
 export const APP_NAME = "Valo Matchlog";
 
 // Feste Version des Firebase-SDK vom gstatic-CDN (nicht automatisch erhöhen).

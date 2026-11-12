@@ -91,6 +91,13 @@ Wer nicht auf der Liste steht, sieht nach der Anmeldung die Seite „Noch nicht 
 | „… nicht als autorisierte Domain eingetragen“ | Schritt 5 fehlt. |
 | Das Google-Fenster geht nicht auf | Der Browser blockiert Pop-ups. Für die Seite erlauben und noch einmal klicken. |
 
+## Als App auf den Home-Bildschirm legen
+
+Die App kommt nicht aus dem App Store. Man öffnet die Adresse im Browser und legt sie von dort auf den Home-Bildschirm. Danach startet sie wie eine eigene App. Ein eigenes Icon gibt es noch nicht, das folgt später.
+
+- **iPhone:** Die Adresse in **Safari** öffnen → Teilen-Symbol (Viereck mit Pfeil nach oben) → **Zum Home-Bildschirm** → Hinzufügen. Falls dort ein Schalter „Als Web-App öffnen“ steht: eingeschaltet lassen.
+- **Android:** Die Adresse in **Chrome** öffnen → Menü mit den drei Punkten → **Zum Startbildschirm hinzufügen** (oder „App installieren“).
+
 ## Hinweise fürs Team
 
 - **iPhone:** Die App auf dem Home-Bildschirm hat einen eigenen Speicher. Man muss sich dort neu anmelden, auch wenn man in Safari schon angemeldet war.

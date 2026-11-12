@@ -23,6 +23,7 @@ Die Seite direkt als Datei zu öffnen (`file://`) funktioniert nicht, weil ES-Mo
 | Ordner / Datei | Inhalt |
 |---|---|
 | `index.html` | Grundgerüst der Seite |
+| `manifest.webmanifest` | Angaben für die Installation als App (Name, Farben) |
 | `firebase-config.js` | Einstellungen, füllt der Admin aus |
 | `ANLEITUNG.md` | Firebase Schritt für Schritt einrichten |
 | `firestore.rules` | Zugriffsregeln für die Datenbank (in der Firebase-Konsole einfügen) |

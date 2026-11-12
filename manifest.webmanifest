@@ -1,0 +1,11 @@
+{
+  "name": "Valo Matchlog",
+  "short_name": "Matchlog",
+  "description": "Team-Tracker: Matches, Statistiken und Clip-Review.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0E1318",
+  "theme_color": "#0E1318"
+}
