@@ -8,7 +8,8 @@ import { filterBar } from "./parts.js";
 export function matchesView() {
   // Kopf zuerst: filterBar räumt veraltete Filter weg, bevor gefiltert wird
   const head = `<div class="view-head"><div><div class="eyebrow">Team-Bilanz</div><h1>Matches</h1>
-    <p>Alle Scrims und Matches eures Teams. Tipp auf ein Match für Scoreboard, Rundenverlauf, Notizen und Clips.</p></div>${filterBar(true)}</div>`;
+    <p>Alle Scrims und Matches eures Teams. Tipp auf ein Match für Scoreboard, Rundenverlauf, Notizen und Clips.</p></div>
+    <div class="head-side">${filterBar(true)}<button class="btn primary" type="button" data-action="mf-new">Match eintragen</button></div></div>`;
   const list = sortMatches(filtered());
   const sum = teamSummary(list);
   const last5 = sortMatches(S.matches).slice(0, 5).reverse();
@@ -16,7 +17,7 @@ export function matchesView() {
 
   if (!S.matches.length) {
     return head + `<div class="empty"><h2>Noch keine Matches</h2>
-      <p>Hier landen eure Scrims, Liga-Spiele und Turniere. Tragt das erste Match ein: von Hand oder aus einem Scoreboard-Screenshot.</p></div>`;
+      <p>Hier landen eure Scrims, Premier-Matches und Turniere. Tragt oben über „Match eintragen“ das erste Match ein.</p></div>`;
   }
 
   const dots = last5.map((m) => {

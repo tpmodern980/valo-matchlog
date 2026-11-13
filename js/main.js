@@ -11,6 +11,7 @@ import { setupView, errorView } from "./views/setup.js";
 import * as authPages from "./views/auth.js";
 import * as teamPages from "./views/team.js";
 import * as playerPages from "./views/players.js";
+import * as matchForm from "./views/matchform.js";
 
 // Darf der Nutzer die eigentliche App sehen? Nur angemeldet und freigeschaltet (oder in der Vorschau).
 const inApp = () => S.mode === "app";
@@ -33,7 +34,7 @@ function viewHtml(r) {
   switch (r.name) {
     case "match": return matchView(r.id);
     case "players": return playerPages.playersView();
-    case "player": return soonView("Statistik", "Spieler-Detail", "Kennzahlen, Verlauf von ACS und K/D, ACS nach Map, Agents und Match-Historie.", "5");
+    case "player": return soonView("Statistik", "Spieler-Detail", "Kennzahlen, Verlauf von KPR und K/D, K/D nach Map, Agents und Match-Historie.", "5");
     case "maps": return soonView("Statistik", "Maps", "Bilanz und Winrate pro Map, Angriff und Verteidigung getrennt, Pistol-Quote.", "5");
     case "opponents":
     case "opponent": return soonView("Statistik", "Gegner", "Bilanz, Winrate und alle Matches pro Gegner.", "5");
@@ -56,6 +57,8 @@ function renderStatus() {
 function render() {
   const r = route();
   const app = inApp();
+  // Abgemeldet oder gesperrt, während das Match-Formular offen ist: Es darf nicht über der Anmelde-Seite stehen bleiben
+  if (!app) matchForm.closeEditor();
   document.body.classList.toggle("no-nav", !app);
   $("#tabs").hidden = !app;
   const tab = TAB_OF[r.name] || r.name;
@@ -76,7 +79,8 @@ function render() {
 
 onChange(render);
 // Beim Seitenwechsel verschwindet eine alte Meldung (sonst stünde sie auf der nächsten Seite wieder da)
-window.addEventListener("hashchange", () => { S.msg = null; render(); window.scrollTo(0, 0); });
+// Ein offenes Match-Formular geht dabei zu (z. B. beim Zurück-Knopf des Handys).
+window.addEventListener("hashchange", () => { matchForm.closeEditor(); S.msg = null; render(); window.scrollTo(0, 0); });
 
 // Filter oben (Art, Map, Zeitraum) gelten für alle Ansichten
 document.addEventListener("change", (e) => {
@@ -88,7 +92,7 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions };
 const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms };
 // Auswahlfelder mit data-change speichern sofort beim Ändern
 const CHANGES = { ...playerPages.changes };

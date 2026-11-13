@@ -1,14 +1,20 @@
 // Bausteine, die mehrere Ansichten benutzen.
 import { S } from "../state.js";
-import { TYPES } from "../constants.js";
+import { TYPES, MAPS } from "../constants.js";
 import { esc, norm } from "../util.js";
 
 // Filterzeile (Art, Map, Zeitraum). Änderungen fängt main.js über data-filter ab.
 // Muss vor filtered() aufgerufen werden: räumt einen gemerkten Map-Filter weg, den es nicht mehr gibt.
 export function filterBar(showMap) {
   const f = S.filters;
-  const maps = [...new Set(S.matches.map((m) => m.map).filter(Boolean))].sort();
+  // Alle bekannten Maps, dazu jede, die in einem Match steht (z. B. eine neue Map, die noch nicht in MAPS ist)
+  const seen = new Set();
+  const maps = [...MAPS, ...S.matches.map((m) => m.map)]
+    .filter((m) => m && !seen.has(norm(m)) && seen.add(norm(m)))
+    .sort((a, b) => a.localeCompare(b, "de"));
   if (S.loaded.matches && f.map !== "alle" && !maps.some((m) => norm(m) === norm(f.map))) f.map = "alle";
+  // Dasselbe für eine gemerkte Art, die es nicht mehr gibt
+  if (f.type !== "alle" && !TYPES.includes(f.type)) f.type = "alle";
   const o = (v, label, cur) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(label)}</option>`;
   return `<div class="filters">
     <label class="field"><span>Art</span><select id="f-type" data-filter="type">${o("alle", "Alle", f.type)}${TYPES.map((t) => o(t, t, f.type)).join("")}</select></label>

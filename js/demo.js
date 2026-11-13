@@ -23,17 +23,17 @@ const GAMES = [
   [1, "Scrim", "Nordlicht", "Ascent", 13, 9],
   [2, "Premier", "Team Kiesel", "Lotus", 11, 13],
   [3, "Scrim", "Graue Wölfe", "Haven", null, null],
-  [4, "Scrim", "Lowground", "Haven", 13, 7],
+  [4, "Scrim", "Lowground", "Haven", 15, 9],   // Scrims gehen oft über alle 24 Runden
   [6, "Scrim", "Nordlicht", "Bind", 14, 12],
-  [8, "Liga", "FC Spike", "Split", 13, 11, true],
+  [8, "Premier", "FC Spike", "Split", 13, 11, true],
   [9, "Scrim", "Mitternacht", "Sunset", 8, 13],
   [12, "Scrim", "Lowground", "Ascent", 13, 5],
   [15, "Turnier", "Team Kiesel", "Abyss", 13, 15, true],
   [16, "Scrim", "FC Spike", "Corrode", 13, 10],
   [22, "Premier", "Mitternacht", "Lotus", 13, 6],
   [27, "Scrim", "Nordlicht", "Split", 9, 13],
-  [35, "Liga", "Graue Wölfe", "Bind", 13, 8, true],
-  [44, "Scrim", "Lowground", "Sunset", 10, 13],
+  [35, "Turnier", "Graue Wölfe", "Bind", 13, 8, true],
+  [44, "Scrim", "Lowground", "Fracture", 10, 13],
   [58, "Scrim", "FC Spike", "Ascent", 13, 11],
 ];
 
@@ -63,12 +63,9 @@ function makeRow(p, rounds, won, rand) {
     kills,
     deaths: Math.max(4, Math.round(rounds * (0.7 / p.skill) * (0.8 + rand() * 0.35) * (won ? 0.93 : 1.05))),
     assists: Math.round(rounds * (0.18 + rand() * 0.25)),
-    acs: Math.round(kpr * 265 + 20 + rand() * 30),
-    hsPct: Math.round(14 + rand() * 20),
     firstBloods: Math.round(rand() * kills * 0.22),
     plants: Math.floor(rand() * 4),
     defuses: Math.floor(rand() * 2.4),
-    trades: Math.round(rand() * 6),
   };
 }
 
@@ -90,7 +87,7 @@ export function loadDemo() {
       notes: i === 0 ? "Gute Retakes auf B. Auf A zu oft einzeln gepeekt." : "",
       createdAt: now - days * 86400000, createdBy: null, deleted: false,
       players: open
-        ? lineup.map((p) => ({ playerId: p.id, name: p.aliases[0], agent: p.agents[0], kills: null, deaths: null, assists: null, acs: null, hsPct: null, firstBloods: null, plants: null, defuses: null, trades: null }))
+        ? lineup.map((p) => ({ playerId: p.id, name: p.aliases[0], agent: p.agents[0], kills: null, deaths: null, assists: null, firstBloods: null, plants: null, defuses: null }))
         : lineup.map((p) => makeRow(p, rounds, us > them, rand)),
     };
   }));

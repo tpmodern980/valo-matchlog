@@ -433,7 +433,104 @@ video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; di
 .ptable td.n { min-width: 62px; }
 .foot-msg { color: var(--loss); font-weight: 600; font-size: 14px; margin-right: auto; }
 .foot-btns { display: flex; gap: 8px; margin-left: auto; }
-@media (max-width: 560px) { #editor { padding: 0; } .sheet { min-height: 100%; border: 0; } }
+@media (max-width: 560px) {
+  #editor { padding: 0; }
+  .sheet { min-height: 100%; border: 0; }
+  .sheet-head { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+  .sheet-foot { padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------- Match eintragen / bearbeiten ---------- */
+.head-side { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; justify-content: flex-end; }
+.detail-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.detail-top .btn { min-height: 38px; }
+.notes-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Scoreboard am Handy: Agent unter dem Namen statt in eigener Spalte, schmalere Zellen */
+.agent-sm { display: none; }
+@media (max-width: 560px) {
+  .sb .col-agent { display: none; }
+  .sb .agent-sm { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+  .sb th, .sb td { padding: 8px 5px; }
+  .sb th { letter-spacing: 0; }
+  .sb th:first-child, .sb td:first-child { padding-left: 12px; }
+  .sb th:last-child, .sb td:last-child { padding-right: 12px; }
+  .sb td.name { white-space: normal; overflow-wrap: anywhere; }
+  .sb .tag { margin-right: 0; }
+}
+.sheet .field input, .sheet .field select, .sheet .field textarea { width: 100%; }
+.sheet .field input, .sheet .field select { min-height: 40px; }
+.sheet-foot .msg { flex: 1 1 100%; }
+.sheet-foot .confirm { flex: 1 1 auto; }
+.sheet-foot .btn { min-height: 42px; }
+.rd-ok { margin: 0; color: var(--win); font-weight: 600; font-size: 14px; }
+.sheet .notice { margin: 0; font-size: 14px; }
+
+/* Spielerzeilen: am Desktop eine Zeile pro Spieler mit Kopfzeile, am Handy zwei Zeilen mit Beschriftung über jedem Feld */
+.mp-list { display: flex; flex-direction: column; gap: 6px; }
+.mp-head, .mp-row { display: grid; grid-template-columns: minmax(140px, 1.5fr) minmax(110px, 1fr) repeat(6, minmax(52px, 84px)) 38px; gap: 6px; align-items: end; }
+.mp-head { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-bottom: 2px; }
+.mp-head span { text-align: center; }
+.mp-head span:nth-child(-n+2) { text-align: left; }
+.mini { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mini > span { font-size: 10px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.mini input { width: 100%; min-height: 40px; padding: 7px 8px; }
+.mini input.numf { text-align: center; padding-inline: 2px; }
+.mp-x { align-self: end; height: 40px; }
+.mp-tools { margin-top: 12px; }
+.mp-tools .btn { min-height: 38px; }
+@media (min-width: 721px) {
+  .mp-row .mini > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+}
+@media (max-width: 720px) {
+  .mp-head { display: none; }
+  .mp-list { gap: 0; }
+  .mp-row { grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .mp-row:first-of-type { padding-top: 0; }
+  /* Erste Zeile: Name, Agent und "Zeile entfernen". Zweite Zeile: die sechs Zahlen. */
+  .mp-name { grid-column: span 6; order: 1; }
+  .mp-agent { grid-column: span 4; order: 2; }
+  .mp-x { grid-column: span 2; justify-self: end; order: 3; }
+  .mp-row .mini:not(.mp-name):not(.mp-agent) { grid-column: span 2; order: 4; }
+  .mp-row .mini:not(.mp-name):not(.mp-agent) > span { text-align: center; letter-spacing: 0; }
+  .sheet .panel-body { padding: 14px 12px; }
+}
+
+/* Rundenverlauf im Formular: große Knöpfe für die nächste Runde, darunter die Felder zum Korrigieren */
+.rd-edit { display: flex; flex-direction: column; gap: 14px; }
+.rd-side .seg, .rd-now, .rd-add, .rd-edit .halves { max-width: 560px; }
+.rd-edit .half-head, .rd-grid { max-width: none; }
+.sheet .seg button { min-height: 42px; }
+.rd-now { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: -6px; }
+.rd-now b { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: .03em; }
+.rd-now span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.rd-add { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; }
+.rd-add .btn { min-height: 52px; font-size: 16px; }
+.btn.rd-w { background: var(--win-soft); color: var(--win); border-color: var(--win); }
+.btn.rd-l { background: var(--loss-soft); color: var(--loss); border-color: var(--loss); }
+.rd-grid { gap: 4px; }
+.rdb { height: 44px; padding: 0; border: 1px solid transparent; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1; }
+.rdb small { font-family: var(--font-body); font-size: 10px; font-weight: 600; color: var(--muted); }
+.rdb b { font-size: 14px; min-height: 14px; }
+.rdb.E { background: var(--surface-2); border-color: var(--line); color: var(--muted); }
+.rdb.next { border: 2px solid var(--accent); background: var(--surface); }
+.rdb:disabled { opacity: .5; cursor: default; }
+/* Trennstrich nach Runde 12 (Seitenwechsel) */
+.rd-edit .half + .half { border-top: 2px solid var(--line); padding-top: 12px; }
+@media (max-width: 560px) {
+  .rd-side .seg, .rd-now, .rd-add, .rd-edit .halves { max-width: none; }
+  .rd-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* Abfrage für unbekannte Namen */
+.ask { border-color: var(--draw); border-left: 3px solid var(--draw); }
+.ask .panel-body { display: flex; flex-direction: column; gap: 12px; }
+.ask select { max-width: 420px; min-height: 42px; }
+/* Namen so zeigen, wie sie eingetippt wurden (nicht in Großbuchstaben wie die übrigen Feld-Titel) */
+.ask .field > span { font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .head-side { width: 100%; }
+  .head-side .btn { flex: 1 1 100%; min-height: 44px; }
+}
 
 /* ---------- Toast ---------- */
 #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar) + 18px); z-index: 40;
