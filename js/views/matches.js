@@ -1,9 +1,9 @@
 // Ansicht "Matches": Bilanz-Leiste und Liste aller Matches (neueste zuerst).
 import { S } from "../state.js";
-import { RES_LABEL, RES_SHORT } from "../constants.js";
-import { esc, fmtDate, pct, signed1 } from "../util.js";
+import { RES_SHORT } from "../constants.js";
+import { esc, pct, signed1 } from "../util.js";
 import { filtered, sortMatches, teamSummary, result } from "../stats.js";
-import { filterBar } from "./parts.js";
+import { filterBar, matchRow } from "./parts.js";
 
 export function matchesView() {
   // Kopf zuerst: filterBar räumt veraltete Filter weg, bevor gefiltert wird
@@ -32,17 +32,7 @@ export function matchesView() {
     <div class="stat"><span>Letzte 5</span><div class="form-dots">${dots}</div></div>
   </div>`;
 
-  const rows = list.map((m) => {
-    const r = result(m), d = fmtDate(m.date);
-    const clipN = S.clips.filter((c) => c.matchId === m.id).length;
-    return `<a class="mrow ${r}" href="#match-${esc(m.id)}">
-      <div class="mrow-date"><b>${esc(d.day)}</b>${esc(d.wd)}</div>
-      <div class="mrow-main"><div class="mrow-map">${esc(m.map || "Map?")}</div>
-        <div class="mrow-sub"><span class="tag">${esc(m.type || "Match")}</span>vs ${esc(m.opponent || "unbekannt")}${clipN ? ` · ${clipN} ${clipN === 1 ? "Clip" : "Clips"}` : ""}</div></div>
-      <div class="score">${esc(m.scoreUs ?? "?")}<span class="sep">:</span>${esc(m.scoreThem ?? "?")}</div>
-      <div class="res ${r}">${RES_LABEL[r]}</div>
-    </a>`;
-  }).join("");
+  const rows = list.map(matchRow).join("");
 
   return head + summary + (list.length
     ? `<div class="match-list">${rows}</div>`

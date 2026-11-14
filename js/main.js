@@ -6,7 +6,10 @@ import { route, TAB_OF } from "./router.js";
 import { startAuth, errorText } from "./auth.js";
 import { matchesView } from "./views/matches.js";
 import { matchView } from "./views/match.js";
-import { soonView } from "./views/parts.js";
+import { playerView } from "./views/player.js";
+import { mapsView } from "./views/maps.js";
+import { opponentsView, opponentView } from "./views/opponents.js";
+import { hideTip } from "./charts.js";
 import { setupView, errorView } from "./views/setup.js";
 import * as authPages from "./views/auth.js";
 import * as teamPages from "./views/team.js";
@@ -34,10 +37,10 @@ function viewHtml(r) {
   switch (r.name) {
     case "match": return matchView(r.id);
     case "players": return playerPages.playersView();
-    case "player": return soonView("Statistik", "Spieler-Detail", "Kennzahlen, Verlauf von KPR und K/D, K/D nach Map, Agents und Match-Historie.", "5");
-    case "maps": return soonView("Statistik", "Maps", "Bilanz und Winrate pro Map, Angriff und Verteidigung getrennt, Pistol-Quote.", "5");
-    case "opponents":
-    case "opponent": return soonView("Statistik", "Gegner", "Bilanz, Winrate und alle Matches pro Gegner.", "5");
+    case "player": return playerView(r.id);
+    case "maps": return mapsView();
+    case "opponents": return opponentsView();
+    case "opponent": return opponentView(r.id);
     case "team": return teamPages.teamView();
     default: return matchesView();
   }
@@ -67,6 +70,7 @@ function render() {
   });
   renderStatus();
 
+  hideTip();   // ein offener Diagramm-Tooltip gehört zur alten Anzeige
   const main = $("#view");
   const activeId = document.activeElement && main.contains(document.activeElement) ? document.activeElement.id : null;
   // Eingaben mit data-keep überleben das Neuzeichnen (z. B. die E-Mail beim Wechsel zu "Neues Konto")

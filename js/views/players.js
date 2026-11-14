@@ -1,10 +1,12 @@
-// Ansicht "Spieler": das Roster. Wer gehört zum Team, mit welchen Ingame-Namen, Stamm oder Sub.
-// (Statistik-Tabelle, Diagramme und die Spieler-Detailseite kommen in Etappe 5 dazu.)
+// Ansicht "Spieler": oben die Statistik-Tabelle (aus player.js), darunter das Roster.
+// Roster: Wer gehört zum Team, mit welchen Ingame-Namen, Stamm oder Sub.
 import { S, changed } from "../state.js";
 import { ROLES } from "../constants.js";
 import { $, esc, norm, toast } from "../util.js";
 import { create, change, remove, listAdd, listRemove } from "../data.js";
 import { run, setMsg, msgBox } from "./auth.js";
+import { filterBar } from "./parts.js";
+import { playerTable } from "./player.js";
 
 let openId = null;      // welcher Spieler gerade zum Bearbeiten aufgeklappt ist
 let asking = false;     // Sicherheitsfrage "wirklich entfernen?" im aufgeklappten Spieler
@@ -81,7 +83,7 @@ function row(p) {
   const open = p.id === openId;
   const names = (p.aliases || []).length ? p.aliases.map(esc).join(" · ") : "Keine Ingame-Namen eingetragen";
   return `<div class="roster-row prow${open ? " open" : ""}">
-    <div class="member"><b>${esc(p.name)}</b>${roleTags(p)}</div>
+    <div class="member"><a class="plink" href="#player-${esc(encodeURIComponent(p.id))}"><b>${esc(p.name)}</b></a>${roleTags(p)}</div>
     <button class="btn small" type="button" data-action="roster-open" data-id="${esc(p.id)}" aria-expanded="${open}">${open ? "Schließen" : "Bearbeiten"}</button>
     ${open ? editor(p) : `<div class="prow-names">${names}</div>`}
   </div>`;
@@ -91,8 +93,10 @@ const block = (title, list, emptyText) => `<h3 class="group">${title} <span>${li
   ${list.length ? `<div class="roster">${list.map(row).join("")}</div>` : `<p class="hint">${emptyText}</p>`}`;
 
 export function playersView() {
+  // Kopf zuerst: filterBar räumt veraltete Filter weg, bevor die Statistik rechnet
   const head = `<div class="view-head"><div><div class="eyebrow">Team</div><h1>Spieler</h1>
-    <p>Euer Roster: Stammspieler und Subs mit ihren Ingame-Namen. Über die Ingame-Namen erkennt die App die Spieler später im Scoreboard-Screenshot.</p></div></div>`;
+    <p>Statistik pro Spieler, Stammspieler und Subs getrennt. Darunter das Roster mit den Ingame-Namen, über die die App die Spieler erkennt.</p></div>
+    <div class="head-side">${filterBar(true)}</div></div>`;
   if (!S.loaded.players) return head + '<p class="loading">Lade Spieler …</p>';
 
   // Der aufgeklappte Spieler ist weg (z. B. von jemand anderem entfernt): zuklappen
@@ -119,12 +123,11 @@ export function playersView() {
     ${msgAt === "add" ? msgBox() : ""}
     <p class="hint">Mehrere Ingame-Namen mit Komma trennen (Zweitaccounts, frühere Namen). Weitere lassen sich später über „Bearbeiten“ ergänzen.</p>`;
 
-  return head
+  return head + playerTable()
     + `<section class="panel"><div class="panel-head"><h2>Roster</h2><span class="hint">${count}</span></div>
         <div class="panel-body">${body}</div></section>
       <section class="panel"><div class="panel-head"><h2>Spieler hinzufügen</h2></div>
-        <div class="panel-body">${addForm}</div></section>
-      <div class="empty"><h2>Noch nicht gebaut</h2><p>Tabelle mit K/D und KPR pro Spieler, Diagramme und die Detailseite jedes Spielers.</p><p class="hint">Kommt in Etappe 5.</p></div>`;
+        <div class="panel-body">${addForm}</div></section>`;
 }
 
 // ---------- Klicks und Formulare ----------

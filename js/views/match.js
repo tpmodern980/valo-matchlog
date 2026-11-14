@@ -3,7 +3,7 @@
 import { S } from "../state.js";
 import { RES_LABEL, STAT_FIELDS } from "../constants.js";
 import { esc, fmtDate, fmt0, num, pct } from "../util.js";
-import { result, roundInfo } from "../stats.js";
+import { result, roundInfo, rowKey } from "../stats.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 
@@ -43,7 +43,10 @@ function scoreboard(m) {
     const p = S.players.find((x) => x.id === row.playerId);
     const name = p ? p.name : (row.name || "Unbekannt");
     // Am Handy steht der Agent unter dem Namen (agent-sm), die Agent-Spalte fällt dort weg: So passt die Tabelle auf 360 px
-    return `<tr><td class="name">${esc(name)}${p && p.status === "sub" ? ' <span class="tag">Sub</span>' : ""}${row === top ? '<span class="mvp" title="Meiste Kills">MVP</span>' : ""}${row.agent ? `<span class="agent-sm">${esc(row.agent)}</span>` : ""}</td>
+    // Der Name führt zur Detailseite des Spielers (auch wenn er nicht mehr im Roster steht: Seine Matches zählen weiter)
+    const key = rowKey(row);
+    const label = key ? `<a class="plink" href="#player-${esc(encodeURIComponent(key))}">${esc(name)}</a>` : esc(name);
+    return `<tr><td class="name">${label}${p && p.status === "sub" ? ' <span class="tag">Sub</span>' : ""}${row === top ? '<span class="mvp" title="Meiste Kills">MVP</span>' : ""}${row.agent ? `<span class="agent-sm">${esc(row.agent)}</span>` : ""}</td>
       <td class="l agent col-agent">${esc(row.agent || "–")}</td>${STAT_FIELDS.map(([f]) => `<td>${cell(row, f)}</td>`).join("")}</tr>`;
   }).join("");
   return `<section class="panel"><div class="panel-head"><h2>Scoreboard</h2><span class="hint">sortiert nach Kills</span></div>

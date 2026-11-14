@@ -532,6 +532,102 @@ video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; di
   .head-side .btn { flex: 1 1 100%; min-height: 44px; }
 }
 
+/* ---------- Statistik: Spieler, Maps, Gegner ---------- */
+/* Namen, die zu einer Detailseite führen: Textfarbe mit dezentem Strich, damit Tabellen ruhig bleiben */
+.plink { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.plink:hover { color: var(--accent); text-decoration-color: var(--accent); }
+td.strong { font-weight: 600; }
+.pmeta { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; overflow-wrap: anywhere; }
+.pmeta .tag { margin-right: 0; }
+.sec { display: flex; flex-direction: column; gap: 10px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; }
+.sec-head h2 { font-size: 17px; letter-spacing: .04em; text-transform: uppercase; overflow-wrap: anywhere; }
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 24px; }
+.chart-panel { min-width: 0; }
+/* Match-Historie eines Spielers: K/D/A an der Stelle des Scores, darunter K/D und KPR */
+.hstat { text-align: right; }
+@media (max-width: 560px) { .hstat { text-align: left; } }
+.hstat small { display: block; font-family: var(--font-body); font-size: 13px; font-weight: 400; letter-spacing: 0; color: var(--muted); text-align: right; }
+@media (max-width: 560px) { .hstat small { text-align: left; } }
+
+/* Zwischenzeilen in Tabellen (Stammspieler, Subs) */
+tr.grp th { text-align: left; background: var(--surface); color: var(--ink); font-family: var(--font-display); font-size: 13px; padding: 14px 12px 6px; }
+tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.rtable .tag { margin: 0 4px 0 0; }
+
+/* Am Handy wird aus jeder Tabellenzeile eine Karte: Name oben, darunter die Werte mit Beschriftung */
+@media (max-width: 640px) {
+  .rtable, .rtable tbody { display: block; }
+  .rtable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .rtable tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .rtable tbody:last-child tr:last-child { border-bottom: 0; }
+  .rtable td { display: block; padding: 0; border: 0; text-align: left; white-space: normal; min-width: 0; overflow-wrap: anywhere; }
+  .rtable td::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; margin-bottom: 1px; }
+  .rtable td.name { grid-column: 1 / -1; font-family: var(--font-display); font-size: 18px; }
+  .rtable td.name::before { content: none; }
+  .rtable td.span2 { grid-column: span 2; }
+  .rtable td.span3 { grid-column: span 3; }
+  .rtable td.wide { grid-column: 1 / -1; }
+  .rtable td.tags .tag { margin-top: 3px; }
+  .rtable tr.grp { display: block; padding: 0; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .rtable tr.grp th { display: block; background: none; padding: 8px 16px; border: 0; }
+}
+
+/* Map-Karten */
+.map-wr { display: flex; align-items: baseline; gap: 8px; }
+.map-wr b { font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.map-wr span { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.map-sep { height: 1px; background: var(--line); margin: 2px 0; }
+.kv b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.kv .muted { font-weight: 400; }
+.comp { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.comp span { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.comp small { color: var(--muted); font-size: 13px; }
+
+/* ---------- Diagramme (Regeln: PLAN.md Abschnitt 8) ---------- */
+/* Farben als Variablen: Sie folgen dem Akzent und wechseln so mit hell und dunkel */
+:root { --chart-1: var(--accent); --chart-grid: var(--line); --chart-ref: var(--muted); }
+.ch-area { position: relative; height: 190px; margin: 8px 8px 0 40px; touch-action: pan-y; cursor: crosshair; outline-offset: 4px; }
+.ch-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+.ch-svg * { vector-effect: non-scaling-stroke; }
+.ch-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.ch-ref { stroke: var(--chart-ref); stroke-width: 1; }
+.ch-line { fill: none; stroke: var(--chart-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ch-wash { fill: var(--chart-1); fill-opacity: .1; stroke: none; }
+.ch-ytick { position: absolute; right: 100%; margin-right: 8px; transform: translateY(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ch-ytick.ref { color: var(--ink); font-weight: 600; }
+/* Punkte: 8 px mit 2 px Ring in der Flächenfarbe, der gewählte etwas größer */
+.ch-pt { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--chart-1); box-shadow: 0 0 0 2px var(--surface); pointer-events: none; }
+.ch-pt.on { width: 12px; height: 12px; margin: -6px 0 0 -6px; }
+.many .ch-pt { display: none; }
+.many .ch-pt.on { display: block; }
+.ch-cross { position: absolute; top: 0; bottom: 0; width: 1px; margin-left: -.5px; background: var(--chart-ref); pointer-events: none; }
+.ch-xaxis { display: flex; justify-content: space-between; margin: 8px 8px 0 40px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ch-xaxis span:only-child { margin: 0 auto; }
+
+/* Balken: 16 px dick, am Ende abgerundet, an der Grundlinie eckig, Wert am Balkenende */
+.ch-bars { display: flex; flex-direction: column; }
+.ch-row { display: grid; grid-template-columns: minmax(72px, 24%) minmax(0, 1fr); align-items: center; gap: 10px; outline-offset: 2px; }
+.ch-label { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-label small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.ch-track { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 0; border-left: 1px solid var(--chart-grid); }
+.ch-bar { flex: none; height: 16px; background: var(--chart-1); border-radius: 0 4px 4px 0; }
+.ch-val { font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ch-refmark { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--chart-ref); pointer-events: none; }
+.ch-row:hover .ch-bar, .ch-row.on .ch-bar { filter: brightness(1.18); }
+
+.ch-none { margin: 0; padding: 8px 0; color: var(--muted); }
+.ch-data { margin-top: 14px; border-top: 1px solid var(--line); }
+.ch-data summary { cursor: pointer; padding: 10px 0 2px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.ch-data summary:hover { color: var(--ink); }
+.ch-data[open] summary { padding-bottom: 8px; }
+.ch-data table { font-size: 14px; }
+.ch-data th, .ch-data td { padding: 6px 10px; }
+#ch-tip { position: fixed; z-index: 45; pointer-events: none; background: var(--ink); color: var(--bg); padding: 7px 10px; border-radius: 4px;
+  font-size: 13px; line-height: 1.35; max-width: min(260px, calc(100vw - 16px)); box-shadow: var(--shadow); }
+#ch-tip b { font-family: var(--font-display); font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ch-tip-sub { opacity: .82; overflow-wrap: anywhere; }
+
 /* ---------- Toast ---------- */
 #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar) + 18px); z-index: 40;
   background: var(--ink); color: var(--bg); padding: 10px 16px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
