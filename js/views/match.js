@@ -1,6 +1,7 @@
-// Ansicht "Match-Detail": Kopf mit Ergebnis, Scoreboard, Rundenverlauf, Notizen.
-// (Clips kommen in Etappe 6 dazu. Das Formular zum Bearbeiten steht in matchform.js.)
+// Ansicht "Match-Detail": Kopf mit Ergebnis, Scoreboard, Rundenverlauf, Notizen, Clips.
+// (Die Clips stehen in clips.js, das Formular zum Bearbeiten in matchform.js.)
 import { S } from "../state.js";
+import { clipsPanel } from "./clips.js";
 import { RES_LABEL, STAT_FIELDS } from "../constants.js";
 import { esc, fmtDate, fmt0, num, pct } from "../util.js";
 import { result, roundInfo, rowKey } from "../stats.js";
@@ -22,7 +23,7 @@ export function matchView(id) {
     <div class="detail-score"><div class="score">${esc(m.scoreUs ?? "?")}<span class="sep">:</span>${esc(m.scoreThem ?? "?")}</div><div class="res ${r}">${RES_LABEL[r]}</div></div>
   </div>`;
   const notes = m.notes ? `<section class="panel"><div class="panel-head"><h2>Notizen</h2></div><div class="panel-body notes-text">${esc(m.notes)}</div></section>` : "";
-  return top + head + scoreboard(m) + roundsPanel(m) + notes;
+  return top + head + scoreboard(m) + roundsPanel(m) + notes + clipsPanel(m);
 }
 
 // K/D zum Vergleichen: ohne Deaths unendlich, ohne Werte ganz hinten

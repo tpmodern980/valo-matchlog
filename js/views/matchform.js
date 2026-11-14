@@ -269,7 +269,9 @@ function askHtml() {
 
 function footHtml() {
   if (ed.confirm === "delete") {
-    return `<div class="confirm"><span>Dieses Match wirklich löschen? Es verschwindet für alle aus der App.</span>
+    // Die Clips werden nicht einzeln gelöscht: Sie hängen am Match und sind mit ihm weg (und mit ihm wieder da)
+    const clipN = S.clips.filter((c) => c.matchId === ed.id).length;
+    return `<div class="confirm"><span>Dieses Match wirklich löschen? Es verschwindet für alle aus der App${clipN ? (clipN === 1 ? ", sein Clip auch" : `, seine ${clipN} Clips auch`) : ""}.</span>
       <button class="btn small danger solid" type="button" id="ed-del-yes" data-action="mf-delete">Löschen</button>
       <button class="btn small" type="button" id="ed-del-no" data-action="mf-confirm-cancel">Abbrechen</button></div>`;
   }

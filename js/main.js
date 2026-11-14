@@ -15,6 +15,7 @@ import * as authPages from "./views/auth.js";
 import * as teamPages from "./views/team.js";
 import * as playerPages from "./views/players.js";
 import * as matchForm from "./views/matchform.js";
+import * as clipPages from "./views/clips.js";
 
 // Darf der Nutzer die eigentliche App sehen? Nur angemeldet und freigeschaltet (oder in der Vorschau).
 const inApp = () => S.mode === "app";
@@ -57,6 +58,26 @@ function renderStatus() {
   $("#status").innerHTML = bits.join("");
 }
 
+// Schreibt die Ansicht in die Seite. Ein Bereich mit data-hold (der Clip-Bereich mit dem Video-Player) bleibt
+// dabei stehen, solange die neue Ansicht denselben Bereich wieder enthält: Er wird nie aus der Seite genommen,
+// sonst würde ein laufendes Video neu laden. Seinen Inhalt hält das zuständige Modul selbst aktuell (syncClips).
+function paint(main, html) {
+  const held = [...main.children].find((el) => el.dataset.hold);
+  if (held) {
+    const tpl = document.createElement("template");
+    tpl.innerHTML = html;
+    const slot = [...tpl.content.children].find((el) => el.dataset.hold === held.dataset.hold);
+    if (slot) {
+      for (const node of [...main.childNodes]) if (node !== held) node.remove();
+      const fresh = [...tpl.content.childNodes], at = fresh.indexOf(slot);
+      held.before(...fresh.slice(0, at));
+      held.after(...fresh.slice(at + 1));
+      return;
+    }
+  }
+  main.innerHTML = html;
+}
+
 function render() {
   const r = route();
   const app = inApp();
@@ -76,9 +97,11 @@ function render() {
   // Eingaben mit data-keep überleben das Neuzeichnen (z. B. die E-Mail beim Wechsel zu "Neues Konto")
   const kept = {};
   main.querySelectorAll("[data-keep][id]").forEach((el) => { kept[el.id] = el.value; });
-  main.innerHTML = viewHtml(r);
+  paint(main, viewHtml(r));
   for (const id in kept) { const el = document.getElementById(id); if (el && el.hasAttribute("data-keep")) el.value = kept[id]; }
-  if (activeId) { const el = document.getElementById(activeId); if (el) el.focus(); }
+  // Clips der Match-Seite auf Stand bringen. Ist die Match-Seite nicht mehr offen, wird hier der Player beendet.
+  clipPages.syncClips();
+  if (activeId) { const el = document.getElementById(activeId); if (el && el !== document.activeElement) el.focus(); }
 }
 
 onChange(render);
@@ -96,10 +119,10 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions };
-const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms };
-// Auswahlfelder mit data-change speichern sofort beim Ändern
-const CHANGES = { ...playerPages.changes };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions };
+const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms };
+// Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt)
+const CHANGES = { ...playerPages.changes, ...clipPages.changes };
 
 document.addEventListener("change", (e) => {
   const fn = e.target.dataset ? CHANGES[e.target.dataset.change] : null;

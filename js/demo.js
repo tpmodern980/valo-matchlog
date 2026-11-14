@@ -91,10 +91,29 @@ export function loadDemo() {
         : lineup.map((p) => makeRow(p, rounds, us > them, rand)),
     };
   }));
+  // Alle drei Arten von Clips. Das YouTube-Beispiel ist der frei lizenzierte Kurzfilm "Big Buck Bunny"
+  // (Blender Foundation, CC BY), er darf eingebettet werden. Die Adresse example.com gehört niemandem.
+  const clip = (n, matchId, title, kind, more = {}) => ({
+    id: "cdemo" + n, matchId, title, kind, url: null, ytId: null, notes: [],
+    createdAt: now - 86400000 + n * 60000, createdBy: null, deleted: false, ...more,
+  });
+  const note = (t, text, by, n) => ({ t, text, by, at: now - 80000000 + n * 60000 });
   setLocal("clips", [
-    { id: "cdemo1", matchId: "mdemo1", title: "Retake B, Runde 14", kind: "local", notes: [], deleted: false },
-    { id: "cdemo2", matchId: "mdemo1", title: "Pistol Verteidigung", kind: "local", notes: [], deleted: false },
-    { id: "cdemo3", matchId: "mdemo5", title: "Overtime, letzte Runde", kind: "local", notes: [], deleted: false },
+    clip(1, "mdemo1", "Beispiel: Review bei YouTube", "youtube", {
+      url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", ytId: "aqz-KE-bpKQ",
+      notes: [
+        note(95, "Guter Trade. So wollen wir das öfter sehen.", "Mats", 2),
+        note(12, "So sieht eine Notiz aus: Tipp auf die Zeit, dann springt das Video dorthin.", "Kairo", 1),
+        note(47, "Utility zu früh benutzt. Beim nächsten Mal auf den Call warten.", "Kairo", 3),
+      ],
+    }),
+    clip(2, "mdemo1", "Retake B, Runde 14", "local"),
+    clip(3, "mdemo1", "VOD vom Gegner (anderer Link)", "link", {
+      url: "https://example.com/vods/nordlicht-ascent",
+      notes: [note(754, "Ihr Standard-Setup auf A: zwei vorne, einer hält Heaven.", "Lumo", 4)],
+    }),
+    clip(4, "mdemo1", "Pistol Verteidigung", "local"),
+    clip(5, "mdemo5", "Overtime, letzte Runde", "local"),
   ]);
   // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
   S.demo = true;

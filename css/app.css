@@ -289,27 +289,65 @@ td.name { font-weight: 600; }
 /* ---------- Clips ---------- */
 .clips { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; }
 @media (max-width: 760px) { .clips { grid-template-columns: 1fr; } }
+.clips-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.clips-side > :empty, .player > :empty { display: none; }
 .clip-list { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .clip-item {
   text-align: left; border: 1px solid var(--line); background: var(--surface-2); padding: 8px 10px; cursor: pointer;
-  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px; min-width: 0; width: 100%; min-height: 44px;
 }
+.clip-item:hover { border-color: var(--muted); }
 .clip-item[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .clip-item b { overflow-wrap: anywhere; }
 .clip-item small { color: var(--muted); }
+.clips-side > div > .btn { width: 100%; min-height: 40px; }
+/* Rechte Spalte: Kopf, Player, Notiz-Formular, Notizen. Der Player (#clip-stage) wird beim Neuzeichnen nie angefasst. */
 .player { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* Beim Springen zum Player nicht unter der festen Kopfzeile landen */
+.player, #clip-stage { scroll-margin-top: 100px; }
+.clip-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px 12px; flex-wrap: wrap; }
+.clip-head > div { min-width: 0; flex: 1 1 200px; }
+.clip-head h3 { font-size: 18px; overflow-wrap: anywhere; }
+#clip-stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 video { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; background: #000; display: block; }
-.linkcard { border: 1px dashed var(--line); padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
-.notes { display: flex; flex-direction: column; gap: 4px; }
-.note { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.yt-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+.yt-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.stage-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px 12px; flex-wrap: wrap; font-size: 13px; }
+.stage-foot a { font-weight: 600; white-space: nowrap; margin-left: auto; }
+.stage-foot .hint { min-width: 0; overflow-wrap: anywhere; }
+.linkcard { border: 1px dashed var(--line); padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; background: var(--surface-2); }
+.linkcard .msg { align-self: stretch; }
+.link-url { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+/* Knopf, der eine Datei wählen lässt: Das eigentliche Datei-Feld liegt unsichtbar darin */
+.filebtn { position: relative; min-height: 38px; }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip-path: inset(50%); }
+.filebtn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.notes { display: flex; flex-direction: column; }
+.note { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .note:last-child { border-bottom: 0; }
 .note p { margin: 0; overflow-wrap: anywhere; }
+.note p small { color: var(--muted); white-space: nowrap; margin-left: 4px; }
+.note .confirm { grid-column: 1 / -1; }
 .ts {
   font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; border: 0; cursor: pointer;
-  background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 3px;
+  background: var(--accent-soft); color: var(--accent); padding: 6px 9px; border-radius: 3px; min-width: 52px; text-align: center;
 }
-.note-form, .add-clip { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
-.note-form input[type="text"], .add-clip input[type="text"], .add-clip input[type="url"] { flex: 1 1 200px; }
+button.ts:hover { filter: brightness(1.08); }
+.ts.still { cursor: default; background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
+.note-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.note-form .btn { min-height: 38px; }
+.note-form .tfield { flex: 0 0 76px; }
+.note-form .grow { flex: 1 1 200px; }
+.note-form input { width: 100%; min-height: 38px; }
+.note-form + .hint { margin-top: 8px; }
+.add-clip { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--surface-2); border: 1px solid var(--line); min-width: 0; }
+.add-clip input { width: 100%; min-height: 38px; }
+.add-clip input[type="file"] { min-height: 0; font-size: 13px; }
+.add-clip .btn { min-height: 38px; }
+.add-clip .seg button { padding: 7px 4px; font-size: 14px; white-space: nowrap; }
+@media (max-width: 560px) {
+  .note-form .now, .note-form .btn.primary { flex: 1 1 100%; }
+}
 .hint { color: var(--muted); font-size: 13px; margin: 0; }
 
 /* ---------- Spieler & Maps ---------- */
