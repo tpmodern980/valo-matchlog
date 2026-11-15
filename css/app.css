@@ -457,10 +457,41 @@ button.ts:hover { filter: brightness(1.08); }
 .sheet-foot { border-top: 1px solid var(--line); flex-wrap: wrap; }
 .sheet-head h2 { font-size: 20px; text-transform: uppercase; letter-spacing: .05em; }
 .sheet-body { padding: 18px; display: flex; flex-direction: column; gap: 18px; }
-.scan { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; background: var(--accent-soft); padding: 12px 14px; }
-.scan > div { flex: 1 1 260px; }
-.scan p { margin: 2px 0 0; color: var(--ink); font-size: 14px; }
-.scan-status { flex-basis: 100%; margin: 0; font-size: 14px; font-weight: 600; }
+/* Screenshot auslesen: zwei Bilder wählen, darunter der Bericht, was eingetragen wurde */
+.scan { display: flex; flex-direction: column; gap: 12px; background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 14px; min-width: 0; }
+.scan-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.scan-head h3 { font-size: 17px; letter-spacing: .04em; text-transform: uppercase; }
+.scan .hint { color: var(--ink); opacity: .8; }
+.scan-lead { margin: 0; font-size: 14px; }
+.scan-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.scan-slot { display: flex; align-items: center; gap: 4px 8px; min-width: 0; padding: 8px 8px 8px 12px; background: var(--surface); border: 1px solid var(--line); }
+.scan-slot.has { border-color: var(--accent); }
+.scan-what { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.scan-what small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scan-slot .btn { flex: none; min-height: 38px; white-space: nowrap; }
+.filebtn.off { opacity: .55; cursor: not-allowed; pointer-events: none; }
+.scan-go { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; }
+.scan-go .btn { min-height: 42px; min-width: 140px; }
+.scan-go .hint { flex: 1 1 220px; }
+.scan-report { display: flex; flex-direction: column; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.scan-report .hint { color: var(--muted); opacity: 1; }
+.scan-report .msg { font-weight: 400; }
+.scan-part h4 { margin: 0 0 4px; font-family: var(--font-body); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.scan-part.ok h4 { color: var(--win); }
+.scan-part.warn h4, .scan-part.clash h4 { color: var(--draw); }
+.scan-part ul { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 3px; overflow-wrap: anywhere; }
+.scan-part.clash ul { list-style: none; padding: 0; margin-top: 8px; gap: 0; }
+.scan-part.clash li { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; padding: 6px 0; border-top: 1px solid var(--line); }
+.scan-part.clash li span { flex: 1 1 200px; min-width: 0; }
+.scan-part.clash .btn { min-height: 36px; }
+.scan-part.clash .actions { margin-top: 8px; }
+.scan-token { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.scan-token code { background: var(--surface); padding: 6px 8px; user-select: all; }
+@media (max-width: 560px) {
+  .scan { padding: 12px; }
+  .scan-slots { grid-template-columns: minmax(0, 1fr); }
+  .scan-go .btn { flex: 1 1 100%; }
+}
 .grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .scorebox { display: flex; gap: 6px; align-items: center; }
 .scorebox input { width: 0; flex: 1; text-align: center; }
@@ -531,6 +562,22 @@ button.ts:hover { filter: brightness(1.08); }
   .mp-row .mini:not(.mp-name):not(.mp-agent) { grid-column: span 2; order: 4; }
   .mp-row .mini:not(.mp-name):not(.mp-agent) > span { text-align: center; letter-spacing: 0; }
   .sheet .panel-body { padding: 14px 12px; }
+  /* Premier: sieben Zahlen (mit Trades) in der zweiten Zeile */
+  .mp-list.wide .mp-row { grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px 4px; }
+  .mp-list.wide .mp-name { grid-column: span 7; }
+  .mp-list.wide .mp-agent { grid-column: span 5; }
+}
+/* Premier am Desktop: eine Spalte mehr */
+.mp-list.wide .mp-head, .mp-list.wide .mp-row { grid-template-columns: minmax(140px, 1.5fr) minmax(110px, 1fr) repeat(7, minmax(48px, 80px)) 38px; }
+@media (max-width: 720px) {
+  .mp-list.wide .mp-row { grid-template-columns: repeat(14, minmax(0, 1fr)); }
+}
+/* Scoreboard mit Trades: am Handy kürzere Spaltentitel */
+.th-tiny { display: none; }
+@media (max-width: 560px) {
+  .sb-wide .th-long { display: none; }
+  .sb-wide .th-tiny { display: inline; }
+  .sb.sb-wide th, .sb.sb-wide td { padding-inline: 4px; }
 }
 
 /* Rundenverlauf im Formular: große Knöpfe für die nächste Runde, darunter die Felder zum Korrigieren */

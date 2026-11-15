@@ -121,8 +121,9 @@ document.addEventListener("change", (e) => {
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
 const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions };
 const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms };
-// Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt)
-const CHANGES = { ...playerPages.changes, ...clipPages.changes };
+// Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt,
+// im Match-Formular: ein Screenshot zum Auslesen)
+const CHANGES = { ...playerPages.changes, ...clipPages.changes, ...matchForm.changes };
 
 document.addEventListener("change", (e) => {
   const fn = e.target.dataset ? CHANGES[e.target.dataset.change] : null;

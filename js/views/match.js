@@ -2,7 +2,7 @@
 // (Die Clips stehen in clips.js, das Formular zum Bearbeiten in matchform.js.)
 import { S } from "../state.js";
 import { clipsPanel } from "./clips.js";
-import { RES_LABEL, STAT_FIELDS } from "../constants.js";
+import { RES_LABEL, STAT_FIELDS, ALL_STAT_FIELDS, TINY_LABEL } from "../constants.js";
 import { esc, fmtDate, fmt0, num, pct } from "../util.js";
 import { result, roundInfo, rowKey } from "../stats.js";
 
@@ -34,25 +34,35 @@ function kd(row) {
 }
 const desc = (a, b) => a === b ? 0 : a > b ? -1 : 1;
 
-function scoreboard(m) {
+// Eine Scoreboard-Tabelle. ours = unser Team (Namen führen zur Spieler-Seite, MVP), sonst die Gegner (nur Text).
+function board(m, list, ours) {
   // Sortiert nach Kills, bei Gleichstand nach der besseren K/D. Zeilen ohne Kills stehen unten.
-  const rows = (m.players || []).slice().sort((a, b) => desc(num(a.kills) ?? -1, num(b.kills) ?? -1) || desc(kd(a), kd(b)));
+  const rows = (list || []).slice().sort((a, b) => desc(num(a.kills) ?? -1, num(b.kills) ?? -1) || desc(kd(a), kd(b)));
   if (!rows.length) return "";
-  const top = num(rows[0].kills) !== null ? rows[0] : null;
+  const top = ours && num(rows[0].kills) !== null ? rows[0] : null;
+  // Trades gibt es nur bei Premier (und nur, wenn welche eingetragen sind). Dann stehen sieben Zahlen nebeneinander:
+  // Am Handy bekommen die Spalten kürzere Titel, damit die Tabelle weiter auf 360 px passt.
+  const wide = m.type === "Premier" && rows.some((row) => num(row.trades) !== null);
+  const fields = wide ? ALL_STAT_FIELDS : STAT_FIELDS;
   const cell = (row, f) => num(row[f]) === null ? "–" : fmt0(num(row[f]));
   const body = rows.map((row) => {
-    const p = S.players.find((x) => x.id === row.playerId);
+    const p = ours ? S.players.find((x) => x.id === row.playerId) : null;
     const name = p ? p.name : (row.name || "Unbekannt");
     // Am Handy steht der Agent unter dem Namen (agent-sm), die Agent-Spalte fällt dort weg: So passt die Tabelle auf 360 px
     // Der Name führt zur Detailseite des Spielers (auch wenn er nicht mehr im Roster steht: Seine Matches zählen weiter)
-    const key = rowKey(row);
+    const key = ours ? rowKey(row) : null;
     const label = key ? `<a class="plink" href="#player-${esc(encodeURIComponent(key))}">${esc(name)}</a>` : esc(name);
     return `<tr><td class="name">${label}${p && p.status === "sub" ? ' <span class="tag">Sub</span>' : ""}${row === top ? '<span class="mvp" title="Meiste Kills">MVP</span>' : ""}${row.agent ? `<span class="agent-sm">${esc(row.agent)}</span>` : ""}</td>
-      <td class="l agent col-agent">${esc(row.agent || "–")}</td>${STAT_FIELDS.map(([f]) => `<td>${cell(row, f)}</td>`).join("")}</tr>`;
+      <td class="l agent col-agent">${esc(row.agent || "–")}</td>${fields.map(([f]) => `<td>${cell(row, f)}</td>`).join("")}</tr>`;
   }).join("");
-  return `<section class="panel"><div class="panel-head"><h2>Scoreboard</h2><span class="hint">sortiert nach Kills</span></div>
-    <div class="table-wrap"><table class="sb"><thead><tr><th>Spieler</th><th class="l col-agent">Agent</th>${STAT_FIELDS.map(([, label, long]) => `<th title="${esc(long)}">${esc(label)}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div></section>`;
+  const th = ([f, label, long]) => `<th title="${esc(long)}">${wide && TINY_LABEL[f] ? `<span class="th-long">${esc(label)}</span><span class="th-tiny">${esc(TINY_LABEL[f])}</span>` : esc(label)}</th>`;
+  const title = ours ? "Scoreboard" : "Gegner";
+  const hint = ours ? "sortiert nach Kills" : `${m.opponent ? esc(m.opponent) + " · " : ""}zählt nicht in die Statistik`;
+  return `<section class="panel"><div class="panel-head"><h2>${title}</h2><span class="hint">${hint}</span></div>
+    <div class="table-wrap"><table class="sb${wide ? " sb-wide" : ""}"><thead><tr><th>${ours ? "Spieler" : "Gegner"}</th><th class="l col-agent">Agent</th>${fields.map(th).join("")}</tr></thead><tbody>${body}</tbody></table></div></section>`;
 }
+// Unser Scoreboard, darunter (falls eingetragen) das der Gegner
+const scoreboard = (m) => board(m, m.players, true) + board(m, m.opponents, false);
 
 function roundsPanel(m) {
   const ri = roundInfo(m);

@@ -13,6 +13,11 @@ window.VALO_CONFIG = {
   // Web-Client-ID für "Mit Google anmelden" (ANLEITUNG.md, Schritt 5). Ebenfalls öffentlich.
   // Leer = Anmeldung über ein Google-Fenster (klappt in der installierten iPhone-App nicht zuverlässig).
   googleClientId: "548202036420-93un7vnen64m5cl6t5ss6li4gdbd2bp2.apps.googleusercontent.com",
-  recaptchaSiteKey: "",          // für App Check (leer = App Check aus)
-  aiModel: "gemini-3.6-flash",   // Modell fürs Screenshot-Auslesen
+  // Screenshot-Auslesen (ANLEITUNG.md, Schritt 7 und 8).
+  // recaptchaSiteKey: der "Websiteschlüssel" von reCAPTCHA v3 für App Check. Er ist öffentlich gedacht.
+  // Der zweite, GEHEIME Schlüssel gehört nur in die Firebase-Konsole, nie in diese Datei.
+  // Leer = App Check aus: Dann klappt das Auslesen nur am eigenen Rechner (localhost, mit Debug-Token).
+  recaptchaSiteKey: "",
+  // KI-Modell. Gibt es das Modell nicht mehr, probiert die App von selbst neuere.
+  aiModel: "gemini-3.6-flash",
 };

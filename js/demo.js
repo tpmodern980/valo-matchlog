@@ -69,6 +69,23 @@ function makeRow(p, rounds, won, rand) {
   };
 }
 
+// Scoreboard der Gegner für die ersten Beispiel-Matches. Eigener Zufall mit eigenem Startwert:
+// So bleiben alle Zahlen unseres Teams genau wie vorher.
+const FOES = [["Vexo", "Neon"], ["Rasko", "Yoru"], ["Tibor77", "Omen"], ["Milaa", "Cypher"], ["Jonte", "Sova"]];
+function makeFoes(i, type, rounds, won) {
+  const rand = rng(900 + i);
+  return FOES.map(([name, agent]) => {
+    const kills = Math.round(rounds * 0.7 * (0.7 + rand() * 0.6) * (won ? 0.94 : 1.06));
+    const row = {
+      name, agent, kills,
+      deaths: Math.max(4, Math.round(rounds * 0.7 * (0.8 + rand() * 0.4) * (won ? 1.05 : 0.93))),
+      assists: Math.round(rounds * (0.15 + rand() * 0.25)),
+      firstBloods: Math.round(rand() * kills * 0.2), plants: Math.floor(rand() * 4), defuses: Math.floor(rand() * 2.4),
+    };
+    return type === "Premier" ? { ...row, trades: (row.kills + row.assists) % 7 } : row;
+  });
+}
+
 export function loadDemo() {
   const rand = rng(20261112);
   const now = Date.now();
@@ -88,7 +105,11 @@ export function loadDemo() {
       createdAt: now - days * 86400000, createdBy: null, deleted: false,
       players: open
         ? lineup.map((p) => ({ playerId: p.id, name: p.aliases[0], agent: p.agents[0], kills: null, deaths: null, assists: null, firstBloods: null, plants: null, defuses: null }))
-        : lineup.map((p) => makeRow(p, rounds, us > them, rand)),
+        // Trades gibt es nur bei Premier. Der Wert entsteht aus den anderen Zahlen, ohne den Zufall zu bemühen:
+        // So bleiben alle übrigen Beispielzahlen genau wie vorher.
+        : lineup.map((p) => makeRow(p, rounds, us > them, rand)).map((row) => (type === "Premier" ? { ...row, trades: (row.kills + row.assists) % 7 } : row)),
+      // Die neuesten Matches haben auch das Scoreboard der Gegner (freiwillig, ältere Matches haben keins)
+      opponents: !open && i < 5 ? makeFoes(i, type, rounds, us > them) : [],
     };
   }));
   // Alle drei Arten von Clips. Das YouTube-Beispiel ist der frei lizenzierte Kurzfilm "Big Buck Bunny"

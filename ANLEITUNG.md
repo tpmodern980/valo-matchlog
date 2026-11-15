@@ -1,6 +1,6 @@
 # Anleitung: Firebase einrichten
 
-Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff**. Screenshot-Auslesen (AI Logic, App Check) und die Installation als App folgen später.
+Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 und 8, freiwillig: Die App läuft auch ohne).
 
 Du brauchst: ein Google-Konto und etwa 15 Minuten. Es kostet nichts. Du musst nirgends eine Kreditkarte angeben. Falls die Konsole ein Upgrade auf „Blaze“ anbietet: ablehnen.
 
@@ -39,7 +39,7 @@ Kontrolle: Unten links in der Konsole steht der Tarif **Spark** (kostenlos). So 
 
 6. Öffne im Ordner `C:\dev\valo-matchlog` die Datei `firebase-config.js` mit dem Editor: **Rechtsklick → „Öffnen mit“ → Editor**. Kein Doppelklick, sonst versucht Windows, die Datei auszuführen.
 7. In der Datei stehen dieselben sechs Namen, aber mit leeren Anführungszeichen, zum Beispiel `apiKey: "",`. Kopiere für jede Zeile den Wert aus der Konsole zwischen die Anführungszeichen der Zeile mit demselben Namen. Aus `apiKey: "",` wird also `apiKey: "AIza...",` mit deinem Wert. Das Komma am Zeilenende bleibt stehen.
-8. Die Zeilen `recaptchaSiteKey` und `aiModel` nicht anfassen. Die Zeile `googleClientId` kommt in Schritt 5 dran. Datei speichern (Strg+S).
+8. Die Zeilen `recaptchaSiteKey` und `aiModel` nicht anfassen (sie gehören zu Schritt 7 und 8). Die Zeile `googleClientId` kommt in Schritt 5 dran. Datei speichern (Strg+S).
 
 Den Block findest du später wieder unter Zahnrad → **Projekteinstellungen** → Allgemein → „Meine Apps“.
 
@@ -98,6 +98,75 @@ Warum das nötig ist: Für die Google-Anmeldung wechselt die App kurz zu Google 
 
 Wer nicht auf der Liste steht, sieht nach der Anmeldung die Seite „Noch nicht freigeschaltet“ mit der eigenen Adresse. Diese Adresse trägst du unter „Team“ ein.
 
+## Schritt 7: Screenshot-Auslesen einschalten (AI Logic)
+
+Im Formular „Match eintragen“ gibt es den Bereich „Screenshot auslesen“. Er schickt die zwei Screenshots vom Match-Ende (Scoreboard und Timeline) an die KI „Gemini“ von Google und füllt das Formular vor. Dieser Schritt ist freiwillig: Von Hand eintragen geht immer.
+
+Stand dieser Beschreibung: 14.11.2026. Schritt 7 und Schritt 8 Teil A sind an unserem Projekt durchgespielt. Schritt 8 Teil B und C sind nach der Firebase-Dokumentation geschrieben, aber noch nicht ausprobiert.
+
+Das Auslesen dauert meist 10 bis 40 Sekunden, manchmal länger. Die allererste Anfrage direkt nach dem Einschalten kann noch scheitern: dann kurz warten und noch einmal versuchen.
+
+**Vorher wissen:**
+
+- **Die Bilder gehen an Google.** Die App verkleinert sie und speichert sie nirgends, aber Google verarbeitet sie. Auf den Bildern stehen die Ingame-Namen aller zehn Spieler.
+- **Nutzungsbedingungen:** Google schreibt für die Gemini-API vor, dass Apps für Nutzer im Europäischen Wirtschaftsraum, in der Schweiz und in Großbritannien nur die **Bezahl-Stufe** verwenden dürfen, und nennt ein Mindestalter von 18 Jahren. Die Gratis-Stufe läuft technisch auch ohne Bezahlkonto. Ob ihr sie nutzt, entscheidest du. Nachlesen: <https://ai.google.dev/gemini-api/terms>.
+- **Kosten:** Ohne Bezahlkonto (Tarif Spark) können keine Kosten entstehen. Im schlimmsten Fall ist das kostenlose Kontingent für den Tag aufgebraucht.
+
+**Einschalten:**
+
+1. <https://console.firebase.google.com> öffnen, dein Projekt wählen.
+2. Links im Menü: **AI Services → AI Logic** (deutsch eventuell „KI-Dienste“).
+3. Auf **Get started** („Jetzt starten“) klicken.
+4. Als Anbieter **Gemini Developer API** wählen. Nicht „Agent Platform“ oder „Vertex AI“: Das verlangt ein Bezahlkonto.
+5. Den Ablauf bis zum Ende durchklicken. Bietet die Konsole ein Upgrade auf „Blaze“ an: ablehnen.
+
+Dabei schaltet Firebase von selbst **App Check** für AI Logic scharf (seit Juli 2026 Pflicht). Deshalb klappt das Auslesen erst nach Schritt 8. Direkt nach dem Einschalten kann es ein paar Minuten dauern, bis alles bereit ist.
+
+**Modell und Kontingent:**
+
+- Welches KI-Modell die App nimmt, steht in `firebase-config.js` in der Zeile `aiModel` (Vorgabe `gemini-3.6-flash`). Schaltet Google dieses Modell irgendwann ab, probiert die App von selbst `gemini-3.8-flash` und `gemini-3.5-flash-lite`. Die aktuellen Namen stehen unter <https://firebase.google.com/docs/ai-logic/models>.
+- Jedes Bild ist eine Anfrage, ein Match mit beiden Bildern also zwei. Wie viele Anfragen pro Tag kostenlos sind, zeigt Google nur noch für das eigene Projekt an: <https://aistudio.google.com> → oben das Projekt wählen → „Rate limits“ (Ratenlimits). Das Tageskontingent beginnt um Mitternacht kalifornischer Zeit neu, bei uns gegen 9 Uhr morgens.
+
+## Schritt 8: App Check einrichten
+
+App Check sorgt dafür, dass nur unsere App die KI benutzen kann und kein Fremder das Kontingent aufbraucht. Es gibt zwei Teile: einen für den Test am eigenen Rechner und einen für die App im Internet.
+
+### Teil A: Am eigenen Rechner (localhost) mit Debug-Token
+
+Am eigenen Rechner benutzt die App einen „Debug-Token“. Das ist ein langer Code, den die App für deinen Browser erzeugt. Er gilt erst, wenn du ihn in der Firebase-Konsole einträgst.
+
+1. Server starten (`server-starten.cmd`), <http://localhost:8123/> öffnen und anmelden.
+2. **Match eintragen** → im Bereich „Screenshot auslesen“ ein Bild wählen → **Auslesen**.
+3. Es erscheint eine rote Meldung „Dieser Browser ist bei Firebase noch nicht als Testgerät eingetragen“ mit dem Debug-Token darunter. Auf **Kopieren** klicken.
+   - Steht dort stattdessen „App Check ist im Firebase-Projekt noch nicht eingeschaltet“, fehlt Schritt 7 (oder er ist erst ein paar Minuten her).
+4. In der Firebase-Konsole: **Sicherheit → App Check** (englisch „Security → App Check“) → Reiter **Apps**.
+5. Neben der Web-App auf die **drei Punkte** klicken → **Debug-Tokens verwalten** („Manage debug tokens“).
+6. **Debug-Token hinzufügen**: einen Namen eintragen, an dem du das Gerät erkennst (zum Beispiel „Laptop Brave“), den Token einfügen, **Speichern**.
+7. Zurück in die App und noch einmal auf **Auslesen** tippen.
+
+Der Token gilt nur für diesen einen Browser auf diesem Rechner. Für den zweiten Rechner (oder einen anderen Browser) wiederholst du Teil A. **Den Token nicht weitergeben und nicht ins Repo schreiben:** Wer ihn hat, kommt an App Check vorbei. Einen Token, den du nicht mehr brauchst, löschst du an derselben Stelle.
+
+### Teil B: Für die App im Internet mit reCAPTCHA v3
+
+Unter der Adresse `https://tpmodern980.github.io/valo-matchlog/` weist sich die App mit reCAPTCHA v3 aus. Das läuft unsichtbar im Hintergrund, niemand muss Bilder anklicken.
+
+1. <https://www.google.com/recaptcha/admin/create> öffnen (mit dem Google-Konto des Firebase-Projekts).
+2. Label: `Valo Matchlog`. Typ: **Auf Punktzahl basierend (v3)** („Score based“).
+3. Domain: `tpmodern980.github.io`. **Nicht `localhost` eintragen** (sonst könnte jeder die App vom eigenen Rechner aus benutzen; dafür gibt es Teil A).
+4. Absenden. Du bekommst zwei Schlüssel:
+   - **Websiteschlüssel** („Site key“): öffentlich. Er kommt in `firebase-config.js` in die Zeile `recaptchaSiteKey`, zwischen die Anführungszeichen.
+   - **Geheimer Schlüssel** („Secret key“): **geheim**. Er kommt nur in die Firebase-Konsole (nächster Punkt), nie in eine Datei im Repo.
+5. In der Firebase-Konsole: **Sicherheit → App Check** → Reiter **Apps** → die Web-App aufklappen → **reCAPTCHA** wählen → den **geheimen Schlüssel** einfügen → **Speichern**.
+6. `firebase-config.js` speichern, committen und hochladen. Nach etwa 10 Minuten liefert GitHub Pages die neue Datei aus.
+
+Verlangt die reCAPTCHA-Seite ein Bezahlkonto oder ein Upgrade: nicht weitermachen. Dann bleibt das Auslesen vorerst auf den eigenen Rechner beschränkt (Teil A). Firebase empfiehlt für neue Projekte inzwischen „reCAPTCHA Enterprise“ statt v3; v3 wird weiter unterstützt, und die App ist für v3 gebaut.
+
+### Teil C: Prüfen, was erzwungen ist
+
+1. **Sicherheit → App Check** → Reiter **APIs**.
+2. In der Zeile **Firebase AI Logic** soll **Erzwungen** („Enforced“) stehen. Steht dort „Nicht erzwungen“: Zeile anklicken → einrichten → **Erzwungen** wählen. Im zweiten Fenster („Replay protection“, Schutz vor Wiederverwendung) kannst du die Vorgabe lassen; die App kommt mit jeder Einstellung dort zurecht.
+3. **Wichtig: Bei „Cloud Firestore“ und „Authentication“ App Check nicht erzwingen.** Die App lädt App Check erst, wenn jemand ein Bild ausliest. Würdest du es dort erzwingen, käme niemand mehr an die Daten.
+
 ## Wenn etwas nicht klappt
 
 | Was du siehst | Woran es meist liegt |
@@ -110,6 +179,22 @@ Wer nicht auf der Liste steht, sieht nach der Anmeldung die Seite „Noch nicht 
 | Google zeigt „Fehler 400: redirect_uri_mismatch“ | Die Adresse der App fehlt bei Google oder ist anders geschrieben (Schritt 5, Teil „Bei Google“). Nach dem Speichern ein paar Minuten warten. |
 | „Unable to process request due to missing initial state“ | In `firebase-config.js` fehlt die `googleClientId` (Schritt 5). Dann nutzt die App ein Google-Fenster, das in der installierten iPhone-App nicht zuverlässig funktioniert. |
 | „Die Antwort von Google passt nicht zu dieser Anmeldung“ | Die Anmeldung hat länger als 15 Minuten gedauert oder wurde in einem anderen Browser beendet. Noch einmal auf „Mit Google anmelden“ tippen. |
+
+**Beim Screenshot-Auslesen** (die Meldungen stehen im Formular direkt unter dem Knopf „Auslesen“; Einzelheiten zusätzlich in der Konsole des Browsers):
+
+| Was du siehst | Woran es meist liegt |
+|---|---|
+| „Das Screenshot-Auslesen ist in Firebase noch nicht eingeschaltet (AI Logic)“ | Schritt 7 fehlt. Direkt danach ein paar Minuten warten. |
+| „App Check ist im Firebase-Projekt noch nicht eingeschaltet“ | Schritt 7 fehlt ebenfalls: App Check wird beim Einrichten von AI Logic mit eingeschaltet. |
+| „Dieser Browser ist bei Firebase noch nicht als Testgerät eingetragen“ | Schritt 8, Teil A: den angezeigten Debug-Token in der Konsole eintragen. Kommt die Meldung danach wieder: Stimmt der Token Zeichen für Zeichen? Jeder Browser hat einen eigenen. Wurden die Browser-Daten gelöscht, erzeugt die App einen neuen Token. |
+| „App Check fehlt … kein recaptchaSiteKey“ | Online-Version ohne Schritt 8, Teil B. |
+| „App Check konnte diesen Browser nicht bestätigen (reCAPTCHA)“ | Ein Werbeblocker sperrt reCAPTCHA (bei Brave: Schutz für diese Seite ausschalten), die Domain in Schritt 8 Teil B stimmt nicht, oder der geheime Schlüssel in der Firebase-Konsole ist falsch. Nach einer Korrektur die Seite neu laden: Die App versucht es nach einem Fehlschlag sonst erst später wieder. |
+| „Firebase verlangt, dass App Check für AI Logic erzwungen ist“ oder „Firebase hat AI Logic … abgeschaltet“ | Schritt 8, Teil C. |
+| „Der API-Schlüssel des Projekts darf die Firebase AI Logic API nicht aufrufen“ | <https://console.cloud.google.com/apis/credentials> → den API-Schlüssel des Projekts öffnen („Browser key“) → bei den API-Einschränkungen **Firebase AI Logic API** mit auswählen → Speichern. Bis zu fünf Minuten warten. |
+| „Das kostenlose Kontingent der KI ist gerade erschöpft“ oder „Tageskontingent … aufgebraucht“ | Zu viele Anfragen. Eine Minute warten, sonst am nächsten Tag ab etwa 9 Uhr. Wie viel frei ist, steht in AI Studio (Schritt 7). |
+| „Keins der KI-Modelle wurde gefunden“ | Google hat die Modelle abgelöst. In `firebase-config.js` bei `aiModel` einen aktuellen Namen eintragen (Schritt 7). |
+| „Auf dem Bild war keine Ergebnis-Übersicht zu erkennen“ oder „… keine Timeline …“ | Falsches Bild oder im falschen Feld. Gebraucht werden die zwei Ansichten nach dem Match: „Summary → Scoreboard“ und „Timeline“. |
+| Werte stimmen nicht mit dem Bild überein | Die KI kann sich irren, vor allem bei den Agents. Deshalb speichert die App nichts von selbst: Werte prüfen, korrigieren, dann „Speichern“. |
 
 ## Als App auf den Home-Bildschirm legen
 

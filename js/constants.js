@@ -14,3 +14,12 @@ export const STAT_FIELDS = [
 // Ergebnis-Kürzel: W = Sieg, L = Niederlage, D = Unentschieden, Q = offen (Score fehlt)
 export const RES_LABEL = { W: "Sieg", L: "Niederlage", D: "Unentsch.", Q: "Offen" };
 export const RES_SHORT = { W: "S", L: "N", D: "U", Q: "?" };
+// Trades zeigt Valorant nur im Scoreboard von Premier-Matches. Das Feld gibt es deshalb nur bei der Art "Premier"
+// (Entscheidung Tim, 15.11.2026). In die Statistik gehen Trades nicht ein.
+export const TRADES_FIELD = ["trades", "Trades", "Trades"];
+// Alle Felder, die eine Spielerzeile haben kann (Reihenfolge wie im Spiel: Trades stehen nach K/D/A)
+export const ALL_STAT_FIELDS = [...STAT_FIELDS.slice(0, 3), TRADES_FIELD, ...STAT_FIELDS.slice(3)];
+// Die Felder für ein Match dieser Art
+export const statFields = (type) => (type === "Premier" ? ALL_STAT_FIELDS : STAT_FIELDS);
+// Kurze Spaltentitel für schmale Bildschirme, wenn sieben Zahlen nebeneinander stehen
+export const TINY_LABEL = { trades: "Tr", plants: "Pl", defuses: "Def" };
