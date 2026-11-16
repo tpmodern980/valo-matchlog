@@ -498,6 +498,10 @@ button.ts:hover { filter: brightness(1.08); }
 .scan-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .scan-slot { display: flex; align-items: center; gap: 4px 8px; min-width: 0; padding: 8px 8px 8px 12px; background: var(--surface); border: 1px solid var(--line); }
 .scan-slot.has { border-color: var(--accent); }
+/* Ein Bild wird gerade auf dieses Feld gezogen */
+.scan-slot.drop { outline: 2px dashed var(--accent); outline-offset: 2px; background: var(--accent-soft); }
+/* Der Satz zum Reinziehen und Strg + V gilt nur am PC */
+@media (pointer: coarse) { .scan-pc { display: none; } }
 .scan-what { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 .scan-what small { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scan-slot .btn { flex: none; min-height: 38px; white-space: nowrap; }

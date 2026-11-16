@@ -42,13 +42,14 @@ async function decode(file) {
 }
 
 // Ein Stück des Bildes als JPEG. cut = { x, y, w, h } als Anteile von Breite und Höhe (0 bis 1), ohne cut das ganze Bild.
-// Die längste Seite des Ergebnisses hat höchstens maxSide Pixel (größer gemacht wird nichts).
+// Die längste Seite des Ergebnisses hat höchstens maxSide Pixel. Größer gemacht wird nur mit cut.grow: Dann bekommt
+// die längste Seite genau maxSide Pixel (höchstens dreifach vergrößert).
 async function render(pic, maxSide, cut = { x: 0, y: 0, w: 1, h: 1 }) {
   const fromWidth = pic.naturalWidth || pic.width, fromHeight = pic.naturalHeight || pic.height;
   if (!fromWidth || !fromHeight) throw fail("bad-image");
   const sx = Math.round(fromWidth * cut.x), sy = Math.round(fromHeight * cut.y);
   const sw = Math.max(1, Math.round(fromWidth * cut.w)), sh = Math.max(1, Math.round(fromHeight * cut.h));
-  const scale = Math.min(1, maxSide / Math.max(sw, sh));
+  const scale = Math.min(cut.grow ? 3 : 1, maxSide / Math.max(sw, sh));
   const width = Math.max(1, Math.round(sw * scale)), height = Math.max(1, Math.round(sh * scale));
   const canvas = document.createElement("canvas");
   canvas.width = width; canvas.height = height;
@@ -80,7 +81,7 @@ export async function pieces(file, cuts, maxSide = MAX_SIDE) {
   try { pic = await decode(file); } catch (e) { throw fail("bad-image"); }
   try {
     const out = [];
-    for (const cut of cuts) out.push(await render(pic, maxSide, cut || undefined));
+    for (const cut of cuts) out.push(await render(pic, (cut && cut.side) || maxSide, cut || undefined));
     return out;
   } finally {
     if (pic.close) pic.close();
@@ -116,6 +117,11 @@ What the screen looks like:
 - In front of a name there can be a short team tag followed by a vertical bar, for example "ツ | Kairo" or "ABC | Someone". The tag and the bar are NOT part of the name. Some players have no tag.
 - The agent of a player is only visible as a small portrait at the left end of the row.
 
+You get two images of the same screenshot:
+- Image 1 is the whole screenshot. Read everything except the agents from image 1.
+- Image 2 is an enlarged cut-out of the left part of the table: the agent portraits with the player names next to them. Decide the agent of every row (our team and opponents) from image 2: find the row by the name next to the portrait. Only if image 2 does not show the portraits, use image 1.
+- Look at the face of each portrait carefully. These agents are easy to confuse: GEKKO (a young man) and WAYLAY (a woman); ISO (a man) and VYSE (a woman). Before you answer one of these four, check whether the face is a man or a woman.
+
 Return these fields:
 - map: the map name with normal capitalisation (for example "Haven").
 - scoreUs: the first number of the final score. scoreThem: the second number.
@@ -145,6 +151,13 @@ ${rosterText()}`;
 // vergrößerte Ausschnitte der Runden-Leiste (linke und rechte Hälfte, in der Mitte überlappend).
 // Die Leiste liegt im Beispielbild zwischen 25 % und 36 % der Höhe; der Ausschnitt lässt Luft nach oben und unten.
 const STRIP_CUTS = [null, { x: 0, y: 0.15, w: 0.58, h: 0.3 }, { x: 0.42, y: 0.15, w: 0.58, h: 0.3 }];
+
+// Beim Scoreboard sind die Agenten-Bilder im ganzen Bild nur etwa 45 Pixel groß (Waylay/Gekko und Iso/Vyse wurden
+// verwechselt, laut Tim 16.11.2026). Deshalb geht zusätzlich ein vergrößerter Ausschnitt mit Bild und Namen mit.
+// In den Beispielbildern (2000 × 1320) liegen die Bilder bei 21–25 % der Breite, die Namen bis etwa 35 %,
+// die Zeilen zwischen 31 % und 75 % der Höhe. Der Ausschnitt lässt Luft für andere Bildformate.
+// side: längste Seite dieses Ausschnitts (etwa doppelt so groß wie im Original).
+const BOARD_CUTS = [null, { x: 0.17, y: 0.25, w: 0.28, h: 0.56, grow: true, side: 1400 }];
 
 const LINE_PROMPT = `You read one screenshot from the game VALORANT and return JSON. The screenshot shows the screen "Match Details > Timeline".
 
@@ -354,7 +367,7 @@ const DEMO = {
       { name: "ツ | Kairo", agent: "Sova", kills: 31, deaths: 14, assists: 11, firstBloods: 3, plants: 6, defuses: 2 },
       { name: "ツ | Lumo", agent: "Omen", kills: 23, deaths: 14, assists: 11, firstBloods: 1, plants: 1, defuses: 1 },
       { name: "ツ | matsn", agent: "Chamber", kills: 19, deaths: 15, assists: 7, firstBloods: 3, plants: 2, defuses: 0 },
-      { name: "ツ | Nyxo", agent: "Neon", kills: 17, deaths: 16, assists: 5, firstBloods: 3, plants: 1, defuses: 2 },
+      { name: "ツ | Nyxo", agent: "Gekko", kills: 17, deaths: 16, assists: 5, firstBloods: 3, plants: 1, defuses: 2 },
       { name: "ツ | feli", agent: null, kills: 15, deaths: 17, assists: 17, firstBloods: 3, plants: 1, defuses: 0 },
     ],
     // Die roten Zeilen: Zahlen aus dem Beispielbild, Namen erfunden. Einer hat (wie im Bild) kein Team-Kürzel.
@@ -362,7 +375,7 @@ const DEMO = {
       { name: "LWG | Vexo", agent: "Neon", kills: 20, deaths: 18, assists: 4, firstBloods: 2, plants: 0, defuses: 2 },
       { name: "LWG | Rasko", agent: "Yoru", kills: 19, deaths: 22, assists: 3, firstBloods: 3, plants: 0, defuses: 0 },
       { name: "Tibor77", agent: "Omen", kills: 14, deaths: 23, assists: 7, firstBloods: 4, plants: 0, defuses: 0 },
-      { name: "LWG | Milaa", agent: "Cypher", kills: 13, deaths: 22, assists: 6, firstBloods: 2, plants: 0, defuses: 2 },
+      { name: "LWG | Milaa", agent: "Vyse", kills: 13, deaths: 22, assists: 6, firstBloods: 2, plants: 0, defuses: 2 },
       { name: "LWG | Jonte", agent: "Sova", kills: 10, deaths: 20, assists: 12, firstBloods: 0, plants: 9, defuses: 0 },
     ],
   },
@@ -402,7 +415,8 @@ function parseJson(text) {
   throw fail("bad-json");
 }
 
-// jpegs: die Bilder für diese Anfrage (Scoreboard: eins, Timeline: ganzes Bild plus zwei Ausschnitte)
+// jpegs: die Bilder für diese Anfrage (Scoreboard: ganzes Bild plus Ausschnitt mit den Agenten-Bildern,
+// Timeline: ganzes Bild plus zwei Ausschnitte)
 async function ask(kind, jpegs) {
   if (S.demo) {
     await wait(900);
@@ -532,7 +546,7 @@ export function explain(e) {
 // ---------- Aufruf aus dem Formular ----------
 
 async function readOne(kind, file) {
-  const jpegs = kind === "board" ? [await shrink(file)] : await pieces(file, STRIP_CUTS);
+  const jpegs = await pieces(file, kind === "board" ? BOARD_CUTS : STRIP_CUTS);
   const { raw, model } = await ask(kind, jpegs);
   return { data: kind === "board" ? checkBoard(raw) : checkLine(raw), model };
 }

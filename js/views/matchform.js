@@ -2,7 +2,7 @@
 // damit Eingaben erhalten bleiben, wenn die Seite darunter neu gezeichnet wird.
 // Alle Eingaben stehen als Text in "ed" (dem Modell). Vor jedem Neuzeichnen holt pull() die Felder dorthin.
 import { S } from "../state.js";
-import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL } from "../constants.js";
+import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL, AGENT_LOOKALIKE } from "../constants.js";
 import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
 import { roundInfo, sortMatches } from "../stats.js";
 import { create, change, remove, listAdd } from "../data.js";
@@ -412,13 +412,14 @@ function fillTeam(key, scanned, b, rep, clash) {
   if (!scanned.length) { if (ours) rep.warn.push("Im Scoreboard waren keine Spielerzeilen unseres Teams lesbar."); return; }
   const pidOf = (name) => { const p = ours ? findPlayer(norm(name)) : null; return p ? p.id : null; };
   let wrote = 0;
-  const used = new Set(), fresh = [], names = [], unknown = [], exes = [], noAgent = [], gaps = [], noRoom = [];
+  const used = new Set(), fresh = [], names = [], unknown = [], exes = [], noAgent = [], doubt = [], gaps = [], noRoom = [];
 
   const fill = (row, p) => {
     used.add(row);
     const shown = clean(row.name);
     names.push(shown);
     if (ours && !pidOf(shown)) (formerKnown(norm(shown)) ? exes : unknown).push(shown);
+    if (p.agent && AGENT_LOOKALIKE[p.agent]) doubt.push(`${quote(shown)}: ${p.agent} (oder ${AGENT_LOOKALIKE[p.agent]}?)`);
     if (!p.agent) { if (!clean(row.agent)) noAgent.push(shown); }
     else if (!clean(row.agent)) { row.agent = p.agent; wrote++; }
     else if (norm(row.agent) !== norm(p.agent)) clash(`${pre}${shown}: Agent`, p.agent, () => clean(row.agent) || "leer", () => { row.agent = p.agent; }, row);
@@ -461,6 +462,7 @@ function fillTeam(key, scanned, b, rep, clash) {
   const list = (arr) => arr.map(quote).join(", ");
   if (wrote) rep.done.push(`${names.length} ${ours ? "Spieler" : "Gegner"} mit ihren Werten: ${names.join(", ")}`);
   if (unknown.length) rep.warn.push(`Noch nicht im Roster: ${list(unknown)}. Beim Speichern fragt das Formular, wer das ist (auch „ehemaliger Spieler“ ist möglich).`);
+  if (doubt.length) rep.warn.push(`${pre ? "Gegner, " : ""}Agent bitte prüfen, die KI verwechselt ihn leicht: ${doubt.join(", ")}.`);
   if (exes.length) rep.warn.push(`Ehemalige Spieler: ${list(exes)}. Sie stehen nur im Scoreboard dieses Matches und zählen nicht in die Statistik.`);
   if (gone.length) rep.warn.push(`Nicht im Bild und deshalb aus der Liste genommen: ${list(gone.map((r) => clean(r.name)))}. Dort stand nur der Name.`);
   if (extra.length) rep.warn.push(`Im Formular, aber nicht im Bild: ${list(extra)}. Die Zeile bleibt stehen.`);
@@ -500,7 +502,7 @@ function scanHtml() {
   const sc = ed.scan, off = sc.busy ? " disabled" : "";
   const slot = (kind) => {
     const [title, sub] = SCAN[kind], file = sc[kind];
-    return `<div class="scan-slot${file ? " has" : ""}">
+    return `<div class="scan-slot${file ? " has" : ""}" data-scan-slot="${kind}">
       <div class="scan-what"><b>${title}</b><small>${file ? esc(file.name) : sub}</small></div>
       <label class="btn small filebtn${sc.busy ? " off" : ""}">${file ? "Anderes Bild" : "Bild wählen"}<input type="file" accept="image/*" id="ed-scan-${kind}" data-change="mf-scan-file" data-kind="${kind}" aria-label="${title}: Bild wählen"${off}></label>
       ${file ? `<button class="alias-x" type="button" id="ed-scan-drop-${kind}" data-action="mf-scan-drop" data-kind="${kind}" aria-label="${title}-Bild entfernen" title="Bild entfernen"${off}>×</button>` : ""}
@@ -511,7 +513,7 @@ function scanHtml() {
     : "Die Bilder gehen verkleinert an die KI von Google (Gemini). Die App speichert sie nirgends.";
   return `<section class="scan" id="ed-scan" aria-labelledby="ed-scan-title">
     <div class="scan-head"><h3 id="ed-scan-title">Screenshot auslesen</h3><span class="hint">freiwillig</span></div>
-    <p class="scan-lead">Wähl die zwei Screenshots vom Match-Ende, einer allein geht auch. Die KI trägt die Werte unten ein. Gespeichert wird dabei noch nichts.</p>
+    <p class="scan-lead">Wähl die zwei Screenshots vom Match-Ende, einer allein geht auch. Die KI trägt die Werte unten ein. Gespeichert wird dabei noch nichts.<span class="scan-pc"> Am PC geht es auch ohne Explorer: Bilder einfach auf ein Feld ziehen oder mit Strg + V einfügen.</span></p>
     <div class="scan-slots">${slot("board")}${slot("line")}</div>
     <div class="scan-go"><button class="btn primary" type="button" id="ed-scan-go" data-action="mf-scan"${(sc.board || sc.line) && !sc.busy ? "" : " disabled"}>${sc.busy ? "Liest aus …" : "Auslesen"}</button>
       <span class="hint" role="status">${note}</span></div>
@@ -854,12 +856,67 @@ export const changes = {
   "mf-scan-file": (el) => {
     const file = el.files && el.files[0];
     if (!ed || ed.scan.busy || !file) return;
-    if (file.type && !file.type.startsWith("image/")) { el.value = ""; toast("Das ist kein Bild. Wähl bitte einen Screenshot."); return; }
-    pull();
-    ed.scan[el.dataset.kind === "line" ? "line" : "board"] = file;
-    draw();
+    if (!isImage(file)) { el.value = ""; toast("Das ist kein Bild. Wähl bitte einen Screenshot."); return; }
+    takeScan([file], el.dataset.kind, false);
   },
 };
+
+// ---------- Screenshots reinziehen oder einfügen (Strg + V) ----------
+// Statt über "Bild wählen" (Explorer) kommen die Bilder auch per Ziehen auf das Formular oder aus der
+// Zwischenablage (z. B. nach Windows + Umschalt + S). kind = Feld, auf das gezogen wurde; ohne kind erst das freie Feld.
+
+const isImage = (f) => Boolean(f) && (!f.type || f.type.startsWith("image/"));
+
+// files: Bilder in der Reihenfolge, in der sie kamen. Zwei Bilder auf einmal füllen beide Felder.
+function takeScan(files, kind, say = true) {
+  if (!ed || ed.scan.busy) return;
+  const pics = files.filter(isImage).slice(0, 2);
+  if (!pics.length) { toast("Das ist kein Bild. Zieh bitte einen Screenshot hierher."); return; }
+  const sc = ed.scan;
+  let order;
+  if (kind === "board" || kind === "line") order = [kind, kind === "board" ? "line" : "board"];
+  else if (pics.length > 1) order = ["board", "line"];
+  else order = [!sc.board ? "board" : !sc.line ? "line" : "board"];
+  pull();
+  pics.forEach((f, i) => { sc[order[i]] = f; });
+  draw();
+  if (say) toast(pics.length > 1 ? "Zwei Bilder übernommen: erst Scoreboard, dann Timeline. Bei Bedarf tauschen." : `Bild übernommen (${order[0] === "board" ? "Scoreboard" : "Timeline"}).`);
+}
+
+const dragFiles = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files");
+const slotOf = (el) => (el && el.closest ? el.closest("[data-scan-slot]") : null);
+let lit = null;   // Feld, über dem gerade ein Bild schwebt
+const light = (slot) => {
+  if (lit === slot) return;
+  if (lit) lit.classList.remove("drop");
+  lit = slot;
+  if (lit) lit.classList.add("drop");
+};
+
+// Solange das Formular offen ist, landet ein Bild nie als neue Seite im Browser (sonst wäre das Formular weg)
+document.addEventListener("dragover", (e) => {
+  if (!ed || !dragFiles(e)) return;
+  e.preventDefault();
+  const busy = ed.scan.busy;
+  e.dataTransfer.dropEffect = busy ? "none" : "copy";
+  light(busy ? null : slotOf(e.target));
+});
+document.addEventListener("dragleave", (e) => { if (ed && !e.relatedTarget) light(null); });
+document.addEventListener("drop", (e) => {
+  if (!ed || !dragFiles(e)) return;
+  e.preventDefault();
+  const slot = slotOf(e.target);
+  light(null);
+  takeScan([...e.dataTransfer.files], slot ? slot.dataset.scanSlot : null);
+});
+
+document.addEventListener("paste", (e) => {
+  if (!ed || !e.clipboardData) return;
+  const files = [...e.clipboardData.files].filter(isImage);
+  if (!files.length) return;   // Text wird ganz normal eingefügt
+  e.preventDefault();
+  takeScan(files.map((f, i) => (f.name && f.name !== "image.png" ? f : new File([f], `Eingefügtes Bild${files.length > 1 ? " " + (i + 1) : ""}.png`, { type: f.type || "image/png" }))), null);
+});
 
 // Ändert sich der Score, ändert sich auch der Hinweis beim Rundenverlauf (und die Zahl der Felder)
 // Zahlenfelder sind bewusst einfache Textfelder mit Ziffern-Tastatur (inputmode), keine type="number"-Felder:
