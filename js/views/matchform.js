@@ -330,6 +330,10 @@ function applyScan(res) {
   // Derselbe Fehler bei beiden Bildern (z. B. keine Verbindung): nur einmal zeigen
   if (rep.errors.length === 2 && rep.errors[0].text === rep.errors[1].text) rep.errors = [{ ...rep.errors[0], title: "Beide Bilder" }];
   const b = res.board, t = res.line;
+  // Tageskontingent des eingestellten Modells aufgebraucht: Ein Ausweich-Modell hat gelesen (js/scan.js)
+  if (res.fallback && (b || t)) {
+    rep.warn.push(`Gelesen mit dem Ausweich-Modell ${quote(res.fallback.model)}, weil das Tageskontingent von ${res.fallback.spent.map(quote).join(", ")} für heute aufgebraucht ist. Es kann ungenauer lesen: Werte bitte besonders genau prüfen.`);
+  }
   // Abweichung merken: get() liefert, was gerade im Formular steht; apply() übernimmt den Wert aus dem Bild
   // same() sagt, ob sich die Abweichung erledigt hat (Standard: Im Formular steht jetzt derselbe Text)
   const clash = (label, neu, get, apply, row = null, same = () => get() === neu) => rep.conflicts.push({ label, neu, get, apply, row, same });

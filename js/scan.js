@@ -451,9 +451,26 @@ const DEMO = {
 
 // ---------- Die KI fragen ----------
 
+// Das Tageskontingent gilt bei Google pro Modell. Ist es bei einem Modell aufgebraucht, nimmt die App das nächste
+// aus der Liste und merkt sich das bis zum nächsten Tag (das Kontingent beginnt um Mitternacht in Kalifornien neu).
+const SPENT_KEY = "valo-ai-spent";
+const quotaDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date());
+function spentModels() {
+  try {
+    const v = JSON.parse(localStorage.getItem(SPENT_KEY) || "null");
+    return v && v.day === quotaDay() && Array.isArray(v.models) ? v.models : [];
+  } catch (e) { return []; }
+}
+function markSpent(name) {
+  const models = [...new Set([...spentModels(), name])];
+  try { localStorage.setItem(SPENT_KEY, JSON.stringify({ day: quotaDay(), models })); } catch (e) { /* nur für diesen Tag */ }
+}
+
 function modelNames() {
-  const list = [goodModel, cfg.aiModel, ...FALLBACK_MODELS].map((m) => clean(m)).filter(Boolean);
-  return [...new Set(list)];
+  const list = [...new Set([goodModel, cfg.aiModel, ...FALLBACK_MODELS].map((m) => clean(m)).filter(Boolean))];
+  const spent = spentModels();
+  const left = list.filter((m) => !spent.includes(m));
+  return left.length ? left : list;   // alle aufgebraucht: trotzdem versuchen (vielleicht schon wieder frei)
 }
 
 const statusOf = (e) => {
@@ -486,7 +503,8 @@ async function ask(kind, jpegs, sheet = false) {
   const { ai, AIM, check } = await loadAi();
   const prompt = kind === "board" ? boardPrompt(sheet) : LINE_PROMPT;
   const images = jpegs.map((j) => ({ inlineData: { data: j.base64, mimeType: j.mimeType } }));
-  const tried = [];
+  const tried = [], spent = [];
+  let quotaError = null;
   try {
     for (const name of modelNames()) {
       tried.push(name);
@@ -500,12 +518,21 @@ async function ask(kind, jpegs, sheet = false) {
         const raw = parseJson(result.response.text());
         if (goodModel !== name) console.info(`Screenshot-Auslesen: Modell „${name}“ antwortet.`);
         goodModel = name;
-        return { raw, model: name };
+        return { raw, model: name, spent };
       } catch (e) {
+        if (kindOf(e) === "quota-day") {
+          // Tageskontingent dieses Modells aufgebraucht: nächstes Modell
+          console.warn(`Screenshot-Auslesen: Tageskontingent von „${name}“ aufgebraucht, probiere das nächste Modell.`);
+          markSpent(name);
+          spent.push(name);
+          quotaError = e;
+          continue;
+        }
         if (!modelMissing(e)) throw e;
         console.warn(`Screenshot-Auslesen: Modell „${name}“ nicht gefunden, probiere das nächste.`);
       }
     }
+    if (quotaError) throw quotaError;   // bei allen Modellen aufgebraucht
     throw fail("no-model", { tried });
   } catch (e) {
     // Abgelehnt (401/403): nachsehen, ob App Check überhaupt ein Token bekommt. Das macht die Meldung genauer.
@@ -538,7 +565,7 @@ const TEXT = {
   timeout: () => "Die KI hat zu lange gebraucht. Versuch es gleich noch einmal." + BY_HAND,
   overloaded: () => "Die KI ist gerade überlastet oder gestört. Versuch es in einer Minute noch einmal." + BY_HAND,
   "quota-minute": () => "Zu viele Anfragen kurz hintereinander. Warte eine Minute und tipp dann noch einmal auf „Auslesen“.",
-  "quota-day": () => "Das kostenlose Tageskontingent der KI ist aufgebraucht. Ein neues gibt es täglich gegen 9 Uhr morgens." + BY_HAND,
+  "quota-day": () => "Das kostenlose Tageskontingent der KI ist aufgebraucht, auch bei den Ausweich-Modellen. Ein neues gibt es täglich gegen 9 Uhr morgens." + BY_HAND,
   quota: () => "Das kostenlose Kontingent der KI ist gerade erschöpft (zu viele Anfragen). Warte eine Minute und versuch es noch einmal. Kommt die Meldung wieder, ist das Tageskontingent aufgebraucht: Dann geht es am nächsten Tag gegen 9 Uhr weiter." + BY_HAND,
   "not-enabled": () => "Das Screenshot-Auslesen ist in Firebase noch nicht eingeschaltet (AI Logic)." + ADMIN + "Schritt 7). Direkt danach kann es ein paar Minuten dauern, bis es geht.",
   "no-model": (e) => `Keins der KI-Modelle wurde gefunden (probiert: ${(e.tried || []).join(", ")}). Google hat sie vermutlich abgelöst: In firebase-config.js bei „aiModel“ einen aktuellen Namen eintragen (ANLEITUNG.md, Schritt 7).`,
@@ -613,26 +640,37 @@ async function readOne(kind, file) {
     try { sheet = await refSheet(); } catch (e) { console.warn("Beispieltafel ließ sich nicht bauen:", e.message || e); }
     if (sheet) jpegs.push(sheet);
   }
-  const { raw, model } = await ask(kind, jpegs, Boolean(sheet));
-  if (kind !== "board") return { data: checkLine(raw), model };
+  const { raw, model, spent } = await ask(kind, jpegs, Boolean(sheet));
+  if (kind !== "board") return { data: checkLine(raw), model, spent };
   const data = checkBoard(raw);
   await cutPortraits(file, [...data.players, ...data.opponents]);
   data.sheet = sheet ? sheet.count : 0;
-  return { data, model };
+  return { data, model, spent };
+}
+
+// Hat ein anderes Modell als das eingestellte geantwortet (weil dessen Tageskontingent aufgebraucht war)?
+// Liefert { model, spent: [...] } oder null. Das Formular schreibt es in den Bericht.
+function fallbackInfo(model, spent) {
+  const main = clean(cfg.aiModel);
+  if (!model || model === main) return null;
+  const gone = [...new Set([...(spent || []), ...spentModels()])];
+  return gone.length ? { model, spent: gone } : null;
 }
 
 // Liest die gewählten Bilder aus (eins oder beide, gleichzeitig).
 // files = { board: File | null, line: File | null }
-// Liefert { board, line, errors: { board, line }, model, demo }: board und line sind die geprüften Werte oder null,
+// Liefert { board, line, errors: { board, line }, model, fallback, demo }: board und line sind die geprüften Werte oder null,
+// fallback ist gesetzt, wenn wegen eines aufgebrauchten Tageskontingents ein Ausweich-Modell geantwortet hat,
 // errors enthält pro Bild null oder { kind, text, token }.
 export async function scanImages(files) {
-  const out = { board: null, line: null, errors: { board: null, line: null }, model: "", demo: Boolean(S.demo) };
+  const out = { board: null, line: null, errors: { board: null, line: null }, model: "", fallback: null, demo: Boolean(S.demo) };
   await Promise.all(["board", "line"].map(async (kind) => {
     if (!files[kind]) return;
     try {
       const res = await readOne(kind, files[kind]);
       out[kind] = res.data;
       out.model = res.model || out.model;
+      out.fallback = fallbackInfo(res.model, res.spent) || out.fallback;
     } catch (e) {
       if (!e.scan) console.warn("Screenshot-Auslesen fehlgeschlagen:", e.code || "", e.message || e, e.appCheck && e.appCheck.probeError && e.appCheck.probeError !== e ? e.appCheck.probeError : "");
       out.errors[kind] = explain(e);
