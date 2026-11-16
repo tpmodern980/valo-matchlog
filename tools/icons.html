@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Icons erzeugen</title>
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<style>
+  :root { --bg: #EDF0F3; --surface: #FFFFFF; --ink: #121820; --muted: #5B6676; --line: #D5DBE3; --accent: #0B7480; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0E1318; --surface: #151C23; --ink: #E7ECF1; --muted: #94A1B0; --line: #2A3541; --accent: #3BC2CB; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  h1 { margin: 0; font-size: 22px; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .box { background: var(--surface); border: 1px solid var(--line); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  label { display: flex; gap: 8px; align-items: center; }
+  input[type="number"] { width: 5em; }
+  button, .dl { font: inherit; padding: 7px 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; text-decoration: none; }
+  .primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+  figure { margin: 0; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+  figure img { width: 128px; height: 128px; border: 1px solid var(--line); image-rendering: auto; }
+  figure img.round { border-radius: 50%; }
+  figure img.ios { border-radius: 22%; }
+  figcaption { font-size: 13px; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; }
+  #msg:empty { display: none; }
+  #msg { color: #C2362C; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Icons aus dem Logo erzeugen</h1>
+  <p class="muted">Liest <code>icons/logo.svg</code> (oder eine Datei, die du hier wählst) und macht daraus alle PNG-Icons der App.
+    Herunterladen, in den Ordner <code>icons/</code> legen (vorhandene Dateien ersetzen), dann in <code>sw.js</code> die Versionsnummer erhöhen.
+    Schritt für Schritt: <code>ANLEITUNG.md</code>, Abschnitt „Logo austauschen“.</p>
+
+  <section class="box">
+    <div class="row">
+      <label>Andere Datei (SVG oder PNG): <input type="file" id="file" accept="image/svg+xml,image/png,image/webp,image/jpeg"></label>
+    </div>
+    <div class="row">
+      <label>Hintergrund für den Rand: <input type="color" id="bg" value="#0B7480"></label>
+      <label>Logo-Größe im runden Icon (Android): <input type="number" id="safe" min="50" max="100" step="5" value="80"> %</label>
+    </div>
+    <p class="muted">Die Farbe wird aus der Ecke oben links des Logos übernommen; ändern nur, wenn sie nicht passt. Im runden Icon schneidet Android bis zu einem Fünftel am Rand ab, deshalb ist das Logo dort kleiner.</p>
+    <p id="msg" role="alert"></p>
+  </section>
+
+  <section class="box">
+    <div class="row">
+      <button class="primary" type="button" id="all">Alle herunterladen</button>
+      <span class="muted">Der Browser fragt eventuell, ob er mehrere Dateien speichern darf.</span>
+    </div>
+    <div class="grid" id="out"></div>
+  </section>
+</main>
+
+<script>
+// Was entsteht: Dateiname, Kantenlänge, Logo-Anteil (1 = ganze Fläche), Vorschau-Form
+const ICONS = [
+  { file: "icon-192.png", size: 192, fit: 1, shape: "", text: "App-Icon 192 (Android, Manifest)" },
+  { file: "icon-512.png", size: 512, fit: 1, shape: "", text: "App-Icon 512 (Android, Startbild)" },
+  { file: "icon-maskable-512.png", size: 512, fit: "safe", shape: "round", text: "Rundes Icon 512 (Android, „maskable“)" },
+  { file: "apple-touch-icon.png", size: 180, fit: 1, shape: "ios", text: "iPhone-Icon 180" },
+  { file: "favicon-32.png", size: 32, fit: 1, shape: "", text: "Favicon 32 (Browser-Tab)" },
+];
+
+const $ = (id) => document.getElementById(id);
+let logo = null;          // geladenes Bild
+let results = [];         // [{ file, url }]
+
+function loadImage(src) {
+  return new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => ok(img);
+    img.onerror = () => fail(new Error("Das Bild ließ sich nicht laden."));
+    img.src = src;
+  });
+}
+
+// Farbe der Ecke oben links (für den Rand des runden Icons)
+function cornerColor(img) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  g.drawImage(img, 0, 0, 64, 64);
+  const [r, gg, b, a] = g.getImageData(1, 1, 1, 1).data;
+  if (a < 200) return null;   // durchsichtig: Farbe nicht übernehmen
+  return "#" + [r, gg, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
+function draw(img, size, fit, bg) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d");
+  g.imageSmoothingQuality = "high";
+  // Immer erst den Hintergrund: Das iPhone füllt durchsichtige Stellen sonst schwarz
+  g.fillStyle = bg;
+  g.fillRect(0, 0, size, size);
+  const w = img.naturalWidth || size, h = img.naturalHeight || size;
+  const box = size * fit, scale = Math.min(box / w, box / h);
+  const dw = w * scale, dh = h * scale;
+  g.drawImage(img, (size - dw) / 2, (size - dh) / 2, dw, dh);
+  return c.toDataURL("image/png");
+}
+
+function render() {
+  if (!logo) return;
+  const bg = $("bg").value;
+  const safe = Math.min(100, Math.max(50, Number($("safe").value) || 80)) / 100;
+  results = ICONS.map((ic) => ({ file: ic.file, url: draw(logo, ic.size, ic.fit === "safe" ? safe : ic.fit, bg) }));
+  $("out").innerHTML = ICONS.map((ic, i) => `
+    <figure>
+      <img src="${results[i].url}" alt="" class="${ic.shape}">
+      <figcaption><b>${ic.file}</b><br><span class="muted">${ic.text}</span></figcaption>
+      <a class="dl" href="${results[i].url}" download="${ic.file}">Herunterladen</a>
+    </figure>`).join("");
+}
+
+async function use(src, takeColor) {
+  $("msg").textContent = "";
+  try {
+    logo = await loadImage(src);
+    if (takeColor) { const col = cornerColor(logo); if (col) $("bg").value = col; }
+    render();
+  } catch (e) {
+    $("msg").textContent = e.message + " Liegt die Datei icons/logo.svg im Repo, und läuft die Seite über den Test-Server (http://localhost:8123/tools/icons.html)?";
+  }
+}
+
+$("file").addEventListener("change", () => {
+  const f = $("file").files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => use(reader.result, true);
+  reader.readAsDataURL(f);
+});
+$("bg").addEventListener("input", render);
+$("safe").addEventListener("input", render);
+$("all").addEventListener("click", async () => {
+  for (const r of results) {
+    const a = document.createElement("a");
+    a.href = r.url; a.download = r.file;
+    document.body.appendChild(a); a.click(); a.remove();
+    await new Promise((ok) => setTimeout(ok, 300));
+  }
+});
+
+// Für Tests: alle Icons als Daten-Adressen
+window.iconResults = () => results;
+
+use("../icons/logo.svg?" + Date.now(), true);
+</script>
+</body>
+</html>

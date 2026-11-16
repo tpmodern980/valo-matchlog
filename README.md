@@ -1,4 +1,4 @@
-# Valo Matchlog
+# ScrimStar
 
 Team-Tracker als installierbare Web-App (PWA): Matches eintragen, Statistiken pro Spieler, Map und Gegner ansehen, Clips mit Zeitstempel-Notizen reviewen.
 
@@ -23,12 +23,16 @@ Die Seite direkt als Datei zu öffnen (`file://`) funktioniert nicht, weil ES-Mo
 | Ordner / Datei | Inhalt |
 |---|---|
 | `index.html` | Grundgerüst der Seite |
-| `manifest.webmanifest` | Angaben für die Installation als App (Name, Farben) |
+| `manifest.webmanifest` | Angaben für die Installation als App (Name, Farben, Icons) |
+| `sw.js` | Service Worker: hält die App-Dateien auf dem Gerät (offline), meldet neue Versionen. **Bei jeder Änderung `VERSION` erhöhen** |
+| `icons/` | Logo (`logo.svg`, Quelle) und die daraus erzeugten PNG-Icons |
+| `tools/icons.html` | Erzeugt die PNG-Icons aus dem Logo (siehe `ANLEITUNG.md`, „Logo austauschen“) |
 | `firebase-config.js` | Einstellungen, füllt der Admin aus |
 | `ANLEITUNG.md` | Firebase Schritt für Schritt einrichten |
 | `firestore.rules` | Zugriffsregeln für die Datenbank (in der Firebase-Konsole einfügen) |
 | `css/app.css` | Gesamtes Aussehen (hell und dunkel) |
 | `js/main.js` | Start und Rendern |
+| `js/pwa.js` | Meldet den Service Worker an, Hinweis „Neue Version – neu laden“ |
 | `js/firebase.js` | Lädt das Firebase-SDK vom CDN und startet es |
 | `js/auth.js` | Anmeldung und Freischaltung |
 | `js/team.js` | Team-Liste (wer die App benutzen darf) |

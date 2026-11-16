@@ -13,7 +13,7 @@ import { everything, known, putMany } from "./data.js";
 import { result, kdOf } from "./stats.js";
 
 export const FORMAT = 1;              // Version des JSON-Formats (für spätere Änderungen)
-export const APP_KEY = "valo-matchlog";
+export const APP_KEY = "valo-matchlog";   // bleibt so, auch seit die App „ScrimStar“ heißt: sonst passen alte Backups nicht mehr
 const COLLS = ["players", "matches", "clips"];
 const MAX_BYTES = 25 * 1024 * 1024;    // größere Dateien sind sicher kein Export dieser App
 

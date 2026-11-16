@@ -1,11 +1,18 @@
 {
-  "name": "Valo Matchlog",
-  "short_name": "Matchlog",
+  "id": "./",
+  "name": "ScrimStar",
+  "short_name": "ScrimStar",
   "description": "Team-Tracker: Matches, Statistiken und Clip-Review.",
   "lang": "de",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0E1318",
-  "theme_color": "#0E1318"
+  "theme_color": "#0E1318",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

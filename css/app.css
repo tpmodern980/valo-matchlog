@@ -1,4 +1,4 @@
-/* Valo Matchlog – Layout: Scoreboard-Ledger.
+/* ScrimStar – Layout: Scoreboard-Ledger.
    Kopfzeile mit Tabs, darunter Bilanz-Leiste und Match-Zeilen wie ein Scoreboard-Streifen. */
 
 /* ---------- Schriften (selbst gehostet, OFL, siehe fonts/) ---------- */
@@ -95,10 +95,8 @@ code { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; font-siz
 }
 .top .wrap { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding-block: 12px; min-height: 58px; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
-.brand-mark {
-  width: 26px; height: 22px; background: var(--accent); flex: none;
-  clip-path: polygon(0 0, 100% 0, 100% 62%, 62% 100%, 0 100%);
-}
+/* Logo (icons/logo.svg) */
+.brand-mark { width: 26px; height: 26px; flex: none; display: block; border-radius: 4px; }
 .brand-name { font-family: var(--font-display); font-weight: 700; font-size: 18px; letter-spacing: .12em; text-transform: uppercase; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .tab {
@@ -751,6 +749,16 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar) + 18px); z-index: 40;
   background: var(--ink); color: var(--bg); padding: 10px 16px; font-weight: 600; width: max-content; max-width: calc(100% - 32px); box-shadow: var(--shadow); }
 .loading { color: var(--muted); padding: 24px 0; }
+
+/* ---------- Neue Version (js/pwa.js) ---------- */
+#update { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar) + 18px); z-index: 41;
+  display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100% - 32px);
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  padding: 8px 8px 8px 14px; box-shadow: var(--shadow); }
+#update .update-text { font-family: var(--font-display); font-weight: 600; letter-spacing: .02em; margin-right: 4px; }
+#app-version { white-space: nowrap; }
+/* Ein Toast rutscht über den Hinweis, statt ihn zu verdecken */
+#update:not([hidden]) ~ #toast { bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar) + 76px); }
 @media (prefers-reduced-motion: no-preference) {
   .mrow, .btn, .clip-item { transition: border-color .15s, background-color .15s, filter .15s; }
 }

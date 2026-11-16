@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Platzhalter-Logo von ScrimStar: weißer Stern auf Petrol, unten rechts eine abgeschrägte Ecke.
+       Zum Austauschen diese Datei ersetzen (quadratisch, Hintergrund nicht durchsichtig),
+       dann tools/icons.html öffnen und die PNGs neu erzeugen (ANLEITUNG.md, „Logo austauschen“). -->
+  <rect width="512" height="512" fill="#0B7480"/>
+  <polygon points="512,312 512,512 312,512" fill="#075A63"/>
+  <polygon fill="#FFFFFF" points="256,116 293.03,215.03 398.66,219.65 315.92,285.47 344.17,387.35 256,329 167.83,387.35 196.08,285.47 113.34,219.65 218.97,215.03"/>
+</svg>

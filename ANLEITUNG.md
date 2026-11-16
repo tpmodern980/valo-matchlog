@@ -1,6 +1,6 @@
 # Anleitung: Firebase einrichten
 
-Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 und 8, freiwillig: Die App läuft auch ohne).
+Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 und 8, freiwillig: Die App läuft auch ohne). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
 
 Du brauchst: ein Google-Konto und etwa 15 Minuten. Es kostet nichts. Du musst nirgends eine Kreditkarte angeben. Falls die Konsole ein Upgrade auf „Blaze“ anbietet: ablehnen.
 
@@ -19,7 +19,7 @@ Kontrolle: Unten links in der Konsole steht der Tarif **Spark** (kostenlos). So 
 ## Schritt 2: Web-App registrieren
 
 1. Auf der Projektübersicht auf das Symbol **`</>`** (Web) klicken. Falls du es nicht siehst: „App hinzufügen“ und dann „Web“.
-2. Spitzname: `Valo Matchlog`.
+2. Spitzname: `ScrimStar`.
 3. Den Haken bei **Firebase Hosting nicht setzen**.
 4. Auf **App registrieren** klicken.
 5. Die Konsole zeigt jetzt einen Kasten mit Code. Wichtig ist nur dieser Teil (bei dir stehen andere Werte):
@@ -49,7 +49,7 @@ Diese Werte sind keine Geheimnisse und dürfen im öffentlichen Repo stehen. Ges
 
 1. Links im Menü: **Sicherheit → Authentifizierung** (englisch „Authentication“). Beim ersten Mal auf **Jetzt starten** klicken.
 2. Reiter **Anmeldemethode**.
-3. **Google** auswählen → aktivieren. „Öffentlicher Name des Projekts“: `Valo Matchlog` (das sehen die Leute im Google-Fenster). Support-E-Mail: deine Adresse auswählen. **Speichern**.
+3. **Google** auswählen → aktivieren. „Öffentlicher Name des Projekts“: `ScrimStar` (das sehen die Leute im Google-Fenster). Support-E-Mail: deine Adresse auswählen. **Speichern**.
 4. **Neuen Anbieter hinzufügen** → **E-Mail-Adresse/Passwort** → nur den **ersten** Schalter aktivieren. „E-Mail-Link (Anmeldung ohne Passwort)“ bleibt aus. **Speichern**.
 
 ## Schritt 4: Datenbank anlegen und Regeln einfügen
@@ -158,7 +158,7 @@ Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind 
 2. Oben in der Projekt-Auswahl muss dein Firebase-Projekt stehen (`valo-matchlog`). Der Schlüssel gehört zu dem Projekt, das dort gewählt ist.
 3. Fragt die Seite, ob die **reCAPTCHA Enterprise API** aktiviert werden soll: aktivieren. Ein Bezahlkonto ist dafür nicht nötig. Verlangt die Seite trotzdem eins: nicht weitermachen.
 4. Reiter **Keys** („Schlüssel“) → **Create key** („Schlüssel erstellen“).
-5. **Display name** (Anzeigename): `Valo Matchlog`.
+5. **Display name** (Anzeigename): `ScrimStar`.
 6. **Application type** (Anwendungstyp): **Web**.
 7. **Add a domain** (Domain hinzufügen): `tpmodern980.github.io` (ohne `https://`, ohne `/valo-matchlog`). **Nicht `localhost` eintragen**: Dafür gibt es Teil A.
 8. Alles andere so lassen, wie es ist: „Disable domain verification“ bleibt aus, „Use checkbox challenge“ bleibt aus.
@@ -193,6 +193,8 @@ Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind 
 | Google zeigt „Fehler 400: redirect_uri_mismatch“ | Die Adresse der App fehlt bei Google oder ist anders geschrieben (Schritt 5, Teil „Bei Google“). Nach dem Speichern ein paar Minuten warten. |
 | „Unable to process request due to missing initial state“ | In `firebase-config.js` fehlt die `googleClientId` (Schritt 5). Dann nutzt die App ein Google-Fenster, das in der installierten iPhone-App nicht zuverlässig funktioniert. |
 | „Die Antwort von Google passt nicht zu dieser Anmeldung“ | Die Anmeldung hat länger als 15 Minuten gedauert oder wurde in einem anderen Browser beendet. Noch einmal auf „Mit Google anmelden“ tippen. |
+| Ein Gerät zeigt nach dem Hochladen noch den alten Stand | Ein paar Minuten warten, App schließen und neu öffnen: Dann kommt der Hinweis „Neue Version“. Kommt er nie: In `sw.js` wurde die Versionsnummer nicht erhöht (Abschnitt „Neue Version der App veröffentlichen“). Die Version des Geräts steht unten in der Fußzeile. |
+| Im Google-Fenster steht noch „Valo Matchlog“ | Das ist der öffentliche Name des Firebase-Projekts. Ändern (freiwillig): Schritt 3, bei Google den Stift → „Öffentlicher Name des Projekts“: `ScrimStar` → Speichern. Steht er danach immer noch da: <https://console.cloud.google.com/auth/branding> → „App-Name“. |
 
 **Beim Screenshot-Auslesen** (die Meldungen stehen im Formular direkt unter dem Knopf „Auslesen“; Einzelheiten zusätzlich in der Konsole des Browsers):
 
@@ -234,16 +236,52 @@ Im Gratisplan von Firebase gibt es **keine automatischen Backups**. Alles dafür
 | Was du siehst | Woran es meist liegt |
 |---|---|
 | „… ist keine JSON-Datei“ | Die CSV oder eine andere Datei gewählt. Gebraucht wird die Datei `valo-matchlog-backup-….json`. |
-| „Diese Datei ist kein Export von Valo Matchlog“ | Eine fremde JSON-Datei. |
-| „… stammt aus einer neueren Version der App“ | Die App auf diesem Gerät ist veraltet: neu laden (Strg + F5), dann noch einmal. |
+| „Diese Datei ist kein Export von ScrimStar“ | Eine fremde JSON-Datei. (Backups aus der Zeit, als die App noch „Valo Matchlog“ hieß, passen weiter.) |
+| „… stammt aus einer neueren Version der App“ | Die App auf diesem Gerät ist veraltet: auf den Hinweis „Neue Version“ unten warten und „Neu laden“ tippen (oder die App ganz schließen und neu öffnen), dann noch einmal. |
 | „Nicht gespeichert: Dafür fehlt dir die Berechtigung.“ | Nur Admins dürfen wiederherstellen und einspielen. Steht man auf der Admin-Liste, die Seite neu laden. |
 
 ## Als App auf den Home-Bildschirm legen
 
-Die App kommt nicht aus dem App Store. Man öffnet die Adresse im Browser und legt sie von dort auf den Home-Bildschirm. Danach startet sie wie eine eigene App. Ein eigenes Icon gibt es noch nicht, das folgt später.
+Die App kommt nicht aus dem App Store. Man öffnet die Adresse im Browser und legt sie von dort auf den Home-Bildschirm. Danach startet sie wie eine eigene App: mit dem Namen **ScrimStar**, dem Icon (weißer Stern auf Petrol, ein Platzhalter bis zum eigenen Logo) und ohne Adresszeile.
 
 - **iPhone:** Die Adresse in **Safari** öffnen → Teilen-Symbol (Viereck mit Pfeil nach oben) → **Zum Home-Bildschirm** → Hinzufügen. Falls dort ein Schalter „Als Web-App öffnen“ steht: eingeschaltet lassen.
-- **Android:** Die Adresse in **Chrome** öffnen → Menü mit den drei Punkten → **Zum Startbildschirm hinzufügen** (oder „App installieren“).
+- **Android:** Die Adresse in **Chrome** öffnen → Menü mit den drei Punkten → **App installieren** (oder „Zum Startbildschirm hinzufügen“).
+- **PC (Chrome, Edge, Brave):** In der Adresszeile rechts erscheint ein kleines Symbol „App installieren“. Muss man nicht, geht aber.
+
+**Wer die App schon vor dem neuen Namen auf dem Home-Bildschirm hatte:** Android übernimmt Name und Icon nach einiger Zeit von selbst. Auf dem iPhone bleiben der alte Name und das alte Bild, bis man das Symbol löscht (lange drücken → App entfernen) und neu hinzufügt. Danach muss man sich dort einmal neu anmelden.
+
+**Ohne Internet:** Die App startet auch ohne Verbindung und zeigt den zuletzt geladenen Stand. Eintragen geht auch; gespeichert wird, sobald wieder Netz da ist. Das Screenshot-Auslesen und YouTube-Clips brauchen Internet.
+
+**Statusleiste oben (Uhrzeit, Akku):** Sie liegt über der App, nicht darin, und hat die Farbe des Hintergrunds (hell oder dunkel, je nach Einstellung des Handys).
+
+## Neue Version der App veröffentlichen
+
+Die App speichert ihre Dateien auf jedem Gerät (das macht der „Service Worker“ in `sw.js`). Dadurch startet sie schnell und läuft auch ohne Internet. Damit eine Änderung auf den Geräten ankommt, gilt:
+
+1. **Bei jeder Änderung an der App die Versionsnummer erhöhen:** In `sw.js` oben die Zeile `const VERSION = "…";`. Am besten das Datum von heute, bei mehreren Änderungen am selben Tag mit `.2`, `.3` usw. dahinter (zum Beispiel `"2026-11-20.1"`). **Ohne neue Nummer behalten die Geräte die alten Dateien.**
+2. Kommt eine **neue Datei** dazu (z. B. ein neues Modul in `js/`), sie in `sw.js` in die Liste `APP_FILES` eintragen.
+3. Committen und hochladen wie immer. GitHub Pages braucht danach ein paar Minuten (bis zu etwa 10).
+4. Auf den Geräten erscheint unten der Hinweis **„Neue Version – Neu laden“**, sobald die App geöffnet wird oder man zu ihr zurückwechselt. „Neu laden“ tippen. „Später“ blendet ihn aus; dann kommt die neue Version beim nächsten kompletten Neustart der App.
+
+Welche Version ein Gerät gerade hat, steht ganz unten in der Fußzeile („Version …“).
+
+Am eigenen Rechner (`http://localhost:8123/`) holt die App immer die frischen Dateien vom Test-Server. Den Hinweis „Neue Version“ sieht man dort nur, wenn sich `sw.js` geändert hat.
+
+## Logo austauschen
+
+Das Icon ist ein Platzhalter. Die Quelle ist die Datei `icons/logo.svg`, daraus entstehen alle Bilder (App-Icons für Android und iPhone, Favicon, Logo oben links in der Kopfzeile).
+
+1. **Logo vorbereiten:** am besten als SVG, sonst PNG. Quadratisch, mindestens 1024 × 1024 Pixel. Hintergrund **nicht durchsichtig** (das iPhone füllt Durchsichtiges schwarz). Das Wichtige in die Mitte: Android schneidet bei runden Icons bis zu einem Fünftel am Rand ab.
+2. **Als SVG:** die Datei `icons/logo.svg` durch das neue Logo ersetzen (gleicher Name). **Als PNG:** `icons/logo.svg` erst einmal liegen lassen.
+3. Test-Server starten (Doppelklick auf `server-starten.cmd`) und `http://localhost:8123/tools/icons.html` öffnen. Die Seite zeigt alle Icons als Vorschau. Für ein PNG oben bei „Andere Datei“ die Datei wählen.
+4. Passt die Hintergrundfarbe für das runde Icon nicht, sie bei „Hintergrund für den Rand“ ändern.
+5. **„Alle herunterladen“**. Die fünf Dateien (`icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png`, `favicon-32.png`) landen im Download-Ordner. Sie in den Ordner `C:\dev\valo-matchlog\icons\` verschieben und die alten ersetzen.
+6. War das Logo ein PNG: In `index.html` steht zweimal `icons/logo.svg` (Favicon und Kopfzeile). Beide Male durch `icons/icon-192.png` ersetzen. Die Datei `icons/logo.svg` dann löschen und in `sw.js` aus `APP_FILES` herausnehmen.
+7. In `sw.js` die Versionsnummer erhöhen (siehe oben), committen, hochladen.
+
+Auf den Handys erscheint das neue Icon auf dem Home-Bildschirm erst nach einiger Zeit (Android) oder nach dem Neu-Hinzufügen (iPhone).
+
+**Name ändern:** Der Name steht in `js/config.js` (`APP_NAME`), in `index.html` (`<title>`, Kopfzeile, `apple-mobile-web-app-title`) und in `manifest.webmanifest` (`name`, `short_name`; der kurze Name steht unter dem Icon, höchstens etwa 12 Zeichen). Die Adresse `…/valo-matchlog/` bleibt davon unberührt.
 
 ## Hinweise fürs Team
 

@@ -3,14 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Valo Matchlog</title>
+<title>ScrimStar</title>
 <meta name="description" content="Team-Tracker: Matches, Statistiken und Clip-Review.">
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="light dark">
+<!-- Farbe der Statusleiste (Android, iPhone ab iOS 15) passend zum Seitenhintergrund (--bg in css/app.css) -->
 <meta name="theme-color" content="#EDF0F3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0E1318" media="(prefers-color-scheme: dark)">
-<!-- Erste Fassung: startet vom Home-Bildschirm als eigene App. Icons und Service Worker folgen in Etappe 9. -->
+<!-- Installierte App auf dem iPhone: Name unter dem Icon, Statusleiste über der Seite (nicht durchsichtig) -->
+<meta name="apple-mobile-web-app-title" content="ScrimStar">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
+<!-- Icons: Quelle ist icons/logo.svg, die PNGs erzeugt tools/icons.html (siehe ANLEITUNG.md, „Logo austauschen“) -->
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" href="fonts/barlow-400-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/chakra-petch-600-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/app.css">
@@ -19,7 +28,7 @@
 
 <header class="top">
   <div class="wrap">
-    <a class="brand" href="#matches"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name" id="brand-name">Valo Matchlog</span></a>
+    <a class="brand" href="#matches"><img class="brand-mark" src="icons/logo.svg" alt="" width="26" height="26"><span class="brand-name" id="brand-name">ScrimStar</span></a>
     <nav class="tabs" id="tabs" aria-label="Bereiche" hidden>
       <a class="tab" href="#matches" data-tab="matches">Matches</a>
       <a class="tab" href="#players" data-tab="players">Spieler</a>
@@ -33,9 +42,15 @@
 
 <main class="wrap" id="view"><p class="loading">Lädt …</p></main>
 
-<footer class="foot wrap">Fan-Projekt, nicht mit Riot Games verbunden.</footer>
+<footer class="foot wrap">Fan-Projekt, nicht mit Riot Games verbunden.<span id="app-version"></span></footer>
 
 <div id="editor" hidden></div>
+<!-- Hinweis vom Service Worker (js/pwa.js): Eine neue Version der App ist geladen und wartet -->
+<div id="update" role="status" aria-live="polite" hidden>
+  <span class="update-text">Neue Version</span>
+  <button class="btn small primary" type="button" id="update-go">Neu laden</button>
+  <button class="btn small ghost" type="button" id="update-later" aria-label="Später neu laden">Später</button>
+</div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 <datalist id="dl-maps"></datalist>

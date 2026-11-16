@@ -16,6 +16,7 @@ import * as teamPages from "./views/team.js";
 import * as playerPages from "./views/players.js";
 import * as matchForm from "./views/matchform.js";
 import * as clipPages from "./views/clips.js";
+import { startPwa } from "./pwa.js";
 
 // Darf der Nutzer die eigentliche App sehen? Nur angemeldet und freigeschaltet (oder in der Vorschau).
 const inApp = () => S.mode === "app";
@@ -148,6 +149,7 @@ document.addEventListener("submit", (e) => {
 async function boot() {
   document.title = APP_NAME;
   $("#brand-name").textContent = APP_NAME;
+  startPwa();   // Service Worker und Hinweis auf neue Versionen (läuft nebenher)
   if (isDemo) {
     // Vorschau: Beispieldaten, Firebase wird gar nicht erst geladen
     const { loadDemo } = await import("./demo.js");

@@ -1,6 +1,7 @@
 // Zentrale Einstellungen der App.
-// Der App-Name steht außerdem in index.html (<title>, Kopfzeile) und in manifest.webmanifest.
-export const APP_NAME = "Valo Matchlog";
+// Der App-Name steht außerdem in index.html (<title>, Kopfzeile, apple-mobile-web-app-title), in manifest.webmanifest
+// und in den Texten von README.md und ANLEITUNG.md. Repo-Name, Adresse (valo-matchlog) und Speicher-Schlüssel (valo-…) bleiben.
+export const APP_NAME = "ScrimStar";
 
 // Feste Version des Firebase-SDK vom gstatic-CDN (nicht automatisch erhöhen).
 export const FIREBASE_VERSION = "13.2.0";
