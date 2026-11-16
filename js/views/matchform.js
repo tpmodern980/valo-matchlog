@@ -33,10 +33,15 @@ function findPlayer(key) {
   return S.players.find((p) => [p.name, ...(p.aliases || [])].some((x) => norm(x) === key)) || null;
 }
 
+// Wurde dieser Name schon einmal als "ehemaliger Spieler" gespeichert? Dann ist das beim nächsten Mal schon gewählt.
+function formerKnown(key) {
+  return S.matches.some((m) => (m.players || []).some((r) => r.former && norm(r.name) === key));
+}
+
 // ---------- Modell ----------
 
 function rowOf(seed = {}) {
-  const row = { playerId0: seed.playerId || null, name0: seed.name || "", name: seed.name || "", agent: seed.agent || "" };
+  const row = { playerId0: seed.playerId || null, former0: Boolean(seed.former), name0: seed.name || "", name: seed.name || "", agent: seed.agent || "" };
   for (const [f] of ALL_STAT_FIELDS) row[f] = seed[f] === null || seed[f] === undefined ? "" : String(seed[f]);
   return row;
 }
@@ -271,11 +276,12 @@ function askHtml() {
         ${option("", "Bitte wählen …", a.choice)}
         ${option("new-stamm", "ein neuer Stammspieler", a.choice)}
         ${option("new-sub", "ein neuer Sub", a.choice)}
+        ${option("ex", "ein ehemaliger Spieler (zählt nicht)", a.choice)}
         ${players.length ? `<optgroup label="ein Ingame-Name von …">${players.map((p) => option("p:" + p.id, p.name, a.choice)).join("")}</optgroup>` : ""}
       </select></label>`).join("");
   return `<section class="panel ask" id="ed-ask"><div class="panel-head"><h2>Unbekannte Namen</h2></div>
     <div class="panel-body">
-      <p class="hint">${ed.ask.length === 1 ? "Dieser Name steht" : "Diese Namen stehen"} noch nicht im Roster. Sag kurz, wer das ist, dann tipp noch einmal auf „Speichern“. Bei einem bestehenden Spieler wird der Name als Ingame-Name ergänzt. Neue Spieler bekommen erst die Rolle „Flex“ (änderbar im Tab „Spieler“).</p>
+      <p class="hint">${ed.ask.length === 1 ? "Dieser Name steht" : "Diese Namen stehen"} noch nicht im Roster. Sag kurz, wer das ist, dann tipp noch einmal auf „Speichern“. Bei einem bestehenden Spieler wird der Name als Ingame-Name ergänzt. Neue Spieler bekommen erst die Rolle „Flex“ (änderbar im Tab „Spieler“). Ein ehemaliger Spieler steht nur im Scoreboard dieses Matches: Er kommt nicht ins Roster und zählt in keiner Statistik.</p>
       ${items}
     </div></section>`;
 }
@@ -406,13 +412,13 @@ function fillTeam(key, scanned, b, rep, clash) {
   if (!scanned.length) { if (ours) rep.warn.push("Im Scoreboard waren keine Spielerzeilen unseres Teams lesbar."); return; }
   const pidOf = (name) => { const p = ours ? findPlayer(norm(name)) : null; return p ? p.id : null; };
   let wrote = 0;
-  const used = new Set(), fresh = [], names = [], unknown = [], noAgent = [], gaps = [], noRoom = [];
+  const used = new Set(), fresh = [], names = [], unknown = [], exes = [], noAgent = [], gaps = [], noRoom = [];
 
   const fill = (row, p) => {
     used.add(row);
     const shown = clean(row.name);
     names.push(shown);
-    if (ours && !pidOf(shown)) unknown.push(shown);
+    if (ours && !pidOf(shown)) (formerKnown(norm(shown)) ? exes : unknown).push(shown);
     if (!p.agent) { if (!clean(row.agent)) noAgent.push(shown); }
     else if (!clean(row.agent)) { row.agent = p.agent; wrote++; }
     else if (norm(row.agent) !== norm(p.agent)) clash(`${pre}${shown}: Agent`, p.agent, () => clean(row.agent) || "leer", () => { row.agent = p.agent; }, row);
@@ -454,7 +460,8 @@ function fillTeam(key, scanned, b, rep, clash) {
 
   const list = (arr) => arr.map(quote).join(", ");
   if (wrote) rep.done.push(`${names.length} ${ours ? "Spieler" : "Gegner"} mit ihren Werten: ${names.join(", ")}`);
-  if (unknown.length) rep.warn.push(`Noch nicht im Roster: ${list(unknown)}. Beim Speichern fragt das Formular, wer das ist.`);
+  if (unknown.length) rep.warn.push(`Noch nicht im Roster: ${list(unknown)}. Beim Speichern fragt das Formular, wer das ist (auch „ehemaliger Spieler“ ist möglich).`);
+  if (exes.length) rep.warn.push(`Ehemalige Spieler: ${list(exes)}. Sie stehen nur im Scoreboard dieses Matches und zählen nicht in die Statistik.`);
   if (gone.length) rep.warn.push(`Nicht im Bild und deshalb aus der Liste genommen: ${list(gone.map((r) => clean(r.name)))}. Dort stand nur der Name.`);
   if (extra.length) rep.warn.push(`Im Formular, aber nicht im Bild: ${list(extra)}. Die Zeile bleibt stehen.`);
   if (noRoom.length) rep.warn.push(`Kein Platz mehr für ${list(noRoom)} (höchstens ${max} Zeilen${ours ? "" : " bei den Gegnern"}).`);
@@ -626,9 +633,11 @@ function save() {
     if (!key) return fail(`Zeile ${i + 1}: „${name}“ ist kein gültiger Name.`, `ed-r${i}-name`);
     // Unveränderter Name aus dem gespeicherten Match: Die Zuordnung bleibt, auch wenn der Spieler
     // inzwischen umbenannt oder aus dem Roster genommen wurde. Sonst: exakter Abgleich mit dem Roster.
+    // Ein als "ehemaliger Spieler" gespeicherter Name bleibt das ebenso, solange er nicht geändert wird.
     let playerId = r.playerId0 && norm(r.name0) === key ? r.playerId0 : null;
-    if (!playerId) { const p = findPlayer(key); playerId = p ? p.id : null; }
-    rows.push({ i, name, key, agent, stats, playerId });
+    const former = !playerId && r.former0 && norm(r.name0) === key;
+    if (!playerId && !former) { const p = findPlayer(key); playerId = p ? p.id : null; }
+    rows.push({ i, name, key, agent, stats, playerId, former });
   }
 
   // Gegner: dieselbe Prüfung der Zahlen, aber ohne Roster und ohne Rückfrage. Ganz leere Zeilen fallen weg.
@@ -650,12 +659,13 @@ function save() {
   }
 
   // Unbekannte Namen: nichts still ins Roster übernehmen, sondern fragen
-  const unknown = rows.filter((x) => !x.playerId);
+  // Namen, die schon einmal als "ehemaliger Spieler" gespeichert wurden, sind dabei schon so ausgewählt.
+  const unknown = rows.filter((x) => !x.playerId && !x.former);
   const ask = [];
   for (const x of unknown) {
     if (ask.some((a) => a.key === x.key)) continue;
     const old = ed.ask.find((a) => a.key === x.key);
-    ask.push({ key: x.key, name: x.name, choice: old ? old.choice : "" });
+    ask.push({ key: x.key, name: x.name, choice: old ? old.choice : (formerKnown(x.key) ? "ex" : "") });
   }
   // Wer steht am Ende in welcher Zeile? (für die Prüfung auf doppelte Spieler)
   const who = (x) => {
@@ -674,7 +684,7 @@ function save() {
   }
   const changedAsk = ask.length !== ed.ask.length || ask.some((a, i) => a.key !== ed.ask[i].key);
   ed.ask = ask;
-  const open = ask.filter((a) => !(a.choice === "new-stamm" || a.choice === "new-sub" || S.players.some((p) => "p:" + p.id === a.choice)));
+  const open = ask.filter((a) => !(a.choice === "new-stamm" || a.choice === "new-sub" || a.choice === "ex" || S.players.some((p) => "p:" + p.id === a.choice)));
   if (open.length) {
     S.msg = { kind: "error", text: ask.length === 1
       ? `„${ask[0].name}“ steht noch nicht im Roster. Wähl oben aus, wer das ist.`
@@ -700,6 +710,11 @@ function save() {
       // Erst das Roster (laut Entscheidung im Formular), dann das Match
       for (const a of ask) {
         let playerId;
+        if (a.choice === "ex") {
+          // Ehemaliger Spieler: bleibt nur im Scoreboard dieses Matches, kommt nicht ins Roster und zählt nirgends
+          for (const x of rows) if (x.key === a.key) x.former = true;
+          continue;
+        }
         if (a.choice.startsWith("p:")) {
           playerId = a.choice.slice(2);
           await listAdd("players", playerId, "aliases", a.name);
@@ -713,7 +728,7 @@ function save() {
         }
         for (const x of rows) if (x.key === a.key) x.playerId = playerId;
       }
-      fields.players = rows.map((x) => ({ playerId: x.playerId, name: x.name, agent: x.agent, ...x.stats }));
+      fields.players = rows.map((x) => ({ playerId: x.former ? null : x.playerId, name: x.name, agent: x.agent, ...x.stats, ...(x.former ? { former: true } : {}) }));
       let id = mine.id;
       if (id) await change("matches", id, fields); else id = await create("matches", fields);
 

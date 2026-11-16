@@ -78,8 +78,9 @@ export function roundsOf(m) {
 // K/D. Ohne einen einzigen Death wird durch 1 geteilt (sonst wäre der Wert unendlich).
 export const kdOf = (kills, deaths) => kills === null || deaths === null ? null : kills / Math.max(deaths, 1);
 
-// Unter welchem Schlüssel eine Spielerzeile zählt: die playerId, sonst (z. B. nach einem Import) der Name
-export const rowKey = (row) => row.playerId || (norm(row.name) ? "n-" + norm(row.name) : "");
+// Unter welchem Schlüssel eine Spielerzeile zählt: die playerId, sonst (z. B. nach einem Import) der Name.
+// Ein ehemaliger Spieler (former: true, im Formular so gewählt) zählt gar nicht: kein Schlüssel, keine Statistik, keine Spieler-Seite.
+export const rowKey = (row) => row.former ? "" : row.playerId || (norm(row.name) ? "n-" + norm(row.name) : "");
 
 const tally = () => ({ n: 0, w: 0, l: 0, d: 0 });
 function count(t, res) { t.n++; if (res === "W") t.w++; else if (res === "L") t.l++; else if (res === "D") t.d++; }

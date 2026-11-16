@@ -73,7 +73,7 @@ export function buildCsv() {
     const row = (team, p) => {
       const kd = p ? kdOf(num(p.kills), num(p.deaths)) : null;
       return [
-        ...head, cell(team), cell(p ? p.playerId || "" : ""), cell(p && p.playerId ? roster.get(p.playerId) || "" : ""),
+        ...head, cell(team), cell(p ? p.playerId || "" : ""), cell(p && p.playerId ? roster.get(p.playerId) || "" : p && p.former ? "(ehemalig)" : ""),
         cell(p ? p.name : ""), cell(p ? p.agent : ""),
         ...ALL_STAT_FIELDS.map(([key]) => int(p ? p[key] : null)), dec(kd), cell(m.notes || ""),
       ].join(SEP);

@@ -52,7 +52,7 @@ function board(m, list, ours) {
     // Der Name führt zur Detailseite des Spielers (auch wenn er nicht mehr im Roster steht: Seine Matches zählen weiter)
     const key = ours ? rowKey(row) : null;
     const label = key ? `<a class="plink" href="#player-${esc(encodeURIComponent(key))}">${esc(name)}</a>` : esc(name);
-    return `<tr><td class="name">${label}${p && p.status === "sub" ? ' <span class="tag">Sub</span>' : ""}${row === top ? '<span class="mvp" title="Meiste Kills">MVP</span>' : ""}${row.agent ? `<span class="agent-sm">${esc(row.agent)}</span>` : ""}</td>
+    return `<tr><td class="name">${label}${p && p.status === "sub" ? ' <span class="tag">Sub</span>' : ""}${ours && row.former ? ' <span class="tag" title="Ehemaliger Spieler: steht nur hier, zählt in keiner Statistik">Ehemalig</span>' : ""}${row === top ? '<span class="mvp" title="Meiste Kills">MVP</span>' : ""}${row.agent ? `<span class="agent-sm">${esc(row.agent)}</span>` : ""}</td>
       <td class="l agent col-agent">${esc(row.agent || "–")}</td>${fields.map(([f]) => `<td>${cell(row, f)}</td>`).join("")}</tr>`;
   }).join("");
   const th = ([f, label, long]) => `<th title="${esc(long)}">${wide && TINY_LABEL[f] ? `<span class="th-long">${esc(label)}</span><span class="th-tiny">${esc(TINY_LABEL[f])}</span>` : esc(label)}</th>`;

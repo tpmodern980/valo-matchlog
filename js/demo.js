@@ -105,6 +105,11 @@ export function loadDemo() {
     })),
     opponents: [], ...gone(2),
   };
+  // Im ältesten Match spielte noch ein ehemaliger Spieler mit (former: steht nur im Scoreboard, zählt nirgends).
+  // Seine Zeile ersetzt die letzte Zeile erst nach dem Zufall: So bleiben alle übrigen Beispielzahlen gleich.
+  const exRow = (m, i) => (i !== GAMES.length - 1 ? m : {
+    ...m, players: m.players.map((row, k) => (k === m.players.length - 1 ? { ...row, playerId: null, name: "Vento#EUW", former: true } : row)),
+  });
   setLocal("matches", [...GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
     const open = us === null;
     const lineup = PLAYERS.filter((p) => withSub ? p.id !== "pdemo4" : p.status === "stamm");
@@ -125,7 +130,7 @@ export function loadDemo() {
       // Die neuesten Matches haben auch das Scoreboard der Gegner (freiwillig, ältere Matches haben keins)
       opponents: !open && i < 5 ? makeFoes(i, type, rounds, us > them) : [],
     };
-  }), trashedMatch]);
+  }).map(exRow), trashedMatch]);
   // Alle drei Arten von Clips. Das YouTube-Beispiel ist der frei lizenzierte Kurzfilm "Big Buck Bunny"
   // (Blender Foundation, CC BY), er darf eingebettet werden. Die Adresse example.com gehört niemandem.
   const clip = (n, matchId, title, kind, more = {}) => ({
