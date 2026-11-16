@@ -503,8 +503,8 @@ async function ask(kind, jpegs, sheet = false) {
   const { ai, AIM, check } = await loadAi();
   const prompt = kind === "board" ? boardPrompt(sheet) : LINE_PROMPT;
   const images = jpegs.map((j) => ({ inlineData: { data: j.base64, mimeType: j.mimeType } }));
-  const tried = [], spent = [];
-  let quotaError = null;
+  const tried = [], spent = [], busy = [];
+  let quotaError = null, busyError = null;
   try {
     for (const name of modelNames()) {
       tried.push(name);
@@ -518,20 +518,30 @@ async function ask(kind, jpegs, sheet = false) {
         const raw = parseJson(result.response.text());
         if (goodModel !== name) console.info(`Screenshot-Auslesen: Modell „${name}“ antwortet.`);
         goodModel = name;
-        return { raw, model: name, spent };
+        return { raw, model: name, spent, busy };
       } catch (e) {
-        if (kindOf(e) === "quota-day") {
-          // Tageskontingent dieses Modells aufgebraucht: nächstes Modell
+        const k = kindOf(e);
+        if (k === "quota-day") {
+          // Tageskontingent dieses Modells aufgebraucht: nächstes Modell (und bis morgen nicht mehr fragen)
           console.warn(`Screenshot-Auslesen: Tageskontingent von „${name}“ aufgebraucht, probiere das nächste Modell.`);
           markSpent(name);
           spent.push(name);
           quotaError = e;
           continue;
         }
+        if (k === "overloaded") {
+          // Server von Google überlastet oder gestört (5xx): nächstes Modell. Nicht merken, das gibt sich meist schnell.
+          console.warn(`Screenshot-Auslesen: „${name}“ ist gerade überlastet (${statusOf(e) || "?"}), probiere das nächste Modell.`);
+          busy.push(name);
+          busyError = e;
+          continue;
+        }
         if (!modelMissing(e)) throw e;
         console.warn(`Screenshot-Auslesen: Modell „${name}“ nicht gefunden, probiere das nächste.`);
       }
     }
+    // Kein Modell hat geantwortet. War eins nur überlastet, ist "gleich noch einmal" der bessere Rat.
+    if (busyError) throw busyError;
     if (quotaError) throw quotaError;   // bei allen Modellen aufgebraucht
     throw fail("no-model", { tried });
   } catch (e) {
@@ -563,7 +573,7 @@ const TEXT = {
   blocked: () => "Die KI hat zu diesem Bild keine Antwort geliefert. Probier es noch einmal oder mit einem anderen Screenshot.",
   offline: () => "Keine Verbindung: Das Auslesen braucht das Internet. Blockiert bei dir ein Werbeblocker Adressen von Google, schalt ihn für diese Seite aus." + BY_HAND,
   timeout: () => "Die KI hat zu lange gebraucht. Versuch es gleich noch einmal." + BY_HAND,
-  overloaded: () => "Die KI ist gerade überlastet oder gestört. Versuch es in einer Minute noch einmal." + BY_HAND,
+  overloaded: () => "Die KI ist gerade überlastet oder gestört, auch die Ausweich-Modelle. Versuch es in ein paar Minuten noch einmal." + BY_HAND,
   "quota-minute": () => "Zu viele Anfragen kurz hintereinander. Warte eine Minute und tipp dann noch einmal auf „Auslesen“.",
   "quota-day": () => "Das kostenlose Tageskontingent der KI ist aufgebraucht, auch bei den Ausweich-Modellen. Ein neues gibt es täglich gegen 9 Uhr morgens." + BY_HAND,
   quota: () => "Das kostenlose Kontingent der KI ist gerade erschöpft (zu viele Anfragen). Warte eine Minute und versuch es noch einmal. Kommt die Meldung wieder, ist das Tageskontingent aufgebraucht: Dann geht es am nächsten Tag gegen 9 Uhr weiter." + BY_HAND,
@@ -640,21 +650,22 @@ async function readOne(kind, file) {
     try { sheet = await refSheet(); } catch (e) { console.warn("Beispieltafel ließ sich nicht bauen:", e.message || e); }
     if (sheet) jpegs.push(sheet);
   }
-  const { raw, model, spent } = await ask(kind, jpegs, Boolean(sheet));
-  if (kind !== "board") return { data: checkLine(raw), model, spent };
+  const { raw, model, spent, busy } = await ask(kind, jpegs, Boolean(sheet));
+  if (kind !== "board") return { data: checkLine(raw), model, spent, busy };
   const data = checkBoard(raw);
   await cutPortraits(file, [...data.players, ...data.opponents]);
   data.sheet = sheet ? sheet.count : 0;
-  return { data, model, spent };
+  return { data, model, spent, busy };
 }
 
-// Hat ein anderes Modell als das eingestellte geantwortet (weil dessen Tageskontingent aufgebraucht war)?
-// Liefert { model, spent: [...] } oder null. Das Formular schreibt es in den Bericht.
-function fallbackInfo(model, spent) {
+// Hat ein anderes Modell als das eingestellte geantwortet (weil dessen Tageskontingent aufgebraucht oder es
+// überlastet war)? Liefert { model, spent: [...], busy: [...] } oder null. Das Formular schreibt es in den Bericht.
+function fallbackInfo(model, spent, busy) {
   const main = clean(cfg.aiModel);
   if (!model || model === main) return null;
-  const gone = [...new Set([...(spent || []), ...spentModels()])];
-  return gone.length ? { model, spent: gone } : null;
+  const gone = [...new Set([...(spent || []), ...spentModels()])].filter((m) => m !== model);
+  const full = [...new Set(busy || [])].filter((m) => m !== model && !gone.includes(m));
+  return gone.length || full.length ? { model, spent: gone, busy: full } : null;
 }
 
 // Liest die gewählten Bilder aus (eins oder beide, gleichzeitig).
@@ -670,7 +681,7 @@ export async function scanImages(files) {
       const res = await readOne(kind, files[kind]);
       out[kind] = res.data;
       out.model = res.model || out.model;
-      out.fallback = fallbackInfo(res.model, res.spent) || out.fallback;
+      out.fallback = fallbackInfo(res.model, res.spent, res.busy) || out.fallback;
     } catch (e) {
       if (!e.scan) console.warn("Screenshot-Auslesen fehlgeschlagen:", e.code || "", e.message || e, e.appCheck && e.appCheck.probeError && e.appCheck.probeError !== e ? e.appCheck.probeError : "");
       out.errors[kind] = explain(e);

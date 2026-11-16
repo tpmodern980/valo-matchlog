@@ -332,7 +332,10 @@ function applyScan(res) {
   const b = res.board, t = res.line;
   // Tageskontingent des eingestellten Modells aufgebraucht: Ein Ausweich-Modell hat gelesen (js/scan.js)
   if (res.fallback && (b || t)) {
-    rep.warn.push(`Gelesen mit dem Ausweich-Modell ${quote(res.fallback.model)}, weil das Tageskontingent von ${res.fallback.spent.map(quote).join(", ")} für heute aufgebraucht ist. Es kann ungenauer lesen: Werte bitte besonders genau prüfen.`);
+    const fb = res.fallback, why = [];
+    if (fb.spent.length) why.push(`das Tageskontingent von ${fb.spent.map(quote).join(", ")} für heute aufgebraucht ist`);
+    if (fb.busy.length) why.push(`${fb.busy.map(quote).join(", ")} gerade überlastet war`);
+    rep.warn.push(`Gelesen mit dem Ausweich-Modell ${quote(fb.model)}, weil ${why.join(" und ")}. Es kann ungenauer lesen: Werte bitte besonders genau prüfen.`);
   }
   // Abweichung merken: get() liefert, was gerade im Formular steht; apply() übernimmt den Wert aus dem Bild
   // same() sagt, ob sich die Abweichung erledigt hat (Standard: Im Formular steht jetzt derselbe Text)
