@@ -27,7 +27,8 @@ export const S = {
   error: "",
   authTab: "login",     // Login-Seite: "login" | "register" | "reset"
   players: [], matches: [], clips: [],
-  loaded: { players: false, matches: false, clips: false },
+  agentRefs: [],        // Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js)
+  loaded: { players: false, matches: false, clips: false, agentRefs: false },
   filters: loadFilters(),
 };
 

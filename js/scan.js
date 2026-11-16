@@ -10,6 +10,7 @@ import { S } from "./state.js";
 import { MAPS, AGENTS } from "./constants.js";
 import { norm } from "./util.js";
 import { loadAi } from "./firebase.js";
+import { refSheet, PIC_SIDE } from "./agentrefs.js";
 
 // Längste Seite des Bildes, das an die KI geht (größere Bilder werden verkleinert, kleinere bleiben so)
 export const MAX_SIDE = 1600;
@@ -120,7 +121,8 @@ function agentList() {
   return out;
 }
 
-export const boardPrompt = () => `You read one screenshot from the game VALORANT and return JSON. The screenshot shows the post-match screen "Summary > Scoreboard".
+// sheet: Es geht eine Beispieltafel mit (Bild 3)
+export const boardPrompt = (sheet = false) => `You read one screenshot from the game VALORANT and return JSON. The screenshot shows the post-match screen "Summary > Scoreboard".
 
 What the screen looks like:
 - Top left: the final score, written as "<number> VICTORY <number>" (or DEFEAT / DRAW). The FIRST number is our team, the SECOND number is the opponent.
@@ -134,7 +136,8 @@ You get two images of the same screenshot:
 - Image 1 is the whole screenshot. Read everything except the agents from image 1.
 - Image 2 is an enlarged cut-out of the left part of the table: the agent portraits with the player names next to them. Decide the agent of every row (our team and opponents) from image 2: find the row by the name next to the portrait. Only if image 2 does not show the portraits, use image 1.
 - Look at the face of each portrait carefully. These agents are easy to confuse: GEKKO (a young man) and WAYLAY (a woman); ISO (a man) and VYSE (a woman); WAYLAY and DEADLOCK (both women). Before you answer one of these five, compare the portrait closely with what you know about both agents.
-- For our players you also get the agents they played before (see the list of known players). Use this ONLY to decide between two look-alike agents. Players do pick new agents: if the portrait clearly shows another agent, write that agent.
+- For our players you also get the agents they played before (see the list of known players). Use this ONLY to decide between two look-alike agents. Players do pick new agents: if the portrait clearly shows another agent, write that agent.${sheet ? `
+- Image 3 is a reference sheet our team made from earlier screenshots of this same game: small agent portraits, each with the CORRECT agent name written below it. Compare every portrait of image 2 with the sheet. If it matches a portrait on the sheet, use the name written below that one, even if you would have guessed another agent. The sheet does not contain every agent.` : ""}
 
 Return these fields:
 - map: the map name with normal capitalisation (for example "Haven").
@@ -145,10 +148,11 @@ Return these fields:
 - players: ONLY the green/teal rows and the one differently coloured row of the screenshot taker (normally five rows), from top to bottom. Never include a red row.
   - name: the player name exactly as written, WITHOUT team tag and bar. Keep capitalisation, digits and special letters (like ä or ć) exactly as shown. Do not correct, translate or shorten names.
   - agent: one name from the agent list below, but only if you clearly recognise the portrait. Otherwise null.
+  - box: where the agent portrait of this row is in IMAGE 2, as [ymin, xmin, ymax, xmax], each a whole number from 0 to 1000 relative to the height and width of image 2. Only the small square portrait, not the name. null if image 2 does not show it.
   - kills, deaths, assists: the three numbers of the KDA cell of that row, in this order.
   - firstBloods, plants, defuses: the numbers of that row below the headers FIRST BLOODS, PLANTS and DEFUSES.
   - trades: the number of that row below the header TRADES. If the table has no column with the header TRADES, return null. Never put the TRADES number into another field, and never use the PERFORMANCE SCORE number for any field.
-- opponents: ONLY the red/maroon rows (normally five), from top to bottom, each with exactly the same fields as a player above (name without team tag and bar, agent, kills, deaths, assists, trades, firstBloods, plants, defuses).
+- opponents: ONLY the red/maroon rows (normally five), from top to bottom, each with exactly the same fields as a player above (name without team tag and bar, agent, box, kills, deaths, assists, trades, firstBloods, plants, defuses).
 - Every row of the table belongs to exactly one of the two lists: green/teal rows and the row of the screenshot taker go into players, red rows go into opponents. Never put a row into both lists and never leave a clearly visible row out.
 
 Rules:
@@ -218,6 +222,7 @@ function schemaOf(kind, Schema) {
     // Eine Zeile der Tabelle: bei uns und bei den Gegnern dieselben Felder
     const rows = () => Schema.array({ items: Schema.object({ properties: {
       name: Schema.string(), agent: str(),
+      box: Schema.array({ items: Schema.integer(), nullable: true }),
       kills: int(), deaths: int(), assists: int(), trades: int(), firstBloods: int(), plants: int(), defuses: int(),
     } }) });
     return Schema.object({ properties: {
@@ -241,6 +246,44 @@ function schemaOf(kind, Schema) {
 function whole(v, max) {
   if (typeof v === "string" && /^\d{1,3}$/.test(v.trim())) v = Number(v);
   return typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max ? v : null;
+}
+
+// Lage eines Agenten-Bildes: [ymin, xmin, ymax, xmax] von 0 bis 1000 (bezogen auf Bild 2), sonst null
+function boxOf(v) {
+  if (!Array.isArray(v) || v.length !== 4) return null;
+  const b = v.map((x) => (typeof x === "number" && Number.isFinite(x) ? Math.round(x) : NaN));
+  if (b.some((x) => Number.isNaN(x) || x < 0 || x > 1000)) return null;
+  return b[0] < b[2] && b[1] < b[3] ? b : null;
+}
+
+// Die Agenten-Bilder aus dem Original ausschneiden (für das Lernen aus Korrekturen, js/agentrefs.js).
+// Die Lage kommt von der KI (bezogen auf den Ausschnitt BOARD_CUTS[1]); passt sie nicht zu einem kleinen,
+// ungefähr quadratischen Bild, gibt es für diese Zeile keins. Setzt row.pic (JPEG base64) bei den Zeilen.
+async function cutPortraits(file, rows) {
+  const withBox = rows.filter((r) => r.box);
+  if (!withBox.length) return;
+  let pic;
+  try { pic = await decode(file); } catch (e) { return; }
+  try {
+    const W = pic.naturalWidth || pic.width, H = pic.naturalHeight || pic.height, cut = BOARD_CUTS[1];
+    for (const r of withBox) {
+      const [y0, x0, y1, x1] = r.box;
+      // in Pixel des Originals
+      const left = (cut.x + (x0 / 1000) * cut.w) * W, right = (cut.x + (x1 / 1000) * cut.w) * W;
+      const top = (cut.y + (y0 / 1000) * cut.h) * H, bottom = (cut.y + (y1 / 1000) * cut.h) * H;
+      const w = right - left, h = bottom - top;
+      if (w < 12 || h < 12 || w > W * 0.1 || h > H * 0.15 || w / h > 1.8 || h / w > 1.8) continue;
+      // quadratisch um die Mitte
+      const side = Math.max(w, h), cx = (left + right) / 2, cy = (top + bottom) / 2;
+      const sx = Math.max(0, Math.min(W - side, cx - side / 2)), sy = Math.max(0, Math.min(H - side, cy - side / 2));
+      try {
+        const out = await render(pic, PIC_SIDE, { x: sx / W, y: sy / H, w: side / W, h: side / H, grow: true });
+        r.pic = out.base64;
+      } catch (e) { /* ohne Bild */ }
+    }
+  } finally {
+    if (pic.close) pic.close();
+  }
 }
 
 // Das Team-Kürzel vor dem Strich gehört nicht zum Namen: "ツ | Kairo" -> "Kairo"
@@ -285,6 +328,7 @@ export function checkBoard(raw) {
       seen.add(key);
       out.push({
         name, agent: known(p.agent, agents, 20, true),
+        box: boxOf(p.box),   // Lage des Agenten-Bildes in Bild 2 (zum Ausschneiden), sonst null
         kills: whole(p.kills, 999), deaths: whole(p.deaths, 999), assists: whole(p.assists, 999),
         trades: whole(p.trades, 999),   // nur bei Premier im Bild, sonst null
         firstBloods: whole(p.firstBloods, 999), plants: whole(p.plants, 999), defuses: whole(p.defuses, 999),
@@ -377,20 +421,22 @@ export function checkLine(raw) {
 const DEMO = {
   board: {
     map: "HAVEN", scoreUs: 15, scoreThem: 9, date: "2026-11-12", mode: "STANDARD - CUSTOM", opponentTag: "LWG",
+    // box: Lage der Agenten-Bilder im Ausschnitt (Bild 2), passend zum Beispielbild 1 (2000 × 1320):
+    // Zeile n liegt bei ymin = 111 + (n − 1) · 79, Höhe 73, x 163 bis 263. Mit anderen Bildern landet sie irgendwo.
     players: [
-      { name: "ツ | Kairo", agent: "Sova", kills: 31, deaths: 14, assists: 11, firstBloods: 3, plants: 6, defuses: 2 },
-      { name: "ツ | Lumo", agent: "Omen", kills: 23, deaths: 14, assists: 11, firstBloods: 1, plants: 1, defuses: 1 },
-      { name: "ツ | matsn", agent: "Chamber", kills: 19, deaths: 15, assists: 7, firstBloods: 3, plants: 2, defuses: 0 },
-      { name: "ツ | Nyxo", agent: "Gekko", kills: 17, deaths: 16, assists: 5, firstBloods: 3, plants: 1, defuses: 2 },
-      { name: "ツ | feli", agent: null, kills: 15, deaths: 17, assists: 17, firstBloods: 3, plants: 1, defuses: 0 },
+      { name: "ツ | Kairo", agent: "Sova", box: [111, 163, 184, 263], kills: 31, deaths: 14, assists: 11, firstBloods: 3, plants: 6, defuses: 2 },
+      { name: "ツ | Lumo", agent: "Omen", box: [190, 163, 263, 263], kills: 23, deaths: 14, assists: 11, firstBloods: 1, plants: 1, defuses: 1 },
+      { name: "ツ | matsn", agent: "Chamber", box: [349, 163, 422, 263], kills: 19, deaths: 15, assists: 7, firstBloods: 3, plants: 2, defuses: 0 },
+      { name: "ツ | Nyxo", agent: "Gekko", box: [507, 163, 580, 263], kills: 17, deaths: 16, assists: 5, firstBloods: 3, plants: 1, defuses: 2 },
+      { name: "ツ | feli", agent: null, box: [587, 163, 660, 263], kills: 15, deaths: 17, assists: 17, firstBloods: 3, plants: 1, defuses: 0 },
     ],
     // Die roten Zeilen: Zahlen aus dem Beispielbild, Namen erfunden. Einer hat (wie im Bild) kein Team-Kürzel.
     opponents: [
-      { name: "LWG | Vexo", agent: "Neon", kills: 20, deaths: 18, assists: 4, firstBloods: 2, plants: 0, defuses: 2 },
-      { name: "LWG | Rasko", agent: "Yoru", kills: 19, deaths: 22, assists: 3, firstBloods: 3, plants: 0, defuses: 0 },
-      { name: "Tibor77", agent: "Omen", kills: 14, deaths: 23, assists: 7, firstBloods: 4, plants: 0, defuses: 0 },
-      { name: "LWG | Milaa", agent: "Vyse", kills: 13, deaths: 22, assists: 6, firstBloods: 2, plants: 0, defuses: 2 },
-      { name: "LWG | Jonte", agent: "Sova", kills: 10, deaths: 20, assists: 12, firstBloods: 0, plants: 9, defuses: 0 },
+      { name: "LWG | Vexo", agent: "Neon", box: [269, 163, 342, 263], kills: 20, deaths: 18, assists: 4, firstBloods: 2, plants: 0, defuses: 2 },
+      { name: "LWG | Rasko", agent: "Yoru", box: [428, 163, 501, 263], kills: 19, deaths: 22, assists: 3, firstBloods: 3, plants: 0, defuses: 0 },
+      { name: "Tibor77", agent: "Omen", box: [666, 163, 739, 263], kills: 14, deaths: 23, assists: 7, firstBloods: 4, plants: 0, defuses: 0 },
+      { name: "LWG | Milaa", agent: "Vyse", box: [745, 163, 818, 263], kills: 13, deaths: 22, assists: 6, firstBloods: 2, plants: 0, defuses: 2 },
+      { name: "LWG | Jonte", agent: "Sova", box: [824, 163, 897, 263], kills: 10, deaths: 20, assists: 12, firstBloods: 0, plants: 9, defuses: 0 },
     ],
   },
   // Der Verlauf aus dem Timeline-Beispiel: 1. Hälfte 7:5, 2. Hälfte 8:4. In Runde 1 entschärft der Gegner: Wir starten im Angriff.
@@ -430,15 +476,15 @@ function parseJson(text) {
 }
 
 // jpegs: die Bilder für diese Anfrage (Scoreboard: ganzes Bild plus Ausschnitt mit den Agenten-Bildern,
-// Timeline: ganzes Bild plus zwei Ausschnitte)
-async function ask(kind, jpegs) {
+// dazu ggf. die Beispieltafel (sheet = true); Timeline: ganzes Bild plus zwei Ausschnitte)
+async function ask(kind, jpegs, sheet = false) {
   if (S.demo) {
     await wait(900);
     return { raw: DEMO[kind], model: "" };
   }
   if (navigator.onLine === false) throw fail("offline");
   const { ai, AIM, check } = await loadAi();
-  const prompt = kind === "board" ? boardPrompt() : LINE_PROMPT;
+  const prompt = kind === "board" ? boardPrompt(sheet) : LINE_PROMPT;
   const images = jpegs.map((j) => ({ inlineData: { data: j.base64, mimeType: j.mimeType } }));
   const tried = [];
   try {
@@ -561,8 +607,18 @@ export function explain(e) {
 
 async function readOne(kind, file) {
   const jpegs = await pieces(file, kind === "board" ? BOARD_CUTS : STRIP_CUTS);
-  const { raw, model } = await ask(kind, jpegs);
-  return { data: kind === "board" ? checkBoard(raw) : checkLine(raw), model };
+  // Beim Scoreboard: die Beispieltafel des Teams als drittes Bild (falls es schon Beispiele gibt)
+  let sheet = null;
+  if (kind === "board") {
+    try { sheet = await refSheet(); } catch (e) { console.warn("Beispieltafel ließ sich nicht bauen:", e.message || e); }
+    if (sheet) jpegs.push(sheet);
+  }
+  const { raw, model } = await ask(kind, jpegs, Boolean(sheet));
+  if (kind !== "board") return { data: checkLine(raw), model };
+  const data = checkBoard(raw);
+  await cutPortraits(file, [...data.players, ...data.opponents]);
+  data.sheet = sheet ? sheet.count : 0;
+  return { data, model };
 }
 
 // Liest die gewählten Bilder aus (eins oder beide, gleichzeitig).

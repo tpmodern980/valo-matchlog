@@ -8,13 +8,16 @@ import { S, changed } from "./state.js";
 import { loadDb, clearDb, dbLoaded } from "./firebase.js";
 import { newId, toast } from "./util.js";
 
-const COLLS = ["players", "matches", "clips"];
-const ID_PREFIX = { players: "p", matches: "m", clips: "c" };
+// agentRefs: Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js). Freiwillig: Fehlt die Regel dafür
+// in Firestore, läuft alles andere weiter (nur eine Warnung in der Konsole).
+const COLLS = ["players", "matches", "clips", "agentRefs"];
+const OPTIONAL = new Set(["agentRefs"]);
+const ID_PREFIX = { players: "p", matches: "m", clips: "c", agentRefs: "r" };
 // Merker im Browser: Auf diesem Gerät liegen geladene Daten (damit sie auch nach einer abgelaufenen Anmeldung entfernt werden)
 const CACHE_FLAG = "valo-has-cache";
 
 // Alle Dokumente pro Sammlung, auch die gelöschten (die braucht später der Papierkorb)
-const all = { players: new Map(), matches: new Map(), clips: new Map() };
+const all = { players: new Map(), matches: new Map(), clips: new Map(), agentRefs: new Map() };
 let stops = [];        // Abos beenden
 let run = 0;           // zählt hoch, damit Antworten eines alten Starts ignoriert werden
 let running = false;
@@ -116,9 +119,10 @@ async function watch(coll, db, F, mine) {
     if (dirty) { publish(coll); S.loaded[coll] = true; changed(); }
   }, (e) => {
     if (mine !== run) return;
-    console.warn(`Daten „${coll}“ konnten nicht geladen werden:`, e.code || e.message);
-    // Bei "permission-denied" zeigt auth.js ohnehin die Sperrseite
-    if (e.code !== "permission-denied" && !warned) {
+    console.warn(`Daten „${coll}“ konnten nicht geladen werden:`, e.code || e.message,
+      OPTIONAL.has(coll) && e.code === "permission-denied" ? "(In den Firestore-Regeln fehlt die Zeile für agentRefs, ANLEITUNG.md „Agenten-Beispiele“.)" : "");
+    // Bei "permission-denied" zeigt auth.js ohnehin die Sperrseite. Freiwillige Sammlungen melden sich nicht.
+    if (e.code !== "permission-denied" && !warned && !OPTIONAL.has(coll)) {
       warned = true;
       toast("Neue Daten konnten gerade nicht geladen werden. Du siehst den zuletzt gespeicherten Stand.");
     }
@@ -188,9 +192,9 @@ async function send(coll, id, fields, isNew) {
 
 // Der Server hat eine Änderung abgelehnt: Bescheid sagen und die Anzeige auf den echten Stand zurücksetzen
 async function failed(coll, e, mine) {
-  console.warn("Speichern fehlgeschlagen:", e.code || e.message);
+  console.warn("Speichern fehlgeschlagen:", coll, e.code || e.message);
   if (mine !== run) return;
-  toast(e.code === "permission-denied"
+  if (!OPTIONAL.has(coll)) toast(e.code === "permission-denied"
     ? "Nicht gespeichert: Dafür fehlt dir die Berechtigung."
     : "Speichern hat nicht geklappt. Die Änderung wurde zurückgenommen." + (e.code ? ` (Fehler: ${e.code})` : ""));
   try {

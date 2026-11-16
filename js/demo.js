@@ -160,6 +160,27 @@ export function loadDemo() {
     clip(7, "mdemo16", "Alter Clip vom Doppel-Match", "local", gone(3)),
     clip(8, "mdemo16", "Pistol Angriff", "link", { url: "https://example.com/vods/eisbrecher-pearl", notes: [note(30, "Zu langsam auf A.", "Mats", 5)] }),
   ]);
+  // Agenten-Beispiele fürs Auslesen (js/agentrefs.js). Echte Agenten-Bilder gehören nicht ins öffentliche Repo:
+  // In der Vorschau sind es farbige Kacheln mit Kürzel.
+  const tile = (bg, text) => {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    const g = c.getContext("2d");
+    g.fillStyle = bg; g.fillRect(0, 0, 64, 64);
+    g.fillStyle = "#fff"; g.font = "bold 22px Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+    g.fillText(text, 32, 34);
+    const url = c.toDataURL("image/jpeg", 0.85);
+    return url.slice(url.indexOf(",") + 1);
+  };
+  const ref = (n, agent, kind, wrong, bg) => ({
+    id: "rdemo" + n, agent, pic: tile(bg, agent.slice(0, 2).toUpperCase()), kind, wrong,
+    createdAt: now - n * 3600000, createdBy: null, deleted: false,
+  });
+  setLocal("agentRefs", [
+    ref(1, "Waylay", "fix", "Deadlock", "#7A4FA0"),
+    ref(2, "Deadlock", "ok", null, "#5D6B78"),
+    ref(3, "Gekko", "ok", null, "#3E8F4F"),
+  ]);
   // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
   S.demo = true;
   S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };

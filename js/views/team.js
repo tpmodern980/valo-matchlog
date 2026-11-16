@@ -6,7 +6,7 @@ import { S, changed } from "../state.js";
 import { RES_LABEL } from "../constants.js";
 import { $, esc, norm, toast, copyText, fmtDate } from "../util.js";
 import { createTeam, addMember, removeMember, setAdmin, cleanEmails, validEmail } from "../team.js";
-import { deletedOf, everything, known, restore } from "../data.js";
+import { deletedOf, everything, known, restore, remove } from "../data.js";
 import { buildCsv, buildJson, download, fileName, readImport, applyImport } from "../backup.js";
 import { result } from "../stats.js";
 import { appUrl, errorText } from "../auth.js";
@@ -215,6 +215,24 @@ function trashPanel() {
     </div></section>`;
 }
 
+// Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js): ansehen und falsche entfernen
+function refsPanel() {
+  const refs = S.agentRefs.slice().sort((a, b) => String(a.agent).localeCompare(String(b.agent), "de") || (b.createdAt || 0) - (a.createdAt || 0));
+  const tile = (r) => `<figure class="ref">
+      <img src="data:image/jpeg;base64,${esc(r.pic || "")}" alt="${esc(r.agent)}" width="64" height="64">
+      <figcaption><b>${esc(r.agent)}</b><small>${r.kind === "fix" ? `korrigiert${r.wrong ? ` (KI: ${esc(r.wrong)})` : ""}` : "bestätigt"}</small></figcaption>
+      <button class="alias-x" type="button" data-action="ref-remove" data-id="${esc(r.id)}" aria-label="Beispiel ${esc(r.agent)} entfernen" title="Falsches Beispiel entfernen">×</button>
+    </figure>`;
+  const body = !S.loaded.agentRefs ? '<p class="hint">Lädt …</p>'
+    : refs.length ? `<div class="refs">${refs.map(tile).join("")}</div>`
+      : '<p class="hint">Noch keine Beispiele. Sie entstehen von selbst, sobald ihr nach dem Auslesen ein Match speichert.</p>';
+  return `<section class="panel"><div class="panel-head"><h2>Agenten-Beispiele fürs Auslesen</h2><span class="hint">${S.loaded.agentRefs ? plural(refs.length, "Bild", "Bilder") : ""}</span></div>
+    <div class="panel-body">
+      <p class="hint">Damit die KI Agents nicht verwechselt: Korrigiert ihr nach dem Auslesen einen Agent und speichert, merkt sich die App das kleine Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen vergleicht die KI mit diesen Bildern. Zeigt ein Bild etwas anderes als den Namen darunter, entfernt es mit ×.</p>
+      ${body}
+    </div></section>`;
+}
+
 export function teamView() {
   const me = S.user ? S.user.email : "";
   return `<div class="view-head"><div><div class="eyebrow">Verwaltung</div><h1>Team</h1>
@@ -222,6 +240,7 @@ export function teamView() {
     ${membersPanel()}
     ${sharePanel()}
     ${backupPanel()}
+    ${refsPanel()}
     ${S.isAdmin ? trashPanel() : '<p class="hint">Gelöschte Matches, Spieler und Clips kann ein Admin im Papierkorb wiederherstellen.</p>'}`;
 }
 
@@ -295,6 +314,14 @@ export const actions = {
     toast(ok ? "Link kopiert." : "Kopieren ging nicht. Markier den Link und kopier ihn von Hand.");
   },
   "trash-restore": (el) => doRestore(el.dataset.coll, el.dataset.id),
+  "ref-remove": async (el) => {
+    const r = S.agentRefs.find((x) => x.id === el.dataset.id);
+    if (!r) return;
+    try {
+      await remove("agentRefs", r.id);
+      toast(`Beispiel ${r.agent} entfernt.`);
+    } catch (e) { toast(errorText(e) || "Entfernen hat nicht geklappt."); }
+  },
   "trash-more": (el) => { showAll[el.dataset.coll] = true; changed(); },
   "export-json": () => {
     if (!allLoaded()) return;

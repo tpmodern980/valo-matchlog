@@ -1,6 +1,6 @@
 # Anleitung: Firebase einrichten
 
-Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 und 8, freiwillig: Die App läuft auch ohne). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
+Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 bis 9, freiwillig: Die App läuft auch ohne). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
 
 Du brauchst: ein Google-Konto und etwa 15 Minuten. Es kostet nichts. Du musst nirgends eine Kreditkarte angeben. Falls die Konsole ein Upgrade auf „Blaze“ anbietet: ablehnen.
 
@@ -180,6 +180,27 @@ Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind 
 1. **Sicherheit → App Check** → Reiter **APIs**.
 2. In der Zeile **Firebase AI Logic** soll **Erzwungen** („Enforced“) stehen. Steht dort „Nicht erzwungen“: Zeile anklicken → einrichten → **Erzwungen** wählen. Im zweiten Fenster („Replay protection“, Schutz vor Wiederverwendung) kannst du die Vorgabe lassen; die App kommt mit jeder Einstellung dort zurecht.
 3. **Wichtig: Bei „Cloud Firestore“ und „Authentication“ App Check nicht erzwingen.** Die App lädt App Check erst, wenn jemand ein Bild ausliest. Würdest du es dort erzwingen, käme niemand mehr an die Daten.
+
+## Schritt 9: Agenten-Beispiele einschalten (eine Zeile in den Regeln)
+
+Die KI verwechselt beim Auslesen manchmal Agents, die sich ähnlich sehen (zum Beispiel Waylay und Deadlock). Deshalb lernt die App aus euren Korrekturen: Ändert jemand nach dem Auslesen einen Agent und speichert das Match, merkt sie sich das kleine Agenten-Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen bekommt die KI alle diese Bilder als beschriftete Beispieltafel zum Vergleich. Die Bilder liegen in Firestore (Sammlung `agentRefs`, je etwa 3 KB), nur das Team kann sie sehen. Ansehen und falsche entfernen: Tab **„Team“**, Bereich **„Agenten-Beispiele fürs Auslesen“**.
+
+Dafür braucht Firestore eine Regel mehr. **Einmal machen:**
+
+1. Firebase-Konsole → **Datenbanken und Speicher → Firestore** → Reiter **Regeln**.
+2. Die Zeile mit `match /clips/{id}` suchen. **Direkt darunter** diese Zeile einfügen:
+   ```
+   match /agentRefs/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
+   ```
+   Alles andere bleibt, wie es ist (auch deine E-Mail bei `ADMIN_EMAIL`). Die vollständigen Regeln stehen in `firestore.rules`.
+3. **Veröffentlichen**.
+
+Ohne diese Zeile läuft die App ganz normal weiter, sie lernt nur nichts. In der Konsole des Browsers steht dann eine gelbe Warnung „… fehlt die Zeile für agentRefs“.
+
+**Gut zu wissen:**
+- Gelernt wird nur aus Bildern, die gerade ausgelesen wurden, und nur, wenn in der Zeile beim Speichern ein Agent aus der Liste steht.
+- Korrekturen zählen immer (höchstens 6 pro Agent). Ohne Korrektur merkt sich die App höchstens 2 Bilder pro Agent, aber nie bei Waylay, Deadlock, Gekko, Iso und Vyse: Hätte dort jemand eine Verwechslung übersehen, stünde ein falsches Bild auf der Tafel.
+- Steht unter einem Bild im Team-Tab der falsche Name, mit × entfernen. Sonst lernt die KI das Falsche.
 
 ## Wenn etwas nicht klappt
 

@@ -7,6 +7,7 @@ import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
 import { roundInfo, sortMatches } from "../stats.js";
 import { create, change, remove, listAdd } from "../data.js";
 import { run, setMsg, msgBox } from "./auth.js";
+import { learn } from "../agentrefs.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 const MAX_ROWS = 10;
@@ -376,6 +377,7 @@ function applyScan(res) {
     }
     fillTeam("rows", b.players, b, rep, clash);
     fillTeam("foes", b.opponents || [], b, rep, clash);
+    if (b.sheet) rep.done.push(`Agents mit ${b.sheet} Beispielbildern des Teams verglichen (Tab „Team“, „Agenten-Beispiele“).`);
   }
 
   if (t) {
@@ -416,6 +418,10 @@ function fillTeam(key, scanned, b, rep, clash) {
 
   const fill = (row, p) => {
     used.add(row);
+    // Agenten-Bild aus dem Screenshot: Wird nach dem Speichern als Beispiel gemerkt (js/agentrefs.js),
+    // als Korrektur, wenn in der Zeile dann ein anderer Agent steht als der gelesene
+    row.scanPic = p.pic || null;
+    row.scanAgent = p.agent || null;
     const shown = clean(row.name);
     names.push(shown);
     if (ours && !pidOf(shown)) (formerKnown(norm(shown)) ? exes : unknown).push(shown);
@@ -733,6 +739,9 @@ function save() {
       fields.players = rows.map((x) => ({ playerId: x.former ? null : x.playerId, name: x.name, agent: x.agent, ...x.stats, ...(x.former ? { former: true } : {}) }));
       let id = mine.id;
       if (id) await change("matches", id, fields); else id = await create("matches", fields);
+      // Agenten-Bilder aus dem Auslesen als Beispiele merken (Korrekturen und erste Bestätigungen). Läuft nebenher:
+      // Scheitert es (z. B. weil die Firestore-Regel dafür fehlt), ist das Match trotzdem gespeichert.
+      learn([...mine.rows, ...mine.foes]).catch((e) => console.warn("Agenten-Beispiele:", e.message || e));
 
       const w = count(mine.rounds, "W"), l = mine.rounds.length - w;
       const off = mine.rounds && us !== null && (w !== us || l !== them);

@@ -435,6 +435,13 @@ button.ts:hover { filter: brightness(1.08); }
 .chip.user { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .chip.user { display: none; } }
 
+/* ---------- Agenten-Beispiele (Tab Team) ---------- */
+.refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.ref { margin: 0; display: flex; align-items: center; gap: 10px; padding: 6px 0 6px 6px; border: 1px solid var(--line); background: var(--surface-2); min-width: 0; }
+.ref img { width: 48px; height: 48px; flex: none; border-radius: 3px; }
+.ref figcaption { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ref figcaption small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
 /* ---------- Team-Liste ---------- */
 .member { min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
 .member .tag { margin-right: 0; }

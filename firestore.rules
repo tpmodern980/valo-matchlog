@@ -26,5 +26,7 @@ service cloud.firestore {
     match /players/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
     match /matches/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
     match /clips/{id}   { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
+    // Agenten-Beispiele fürs Screenshot-Auslesen (seit 16.11.2026, ANLEITUNG.md „Agenten-Beispiele“)
+    match /agentRefs/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
   }
 }
