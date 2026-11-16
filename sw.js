@@ -11,7 +11,7 @@
 // Die Google-Anmeldung kommt mit dem Ausweis hinter dem # zurück: Der Teil hinter dem # erreicht den Service Worker nie,
 // die Seite liest ihn selbst (js/auth.js).
 
-const VERSION = "2026-11-16.3";
+const VERSION = "2026-11-16.5";
 const FIREBASE_VERSION = "13.2.0";   // muss zu FIREBASE_VERSION in js/config.js passen
 
 const APP_FILES = [

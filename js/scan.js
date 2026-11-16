@@ -90,11 +90,24 @@ export async function pieces(file, cuts, maxSide = MAX_SIDE) {
 
 // ---------- Anweisungen an die KI ----------
 
-// Unsere Spieler mit allen Ingame-Namen: hilft der KI bei ähnlich aussehenden Zeichen (l/I, O/0)
+// Unsere Spieler mit allen Ingame-Namen: hilft der KI bei ähnlich aussehenden Zeichen (l/I, O/0).
+// Dazu die Agents, die jeder bisher gespielt hat (häufigste zuerst, höchstens fünf): Entscheidungshilfe nur bei
+// Agents, die sich ähnlich sehen (Waylay/Deadlock wurde verwechselt, laut Tim 16.11.2026).
 function rosterText() {
+  const played = new Map();
+  for (const m of S.matches) {
+    for (const r of m.players || []) {
+      const agent = clean(r.agent);
+      if (!r.playerId || !agent) continue;
+      if (!played.has(r.playerId)) played.set(r.playerId, new Map());
+      const counts = played.get(r.playerId);
+      counts.set(agent, (counts.get(agent) || 0) + 1);
+    }
+  }
   const lines = S.players.map((p) => {
     const names = [...new Set([p.name, ...(p.aliases || [])].map((n) => clean(String(n).replace(/#.*$/, ""))).filter(Boolean))];
-    return "- " + names.join(", ");
+    const top = [...(played.get(p.id) || new Map())].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([a, n]) => `${a} ${n}x`);
+    return "- " + names.join(", ") + (top.length ? ` (agents played before: ${top.join(", ")})` : "");
   });
   return lines.length ? lines.join("\n") : "(none yet)";
 }
@@ -107,7 +120,7 @@ function agentList() {
   return out;
 }
 
-const boardPrompt = () => `You read one screenshot from the game VALORANT and return JSON. The screenshot shows the post-match screen "Summary > Scoreboard".
+export const boardPrompt = () => `You read one screenshot from the game VALORANT and return JSON. The screenshot shows the post-match screen "Summary > Scoreboard".
 
 What the screen looks like:
 - Top left: the final score, written as "<number> VICTORY <number>" (or DEFEAT / DRAW). The FIRST number is our team, the SECOND number is the opponent.
@@ -120,7 +133,8 @@ What the screen looks like:
 You get two images of the same screenshot:
 - Image 1 is the whole screenshot. Read everything except the agents from image 1.
 - Image 2 is an enlarged cut-out of the left part of the table: the agent portraits with the player names next to them. Decide the agent of every row (our team and opponents) from image 2: find the row by the name next to the portrait. Only if image 2 does not show the portraits, use image 1.
-- Look at the face of each portrait carefully. These agents are easy to confuse: GEKKO (a young man) and WAYLAY (a woman); ISO (a man) and VYSE (a woman). Before you answer one of these four, check whether the face is a man or a woman.
+- Look at the face of each portrait carefully. These agents are easy to confuse: GEKKO (a young man) and WAYLAY (a woman); ISO (a man) and VYSE (a woman); WAYLAY and DEADLOCK (both women). Before you answer one of these five, compare the portrait closely with what you know about both agents.
+- For our players you also get the agents they played before (see the list of known players). Use this ONLY to decide between two look-alike agents. Players do pick new agents: if the portrait clearly shows another agent, write that agent.
 
 Return these fields:
 - map: the map name with normal capitalisation (for example "Haven").

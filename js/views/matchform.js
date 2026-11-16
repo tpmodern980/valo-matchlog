@@ -419,7 +419,7 @@ function fillTeam(key, scanned, b, rep, clash) {
     const shown = clean(row.name);
     names.push(shown);
     if (ours && !pidOf(shown)) (formerKnown(norm(shown)) ? exes : unknown).push(shown);
-    if (p.agent && AGENT_LOOKALIKE[p.agent]) doubt.push(`${quote(shown)}: ${p.agent} (oder ${AGENT_LOOKALIKE[p.agent]}?)`);
+    if (p.agent && AGENT_LOOKALIKE[p.agent]) doubt.push(`${quote(shown)}: ${p.agent} (oder ${AGENT_LOOKALIKE[p.agent].join(", ")}?)`);
     if (!p.agent) { if (!clean(row.agent)) noAgent.push(shown); }
     else if (!clean(row.agent)) { row.agent = p.agent; wrote++; }
     else if (norm(row.agent) !== norm(p.agent)) clash(`${pre}${shown}: Agent`, p.agent, () => clean(row.agent) || "leer", () => { row.agent = p.agent; }, row);
@@ -513,7 +513,7 @@ function scanHtml() {
     : "Die Bilder gehen verkleinert an die KI von Google (Gemini). Die App speichert sie nirgends.";
   return `<section class="scan" id="ed-scan" aria-labelledby="ed-scan-title">
     <div class="scan-head"><h3 id="ed-scan-title">Screenshot auslesen</h3><span class="hint">freiwillig</span></div>
-    <p class="scan-lead">Wähl die zwei Screenshots vom Match-Ende, einer allein geht auch. Die KI trägt die Werte unten ein. Gespeichert wird dabei noch nichts.<span class="scan-pc"> Am PC geht es auch ohne Explorer: Bilder einfach auf ein Feld ziehen oder mit Strg + V einfügen.</span></p>
+    <p class="scan-lead">Wähl die zwei Screenshots vom Match-Ende, einer allein geht auch. Die KI trägt die Werte unten ein. Gespeichert wird dabei noch nichts.<span class="scan-pc"> Am PC geht es auch ohne Explorer: Bilder einfach auf ein Feld ziehen, auch direkt aus Discord, oder mit Strg + V einfügen.</span></p>
     <div class="scan-slots">${slot("board")}${slot("line")}</div>
     <div class="scan-go"><button class="btn primary" type="button" id="ed-scan-go" data-action="mf-scan"${(sc.board || sc.line) && !sc.busy ? "" : " disabled"}>${sc.busy ? "Liest aus …" : "Auslesen"}</button>
       <span class="hint" role="status">${note}</span></div>
@@ -883,8 +883,51 @@ function takeScan(files, kind, say = true) {
   if (say) toast(pics.length > 1 ? "Zwei Bilder übernommen: erst Scoreboard, dann Timeline. Bei Bedarf tauschen." : `Bild übernommen (${order[0] === "board" ? "Scoreboard" : "Timeline"}).`);
 }
 
-const dragFiles = (e) => e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files");
+const typesOf = (e) => (e.dataTransfer ? [...(e.dataTransfer.types || [])] : []);
+const dragFiles = (e) => typesOf(e).includes("Files");
+// Aus Discord (oder einer Webseite) kommt oft keine Datei, sondern nur die Adresse des Bildes
+const dragLink = (e) => typesOf(e).some((t) => t === "text/uri-list" || t === "text/html");
 const slotOf = (el) => (el && el.closest ? el.closest("[data-scan-slot]") : null);
+// Ein Link oder Text, der in ein Textfeld gezogen wird, landet dort wie immer
+const inText = (el) => Boolean(el && el.closest && el.closest("input, textarea, select")) && !slotOf(el);
+
+// Adresse des gezogenen Bildes: erst das <img> aus dem HTML, sonst die erste Adresse der Liste. Nur http(s).
+function linkOf(dt) {
+  const html = dt.getData("text/html") || "";
+  const img = /<img[^>]+src\s*=\s*["']([^"']+)["']/i.exec(html);
+  const list = (dt.getData("text/uri-list") || "").split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
+  for (const raw of [img && img[1].replace(/&amp;/g, "&"), list[0]]) {
+    try { const u = new URL(raw); if (u.protocol === "https:" || u.protocol === "http:") return u; } catch (e) { /* weiter */ }
+  }
+  return null;
+}
+
+// Bild von seiner Adresse holen. Discord: Die Vorschau (media.discordapp.net) ist verkleinert und lässt sich nicht
+// immer laden, deshalb zuerst das Original auf cdn.discordapp.com. Geht nichts, hilft "Bild kopieren" + Strg + V.
+async function fromLink(url, kind) {
+  const tries = [];
+  if (url.hostname === "media.discordapp.net") {
+    const cdn = new URL(url.href);
+    cdn.hostname = "cdn.discordapp.com";
+    for (const k of ["format", "width", "height", "quality"]) cdn.searchParams.delete(k);
+    tries.push(cdn.href);
+  }
+  tries.push(url.href);
+  toast("Bild wird geladen …");
+  for (const href of tries) {
+    try {
+      const res = await fetch(href, { mode: "cors", credentials: "omit", referrerPolicy: "no-referrer" });
+      if (!res.ok) continue;
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) continue;
+      let name = "";
+      try { name = decodeURIComponent(new URL(href).pathname.split("/").pop() || ""); } catch (e) { /* bleibt leer */ }
+      takeScan([new File([blob], name || "Bild aus Discord", { type: blob.type })], kind);
+      return;
+    } catch (e) { /* nächster Versuch */ }
+  }
+  toast("Das Bild ließ sich von dort nicht laden. In Discord: Rechtsklick auf das Bild → „Bild kopieren“, dann hier Strg + V.");
+}
 let lit = null;   // Feld, über dem gerade ein Bild schwebt
 const light = (slot) => {
   if (lit === slot) return;
@@ -895,7 +938,10 @@ const light = (slot) => {
 
 // Solange das Formular offen ist, landet ein Bild nie als neue Seite im Browser (sonst wäre das Formular weg)
 document.addEventListener("dragover", (e) => {
-  if (!ed || !dragFiles(e)) return;
+  if (!ed) return;
+  const files = dragFiles(e);
+  if (!files && !dragLink(e)) return;
+  if (!files && inText(e.target)) return;
   e.preventDefault();
   const busy = ed.scan.busy;
   e.dataTransfer.dropEffect = busy ? "none" : "copy";
@@ -903,11 +949,17 @@ document.addEventListener("dragover", (e) => {
 });
 document.addEventListener("dragleave", (e) => { if (ed && !e.relatedTarget) light(null); });
 document.addEventListener("drop", (e) => {
-  if (!ed || !dragFiles(e)) return;
+  if (!ed) return;
+  const files = dragFiles(e) ? [...e.dataTransfer.files] : [];
+  if (!files.length && (!dragLink(e) || inText(e.target))) return;
   e.preventDefault();
-  const slot = slotOf(e.target);
+  const slot = slotOf(e.target), kind = slot ? slot.dataset.scanSlot : null;
   light(null);
-  takeScan([...e.dataTransfer.files], slot ? slot.dataset.scanSlot : null);
+  if (ed.scan.busy) return;
+  if (files.length) { takeScan(files, kind); return; }
+  const url = linkOf(e.dataTransfer);
+  if (url) fromLink(url, kind);
+  else toast("Das ist kein Bild. Zieh bitte einen Screenshot hierher.");
 });
 
 document.addEventListener("paste", (e) => {
