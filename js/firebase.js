@@ -111,7 +111,8 @@ async function debugReason(token) {
 // App Check weist gegenüber Firebase nach, dass die Anfrage aus unserer App kommt. Firebase verlangt das
 // für die KI. Drei Fälle:
 //   - am eigenen Rechner (localhost): Debug-Token, reCAPTCHA wird gar nicht geladen
-//   - online mit recaptchaSiteKey: reCAPTCHA v3
+//   - online mit recaptchaSiteKey: reCAPTCHA Enterprise (heißt bei Google inzwischen "Fraud Defense"). Das alte
+//     reCAPTCHA v3 ("Classic") nimmt die Firebase-Konsole seit November 2026 nicht mehr an.
 //   - online ohne recaptchaSiteKey: App Check aus (die KI lehnt dann ab, solange Firebase App Check erzwingt)
 // Liefert { mode: "debug" | "recaptcha" | "off", token (nur bei "debug"), probe(), why() }.
 // probe() versucht, ein Token zu holen, und wirft den genauen Fehler, falls das nicht klappt.
@@ -128,7 +129,7 @@ function loadAppCheck() {
         self.FIREBASE_APPCHECK_DEBUG_TOKEN = token;   // muss vor initializeAppCheck gesetzt sein
         provider = new AC.CustomProvider({ getToken: () => Promise.reject(new Error("debug-only")) });
       } else {
-        provider = new AC.ReCaptchaV3Provider(cfg.recaptchaSiteKey);
+        provider = new AC.ReCaptchaEnterpriseProvider(cfg.recaptchaSiteKey);
       }
       // Kein dauerndes Erneuern: Ein Token wird nur geholt, wenn wirklich ein Bild ausgelesen wird
       const appCheck = AC.initializeAppCheck(app, { provider, isTokenAutoRefreshEnabled: false });

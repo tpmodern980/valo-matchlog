@@ -14,10 +14,10 @@ window.VALO_CONFIG = {
   // Leer = Anmeldung über ein Google-Fenster (klappt in der installierten iPhone-App nicht zuverlässig).
   googleClientId: "548202036420-93un7vnen64m5cl6t5ss6li4gdbd2bp2.apps.googleusercontent.com",
   // Screenshot-Auslesen (ANLEITUNG.md, Schritt 7 und 8).
-  // recaptchaSiteKey: der "Websiteschlüssel" von reCAPTCHA v3 für App Check. Er ist öffentlich gedacht.
-  // Der zweite, GEHEIME Schlüssel gehört nur in die Firebase-Konsole, nie in diese Datei.
+  // recaptchaSiteKey: der Schlüssel aus der Google-Cloud-Konsole (Fraud Defense, früher reCAPTCHA Enterprise)
+  // für App Check. Er ist öffentlich gedacht. Einen geheimen Schlüssel braucht es dafür nicht.
   // Leer = App Check aus: Dann klappt das Auslesen nur am eigenen Rechner (localhost, mit Debug-Token).
-  recaptchaSiteKey: "",
+  recaptchaSiteKey: "6LeWHCMuAAAAAFy_jYVtH664m7swRgiSSWFdab6o",
   // KI-Modell. Gibt es das Modell nicht mehr, probiert die App von selbst neuere.
   aiModel: "gemini-3.6-flash",
 };

@@ -102,7 +102,7 @@ Wer nicht auf der Liste steht, sieht nach der Anmeldung die Seite „Noch nicht 
 
 Im Formular „Match eintragen“ gibt es den Bereich „Screenshot auslesen“. Er schickt die zwei Screenshots vom Match-Ende (Scoreboard und Timeline) an die KI „Gemini“ von Google und füllt das Formular vor. Dieser Schritt ist freiwillig: Von Hand eintragen geht immer.
 
-Stand dieser Beschreibung: 14.11.2026. Schritt 7 und Schritt 8 Teil A sind an unserem Projekt durchgespielt. Schritt 8 Teil B und C sind nach der Firebase-Dokumentation geschrieben, aber noch nicht ausprobiert.
+Stand dieser Beschreibung: 16.11.2026. Schritt 7 und Schritt 8 (Teil A und B) sind an unserem Projekt durchgespielt. Teil C ist nach der Firebase-Dokumentation geschrieben.
 
 Das Auslesen dauert meist 10 bis 40 Sekunden, manchmal länger. Die allererste Anfrage direkt nach dem Einschalten kann noch scheitern: dann kurz warten und noch einmal versuchen.
 
@@ -146,20 +146,34 @@ Am eigenen Rechner benutzt die App einen „Debug-Token“. Das ist ein langer C
 
 Der Token gilt nur für diesen einen Browser auf diesem Rechner. Für den zweiten Rechner (oder einen anderen Browser) wiederholst du Teil A. **Den Token nicht weitergeben und nicht ins Repo schreiben:** Wer ihn hat, kommt an App Check vorbei. Einen Token, den du nicht mehr brauchst, löschst du an derselben Stelle.
 
-### Teil B: Für die App im Internet mit reCAPTCHA v3
+### Teil B: Für die App im Internet mit Fraud Defense (früher reCAPTCHA Enterprise)
 
-Unter der Adresse `https://tpmodern980.github.io/valo-matchlog/` weist sich die App mit reCAPTCHA v3 aus. Das läuft unsichtbar im Hintergrund, niemand muss Bilder anklicken.
+Unter der Adresse `https://tpmodern980.github.io/valo-matchlog/` weist sich die App über Googles „Fraud Defense“ aus (so heißt reCAPTCHA Enterprise inzwischen). Das läuft unsichtbar im Hintergrund, niemand muss Bilder anklicken. Das alte „reCAPTCHA“ (v3, „Classic“) nimmt die Firebase-Konsole seit November 2026 nicht mehr an.
 
-1. <https://www.google.com/recaptcha/admin/create> öffnen (mit dem Google-Konto des Firebase-Projekts).
-2. Label: `Valo Matchlog`. Typ: **Auf Punktzahl basierend (v3)** („Score based“).
-3. Domain: `tpmodern980.github.io`. **Nicht `localhost` eintragen** (sonst könnte jeder die App vom eigenen Rechner aus benutzen; dafür gibt es Teil A).
-4. Absenden. Du bekommst zwei Schlüssel:
-   - **Websiteschlüssel** („Site key“): öffentlich. Er kommt in `firebase-config.js` in die Zeile `recaptchaSiteKey`, zwischen die Anführungszeichen.
-   - **Geheimer Schlüssel** („Secret key“): **geheim**. Er kommt nur in die Firebase-Konsole (nächster Punkt), nie in eine Datei im Repo.
-5. In der Firebase-Konsole: **Sicherheit → App Check** → Reiter **Apps** → die Web-App aufklappen → **reCAPTCHA** wählen → den **geheimen Schlüssel** einfügen → **Speichern**.
-6. `firebase-config.js` speichern, committen und hochladen. Nach etwa 10 Minuten liefert GitHub Pages die neue Datei aus.
+Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind frei, jedes Auslesen ist eine. Ist das Kontingent doch einmal aufgebraucht, geht das Auslesen online bis zum Monatsersten nicht mehr.
 
-Verlangt die reCAPTCHA-Seite ein Bezahlkonto oder ein Upgrade: nicht weitermachen. Dann bleibt das Auslesen vorerst auf den eigenen Rechner beschränkt (Teil A). Firebase empfiehlt für neue Projekte inzwischen „reCAPTCHA Enterprise“ statt v3; v3 wird weiter unterstützt, und die App ist für v3 gebaut.
+**Schlüssel anlegen (Google-Cloud-Konsole):**
+
+1. <https://console.cloud.google.com/security/recaptcha> öffnen, mit dem Google-Konto des Firebase-Projekts.
+2. Oben in der Projekt-Auswahl muss dein Firebase-Projekt stehen (`valo-matchlog`). Der Schlüssel gehört zu dem Projekt, das dort gewählt ist.
+3. Fragt die Seite, ob die **reCAPTCHA Enterprise API** aktiviert werden soll: aktivieren. Ein Bezahlkonto ist dafür nicht nötig. Verlangt die Seite trotzdem eins: nicht weitermachen.
+4. Reiter **Keys** („Schlüssel“) → **Create key** („Schlüssel erstellen“).
+5. **Display name** (Anzeigename): `Valo Matchlog`.
+6. **Application type** (Anwendungstyp): **Web**.
+7. **Add a domain** (Domain hinzufügen): `tpmodern980.github.io` (ohne `https://`, ohne `/valo-matchlog`). **Nicht `localhost` eintragen**: Dafür gibt es Teil A.
+8. Alles andere so lassen, wie es ist: „Disable domain verification“ bleibt aus, „Use checkbox challenge“ bleibt aus.
+9. **Create key**. Danach steht der Schlüssel in der Liste: eine lange Zeichenfolge, die meist mit `6L` beginnt. Er ist öffentlich (kein Geheimnis). Kopieren.
+
+**Schlüssel bei Firebase eintragen:**
+
+1. Firebase-Konsole → **Sicherheit → App Check** → Reiter **Apps** → die Web-App aufklappen.
+2. **Fraud Defense (früher reCAPTCHA Enterprise)** wählen (nicht „reCAPTCHA“ darunter).
+3. Den Schlüssel einfügen → **Speichern**.
+
+**Schlüssel in die App eintragen:**
+
+1. In `firebase-config.js` den Schlüssel in die Zeile `recaptchaSiteKey` schreiben, zwischen die Anführungszeichen.
+2. Speichern, committen und hochladen. Nach etwa 10 Minuten liefert GitHub Pages die neue Datei aus. Bis Google die Domain des Schlüssels kennt, kann es bis zu 30 Minuten dauern.
 
 ### Teil C: Prüfen, was erzwungen ist
 
@@ -188,7 +202,7 @@ Verlangt die reCAPTCHA-Seite ein Bezahlkonto oder ein Upgrade: nicht weitermache
 | „App Check ist im Firebase-Projekt noch nicht eingeschaltet“ | Schritt 7 fehlt ebenfalls: App Check wird beim Einrichten von AI Logic mit eingeschaltet. |
 | „Dieser Browser ist bei Firebase noch nicht als Testgerät eingetragen“ | Schritt 8, Teil A: den angezeigten Debug-Token in der Konsole eintragen. Kommt die Meldung danach wieder: Stimmt der Token Zeichen für Zeichen? Jeder Browser hat einen eigenen. Wurden die Browser-Daten gelöscht, erzeugt die App einen neuen Token. |
 | „App Check fehlt … kein recaptchaSiteKey“ | Online-Version ohne Schritt 8, Teil B. |
-| „App Check konnte diesen Browser nicht bestätigen (reCAPTCHA)“ | Ein Werbeblocker sperrt reCAPTCHA (bei Brave: Schutz für diese Seite ausschalten), die Domain in Schritt 8 Teil B stimmt nicht, oder der geheime Schlüssel in der Firebase-Konsole ist falsch. Nach einer Korrektur die Seite neu laden: Die App versucht es nach einem Fehlschlag sonst erst später wieder. |
+| „App Check konnte diesen Browser nicht bestätigen (reCAPTCHA)“ | Ein Werbeblocker sperrt reCAPTCHA (bei Brave: Schutz für diese Seite ausschalten), die Domain beim Schlüssel stimmt nicht, der Schlüssel in `firebase-config.js` ist nicht derselbe wie in der Firebase-Konsole, oder in der Firebase-Konsole ist noch das alte „reCAPTCHA“ statt „Fraud Defense“ gewählt (Schritt 8 Teil B). Nach einer Korrektur die Seite neu laden: Die App versucht es nach einem Fehlschlag sonst erst später wieder. |
 | „Firebase verlangt, dass App Check für AI Logic erzwungen ist“ oder „Firebase hat AI Logic … abgeschaltet“ | Schritt 8, Teil C. |
 | „Der API-Schlüssel des Projekts darf die Firebase AI Logic API nicht aufrufen“ | <https://console.cloud.google.com/apis/credentials> → den API-Schlüssel des Projekts öffnen („Browser key“) → bei den API-Einschränkungen **Firebase AI Logic API** mit auswählen → Speichern. Bis zu fünf Minuten warten. |
 | „Das kostenlose Kontingent der KI ist gerade erschöpft“ oder „Tageskontingent … aufgebraucht“ | Zu viele Anfragen. Eine Minute warten, sonst am nächsten Tag ab etwa 9 Uhr. Wie viel frei ist, steht in AI Studio (Schritt 7). |
