@@ -90,8 +90,22 @@ export function loadDemo() {
   const rand = rng(20261112);
   const now = Date.now();
   // setLocal legt die Daten so ab wie das echte Laden: Das Roster lässt sich in der Vorschau ändern (nur im Arbeitsspeicher)
-  setLocal("players", PLAYERS.map(({ skill, agents, ...p }) => ({ ...p, active: true, deleted: false })));
-  setLocal("matches", GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
+  // Papierkorb (Etappe 8): ein entfernter Spieler, ein gelöschtes Match mit Clips, ein einzeln entfernter Clip.
+  // Feste Zahlen ohne den Zufall: So bleiben alle übrigen Beispielzahlen genau wie vorher.
+  const gone = (days) => ({ deleted: true, updatedAt: now - days * 86400000 });
+  setLocal("players", [
+    ...PLAYERS.map(({ skill, agents, ...p }) => ({ ...p, active: true, deleted: false })),
+    { id: "pdemo7", name: "Nox", aliases: ["nox#old"], role: "Duelist", role2: null, status: "sub", active: true, createdAt: now - 90 * 86400000, createdBy: null, ...gone(20) },
+  ]);
+  const trashedMatch = {
+    id: "mdemo16", date: daysAgo(5), type: "Scrim", opponent: "Eisbrecher", map: "Pearl", scoreUs: 7, scoreThem: 13,
+    startSide: null, rounds: null, notes: "Aus Versehen doppelt eingetragen.", createdAt: now - 5 * 86400000, createdBy: null,
+    players: PLAYERS.filter((p) => p.status === "stamm").map((p, i) => ({
+      playerId: p.id, name: p.aliases[0], agent: p.agents[0], kills: 12 + i, deaths: 15 - i, assists: 4 + i, firstBloods: i % 3, plants: i % 2, defuses: 0,
+    })),
+    opponents: [], ...gone(2),
+  };
+  setLocal("matches", [...GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
     const open = us === null;
     const lineup = PLAYERS.filter((p) => withSub ? p.id !== "pdemo4" : p.status === "stamm");
     const rounds = open ? null : us + them;
@@ -111,7 +125,7 @@ export function loadDemo() {
       // Die neuesten Matches haben auch das Scoreboard der Gegner (freiwillig, ältere Matches haben keins)
       opponents: !open && i < 5 ? makeFoes(i, type, rounds, us > them) : [],
     };
-  }));
+  }), trashedMatch]);
   // Alle drei Arten von Clips. Das YouTube-Beispiel ist der frei lizenzierte Kurzfilm "Big Buck Bunny"
   // (Blender Foundation, CC BY), er darf eingebettet werden. Die Adresse example.com gehört niemandem.
   const clip = (n, matchId, title, kind, more = {}) => ({
@@ -135,6 +149,11 @@ export function loadDemo() {
     }),
     clip(4, "mdemo1", "Pistol Verteidigung", "local"),
     clip(5, "mdemo5", "Overtime, letzte Runde", "local"),
+    // Papierkorb: einzeln entfernt (Match sichtbar), einzeln entfernt (Match auch gelöscht),
+    // und ein Clip des gelöschten Matches, der mit dem Match zurückkommt (steht nicht im Papierkorb)
+    clip(6, "mdemo2", "Falscher Clip", "local", gone(1)),
+    clip(7, "mdemo16", "Alter Clip vom Doppel-Match", "local", gone(3)),
+    clip(8, "mdemo16", "Pistol Angriff", "link", { url: "https://example.com/vods/eisbrecher-pearl", notes: [note(30, "Zu langsam auf A.", "Mats", 5)] }),
   ]);
   // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
   S.demo = true;

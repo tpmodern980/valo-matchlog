@@ -241,3 +241,49 @@ export async function remove(coll, id) {
   await send(coll, id, () => ({ deleted: true }));
   show(coll, id, { ...old, deleted: true, updatedAt: Date.now() });
 }
+
+// ---------- Papierkorb, Export und Import (Etappe 8) ----------
+// Alles arbeitet mit dem, was schon im Arbeitsspeicher liegt: kein einziger zusätzlicher Lesezugriff.
+
+// Gelöschte Einträge einer Sammlung, zuletzt gelöschte zuerst (updatedAt ist die Zeit der letzten Änderung)
+export function deletedOf(coll) {
+  return [...all[coll].values()].filter((x) => x.deleted).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+// Alle Einträge einer Sammlung, auch die gelöschten (für den Export und den Vergleich beim Import)
+export const everything = (coll) => [...all[coll].values()];
+export const known = (coll, id) => all[coll].get(id) || null;
+
+// Aus dem Papierkorb zurückholen. Die Regeln erlauben das nur Admins (deleted true -> false).
+export async function restore(coll, id) {
+  if (!S.isAdmin) throw say("Wiederherstellen dürfen nur Admins.");
+  const old = all[coll].get(id);
+  if (!old) throw say("Diesen Eintrag gibt es nicht mehr.");
+  if (!old.deleted) return;
+  await send(coll, id, () => ({ deleted: false }));
+  show(coll, id, { ...old, deleted: false, updatedAt: Date.now() });
+}
+
+// Mehrere vollständige Dokumente schreiben (Import eines Backups). Vorhandene werden ganz überschrieben,
+// fehlende angelegt. Jedes Dokument bekommt updatedAt als Server-Zeitstempel. Gesendet wird in Paketen
+// (writeBatch, höchstens 500 Schreibvorgänge pro Paket); wie sonst wird nicht auf den Server gewartet.
+// docs: [{ id, ...Felder }] (ohne updatedAt). Nur für Admins.
+export async function putMany(coll, docs) {
+  if (!S.isAdmin) throw say("Einspielen dürfen nur Admins.");
+  if (!docs.length) return;
+  if (!S.demo) {
+    const { db, F } = await loadDb();
+    const mine = run;
+    for (let i = 0; i < docs.length; i += 400) {
+      const batch = F.writeBatch(db);
+      for (const { id, ...fields } of docs.slice(i, i + 400)) {
+        batch.set(F.doc(db, coll, id), { ...fields, updatedAt: F.serverTimestamp() });
+      }
+      batch.commit().catch((e) => failed(coll, e, mine));
+    }
+  }
+  const now = Date.now();
+  for (const d of docs) all[coll].set(d.id, { ...d, updatedAt: now });
+  publish(coll);
+  changed();
+}

@@ -446,6 +446,40 @@ button.ts:hover { filter: brightness(1.08); }
 .check { display: inline-flex; align-items: center; gap: 6px; padding-block: 8px; white-space: nowrap; }
 .check input { width: 18px; height: 18px; accent-color: var(--accent); }
 .panel-body > .msg { margin-bottom: 10px; }
+.team-note { margin-top: 12px; }
+
+/* Kurzanleitung zum Teilen */
+.share { display: flex; flex-direction: column; gap: 14px; }
+.share .copybox code { overflow-wrap: anywhere; }
+.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; max-width: 70ch; }
+.steps .os { display: block; margin-top: 4px; color: var(--muted); }
+.steps .os b { color: var(--ink); }
+
+/* Export und Import */
+.io { display: flex; flex-direction: column; gap: 14px; }
+.io > .msg { margin: 0; }
+.io-row { display: flex; gap: 8px 16px; align-items: center; flex-wrap: wrap; }
+.io-row .btn { flex: none; min-height: 38px; }
+.io-row .hint { flex: 1 1 260px; max-width: 70ch; }
+.sub-head { font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+.import-preview { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.import-preview p, .import-preview ul { margin: 0; }
+.import-preview ul { padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.import-preview p:first-child { overflow-wrap: anywhere; }
+@media (max-width: 560px) { .io-row .btn, .import-preview .actions .btn { flex: 1 1 100%; } }
+
+/* Papierkorb */
+.trash .roster-row { flex-wrap: nowrap; }
+.trash-what { flex: 1 1 auto; flex-direction: column; align-items: flex-start; gap: 2px; }
+.trash-what b { overflow-wrap: anywhere; }
+.trash-what small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.trash-what small .tag { margin-right: 6px; }
+.trash-what .warn-text { color: var(--draw, var(--muted)); font-weight: 600; }
+.trash .btn { flex: none; min-height: 38px; }
+.trash + .linkish { padding: 8px 0; }
+.trash-note { margin-top: 14px; }
+.panel-body > .group:not(:first-of-type) { margin-top: 18px; }
+@media (max-width: 400px) { .trash .roster-row { flex-wrap: wrap; } .trash .btn { flex: 1 1 100%; } }
 
 /* ---------- Editor ---------- */
 #editor { position: fixed; inset: 0; z-index: 30; background: var(--scrim); display: flex; justify-content: center; align-items: flex-start;

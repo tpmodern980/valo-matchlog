@@ -123,7 +123,7 @@ const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.act
 const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms };
 // Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt,
 // im Match-Formular: ein Screenshot zum Auslesen)
-const CHANGES = { ...playerPages.changes, ...clipPages.changes, ...matchForm.changes };
+const CHANGES = { ...playerPages.changes, ...clipPages.changes, ...matchForm.changes, ...teamPages.changes };
 
 document.addEventListener("change", (e) => {
   const fn = e.target.dataset ? CHANGES[e.target.dataset.change] : null;

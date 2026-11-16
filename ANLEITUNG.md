@@ -210,6 +210,34 @@ Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind 
 | „Auf dem Bild war keine Ergebnis-Übersicht zu erkennen“ oder „… keine Timeline …“ | Falsches Bild oder im falschen Feld. Gebraucht werden die zwei Ansichten nach dem Match: „Summary → Scoreboard“ und „Timeline“. |
 | Werte stimmen nicht mit dem Bild überein | Die KI kann sich irren, vor allem bei den Agents. Deshalb speichert die App nichts von selbst: Werte prüfen, korrigieren, dann „Speichern“. |
 
+## Backup und Wiederherstellen
+
+Im Gratisplan von Firebase gibt es **keine automatischen Backups**. Alles dafür steht im Tab **„Team“**.
+
+**Backup herunterladen (alle im Team):** „Backup (JSON) herunterladen“. Die Datei enthält alles: Spieler, Matches (mit dem Scoreboard der Gegner und den Trades bei Premier), Clips mit Notizen und den Papierkorb. Am besten regelmäßig, etwa einmal im Monat, und die Datei an einem sicheren Ort aufheben (z. B. OneDrive oder Google Drive). Der Download kostet keine Lesezugriffe: Die App nimmt, was sie schon geladen hat.
+
+**Matches als CSV (Excel):** eine Zeile pro Spieler und Match, zum Auswerten in Excel oder Google Sheets. Die Spalte „Team“ sagt, ob die Zeile zu uns („Wir“) oder zu den Gegnern gehört. Gelöschte Matches stehen nicht drin. Die CSV ist **kein** Backup: Einspielen lässt sich nur die JSON-Datei.
+- **Excel:** Datei doppelt anklicken. Sie ist für deutsches Excel gemacht (Semikolon, Komma bei Zahlen, Umlaute).
+- **Google Sheets:** Datei → Importieren → Hochladen → Trennzeichen „Semikolon“ wählen. Damit Zahlen wie „1,25“ als Zahl erkannt werden, muss das Gebietsschema der Tabelle „Deutschland“ sein (Datei → Einstellungen).
+
+**Papierkorb (nur Admins):** Gelöschte Matches, entfernte Spieler und einzeln entfernte Clips stehen dort, mit dem Knopf „Wiederherstellen“. Endgültig gelöscht wird in der App nie.
+- Clips eines gelöschten Matches stehen nicht einzeln im Papierkorb: Sie kommen mit dem Match zurück.
+- Ein Spieler lässt sich nicht zurückholen, wenn sein Name oder Ingame-Name inzwischen einem anderen Spieler gehört. Dann erst dort den Namen herausnehmen.
+- Entfernte Clip-Notizen lassen sich nicht wiederherstellen (höchstens aus einem Backup).
+
+**Backup einspielen (nur Admins):** „Backup einspielen …“ → die JSON-Datei wählen. Die App zeigt erst eine Vorschau („x Matches, y Spieler, z Clips werden eingespielt“) und schreibt erst nach „Jetzt einspielen“.
+- Einträge mit derselben ID werden **überschrieben**, fehlende angelegt. Was nicht in der Datei steht, bleibt unverändert. Die Team-Liste wird nie geändert.
+- Was schon genau so in der App ist, wird übersprungen (spart Schreibvorgänge).
+- Wurde ein Eintrag nach dem Backup noch geändert, warnt die Vorschau: Diese Änderung ginge beim Einspielen verloren.
+- Jeder eingespielte Eintrag ist ein Schreibvorgang (Gratisplan: 20.000 am Tag). Auf den anderen Geräten wird er danach einmal neu geladen (ein Lesezugriff pro Eintrag).
+
+| Was du siehst | Woran es meist liegt |
+|---|---|
+| „… ist keine JSON-Datei“ | Die CSV oder eine andere Datei gewählt. Gebraucht wird die Datei `valo-matchlog-backup-….json`. |
+| „Diese Datei ist kein Export von Valo Matchlog“ | Eine fremde JSON-Datei. |
+| „… stammt aus einer neueren Version der App“ | Die App auf diesem Gerät ist veraltet: neu laden (Strg + F5), dann noch einmal. |
+| „Nicht gespeichert: Dafür fehlt dir die Berechtigung.“ | Nur Admins dürfen wiederherstellen und einspielen. Steht man auf der Admin-Liste, die Seite neu laden. |
+
 ## Als App auf den Home-Bildschirm legen
 
 Die App kommt nicht aus dem App Store. Man öffnet die Adresse im Browser und legt sie von dort auf den Home-Bildschirm. Danach startet sie wie eine eigene App. Ein eigenes Icon gibt es noch nicht, das folgt später.
