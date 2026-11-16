@@ -220,15 +220,15 @@ function refsPanel() {
   const refs = S.agentRefs.slice().sort((a, b) => String(a.agent).localeCompare(String(b.agent), "de") || (b.createdAt || 0) - (a.createdAt || 0));
   const tile = (r) => `<figure class="ref">
       <img src="data:image/jpeg;base64,${esc(r.pic || "")}" alt="${esc(r.agent)}" width="64" height="64">
-      <figcaption><b>${esc(r.agent)}</b><small>${r.kind === "fix" ? `korrigiert${r.wrong ? ` (KI: ${esc(r.wrong)})` : ""}` : "bestätigt"}</small></figcaption>
+      <figcaption><b>${esc(r.agent)}</b><small>${r.kind === "fix" ? (r.wrong ? `korrigiert (KI: ${esc(r.wrong)})` : "ergänzt (KI erkannte nichts)") : "bestätigt"}</small></figcaption>
       <button class="alias-x" type="button" data-action="ref-remove" data-id="${esc(r.id)}" aria-label="Beispiel ${esc(r.agent)} entfernen" title="Falsches Beispiel entfernen">×</button>
     </figure>`;
   const body = !S.loaded.agentRefs ? '<p class="hint">Lädt …</p>'
     : refs.length ? `<div class="refs">${refs.map(tile).join("")}</div>`
-      : '<p class="hint">Noch keine Beispiele. Sie entstehen von selbst, sobald ihr nach dem Auslesen ein Match speichert.</p>';
+      : '<p class="hint">Noch keine Beispiele. Sie entstehen von selbst, sobald ihr nach dem Auslesen einen falsch erkannten Agent korrigiert und das Match speichert.</p>';
   return `<section class="panel"><div class="panel-head"><h2>Agenten-Beispiele fürs Auslesen</h2><span class="hint">${S.loaded.agentRefs ? plural(refs.length, "Bild", "Bilder") : ""}</span></div>
     <div class="panel-body">
-      <p class="hint">Damit die KI Agents nicht verwechselt: Korrigiert ihr nach dem Auslesen einen Agent und speichert, merkt sich die App das kleine Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen vergleicht die KI mit diesen Bildern. Zeigt ein Bild etwas anderes als den Namen darunter, entfernt es mit ×.</p>
+      <p class="hint">Damit die KI Agents nicht verwechselt: Korrigiert ihr nach dem Auslesen einen Agent und speichert, merkt sich die App das kleine Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen vergleicht die KI mit diesen Bildern. Pro Agent bleiben höchstens 3, ein neues ersetzt das älteste. Zeigt ein Bild etwas anderes als den Namen darunter, entfernt es mit ×.</p>
       ${body}
     </div></section>`;
 }

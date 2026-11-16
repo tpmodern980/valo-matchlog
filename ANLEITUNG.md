@@ -183,7 +183,7 @@ Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind 
 
 ## Schritt 9: Agenten-Beispiele einschalten (eine Zeile in den Regeln)
 
-Die KI verwechselt beim Auslesen manchmal Agents, die sich ähnlich sehen (zum Beispiel Waylay und Deadlock). Deshalb lernt die App aus euren Korrekturen: Ändert jemand nach dem Auslesen einen Agent und speichert das Match, merkt sie sich das kleine Agenten-Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen bekommt die KI alle diese Bilder als beschriftete Beispieltafel zum Vergleich. Die Bilder liegen in Firestore (Sammlung `agentRefs`, je etwa 3 KB), nur das Team kann sie sehen. Ansehen und falsche entfernen: Tab **„Team“**, Bereich **„Agenten-Beispiele fürs Auslesen“**.
+Die KI verwechselt beim Auslesen manchmal Agents, die sich ähnlich sehen (zum Beispiel Waylay und Deadlock). Deshalb lernt die App aus euren Korrekturen: Ändert jemand nach dem Auslesen einen falsch erkannten Agent und speichert das Match, merkt sie sich das kleine Agenten-Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen bekommt die KI alle diese Bilder als beschriftete Beispieltafel zum Vergleich. Die Bilder liegen in Firestore (Sammlung `agentRefs`, je etwa 3 KB), nur das Team kann sie sehen. Ansehen und falsche entfernen: Tab **„Team“**, Bereich **„Agenten-Beispiele fürs Auslesen“**.
 
 Dafür braucht Firestore eine Regel mehr. **Einmal machen:**
 
@@ -198,8 +198,8 @@ Dafür braucht Firestore eine Regel mehr. **Einmal machen:**
 Ohne diese Zeile läuft die App ganz normal weiter, sie lernt nur nichts. In der Konsole des Browsers steht dann eine gelbe Warnung „… fehlt die Zeile für agentRefs“.
 
 **Gut zu wissen:**
-- Gelernt wird nur aus Bildern, die gerade ausgelesen wurden, und nur, wenn in der Zeile beim Speichern ein Agent aus der Liste steht.
-- Korrekturen zählen immer (höchstens 6 pro Agent). Ohne Korrektur merkt sich die App höchstens 2 Bilder pro Agent, aber nie bei Waylay, Deadlock, Gekko, Iso und Vyse: Hätte dort jemand eine Verwechslung übersehen, stünde ein falsches Bild auf der Tafel.
+- Gelernt wird nur aus Bildern, die gerade ausgelesen wurden, und **nur aus Korrekturen**: In der Zeile steht beim Speichern ein anderer Agent als der, den die KI gelesen hat (oder die KI hatte gar keinen erkannt). Was die KI richtig erkannt hat, braucht kein Beispiel.
+- **Höchstens 3 Bilder pro Agent.** Kommt eine weitere Korrektur dazu, ersetzt das neue Bild das älteste. So stehen nur die Agents da, die Probleme machen, und es werden nicht immer mehr.
 - Steht unter einem Bild im Team-Tab der falsche Name, mit × entfernen. Sonst lernt die KI das Falsche.
 
 ## Wenn etwas nicht klappt

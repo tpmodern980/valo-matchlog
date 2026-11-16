@@ -178,8 +178,8 @@ export function loadDemo() {
   });
   setLocal("agentRefs", [
     ref(1, "Waylay", "fix", "Deadlock", "#7A4FA0"),
-    ref(2, "Deadlock", "ok", null, "#5D6B78"),
-    ref(3, "Gekko", "ok", null, "#3E8F4F"),
+    ref(2, "Deadlock", "fix", "Waylay", "#5D6B78"),
+    ref(3, "Gekko", "fix", null, "#3E8F4F"),
   ]);
   // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
   S.demo = true;
