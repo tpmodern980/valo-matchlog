@@ -132,10 +132,10 @@ What the screen looks like:
 - In front of a name there can be a short team tag followed by a vertical bar, for example "ツ | Kairo" or "ABC | Someone". The tag and the bar are NOT part of the name. Some players have no tag.
 - The agent of a player is only visible as a small portrait at the left end of the row.
 
-You get two images of the same screenshot:
+You get ${sheet ? "three images: two of the same screenshot and a reference sheet" : "two images of the same screenshot"}:
 - Image 1 is the whole screenshot. Read everything except the agents from image 1.
 - Image 2 is an enlarged cut-out of the left part of the table: the agent portraits with the player names next to them. Decide the agent of every row (our team and opponents) from image 2: find the row by the name next to the portrait. Only if image 2 does not show the portraits, use image 1.
-- Look at the face of each portrait carefully. These agents are easy to confuse: GEKKO (a young man) and WAYLAY (a woman); ISO (a man) and VYSE (a woman); WAYLAY and DEADLOCK (both women). Before you answer one of these five, compare the portrait closely with what you know about both agents.
+- Look at the face of each portrait carefully. These agents are easy to confuse: GEKKO (a young man) and WAYLAY (a woman); ISO (a man) and VYSE (a woman); WAYLAY and DEADLOCK (both women); FADE and HUSH. Before you answer one of these seven, compare the portrait closely with what you know about both agents.
 - For our players you also get the agents they played before (see the list of known players). Use this ONLY to decide between two look-alike agents. Players do pick new agents: if the portrait clearly shows another agent, write that agent.${sheet ? `
 - Image 3 is a reference sheet our team made from earlier screenshots of this same game: small agent portraits, each with the CORRECT agent name written below it. Compare every portrait of image 2 with the sheet. If it matches a portrait on the sheet, use the name written below that one, even if you would have guessed another agent. The sheet does not contain every agent.` : ""}
 
