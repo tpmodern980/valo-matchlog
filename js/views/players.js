@@ -61,6 +61,11 @@ function editor(p) {
         <button class="btn small danger" type="button" data-action="roster-ask-remove">Aus dem Roster entfernen</button>
       </div>`;
   return `<div class="prow-edit">
+    <form class="alias-add" data-form="roster-rename" data-id="${id}" novalidate>
+      <label class="field"><span>Anzeigename</span>
+        <input type="text" id="rename-${id}" name="name" data-keep maxlength="40" autocomplete="off" value="${esc(p.name)}"></label>
+      <button class="btn" type="submit">Umbenennen</button>
+    </form>
     <div class="field"><span>Ingame-Namen</span>
       ${aliases ? `<ul class="alias-list">${aliases}</ul>` : '<p class="hint">Noch keine eingetragen.</p>'}</div>
     <form class="alias-add" data-form="roster-alias" data-id="${id}" novalidate>
@@ -212,6 +217,24 @@ export const forms = {
       for (const id of ["np-name", "np-aliases"]) { const el = $("#" + id); if (el) el.value = ""; }
       for (const id of ["np-role", "np-role2", "np-status"]) { const el = $("#" + id); if (el) el.selectedIndex = 0; }
       toast(name + " ist jetzt im Roster.");
+    }, opt);
+  },
+  // Anzeigename ändern (z. B. vertippt). Matches kennen den Spieler über seine ID: Der neue Name steht danach
+  // überall (Statistik, Scoreboards, Spieler-Seite). Die Ingame-Namen in alten Matches bleiben, wie sie waren.
+  "roster-rename": (form) => {
+    const id = form.dataset.id;
+    const name = clean(new FormData(form).get("name"));
+    spot("row");
+    const p = find(id);
+    if (!p) return;
+    if (!norm(name)) return setMsg("error", "Bitte gib einen Anzeigenamen ein.");
+    if (name === p.name) return setMsg("ok", "Der Name ist unverändert.");
+    const twin = owner(name, id);
+    if (twin) return setMsg("error", `„${name}“ steht schon im Roster${sameText(twin.name, name) ? "" : " (als Ingame-Name von " + twin.name + ")"}.`);
+    const old = p.name;
+    run(async () => {
+      await change("players", id, { name });
+      toast(`${old} heißt jetzt ${name}.`);
     }, opt);
   },
   "roster-alias": (form) => {
