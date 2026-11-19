@@ -120,7 +120,7 @@ async function watch(coll, db, F, mine) {
   }, (e) => {
     if (mine !== run) return;
     console.warn(`Daten „${coll}“ konnten nicht geladen werden:`, e.code || e.message,
-      OPTIONAL.has(coll) && e.code === "permission-denied" ? "(In den Firestore-Regeln fehlt die Zeile für agentRefs, ANLEITUNG.md „Agenten-Beispiele“.)" : "");
+      OPTIONAL.has(coll) && e.code === "permission-denied" ? "(In den Firestore-Regeln fehlt die Zeile für agentRefs, ANLEITUNG.md „KI-Trainingsbilder“.)" : "");
     // Bei "permission-denied" zeigt auth.js ohnehin die Sperrseite. Freiwillige Sammlungen melden sich nicht.
     if (e.code !== "permission-denied" && !warned && !OPTIONAL.has(coll)) {
       warned = true;
@@ -249,9 +249,45 @@ export async function remove(coll, id) {
 // ---------- Papierkorb, Export und Import (Etappe 8) ----------
 // Alles arbeitet mit dem, was schon im Arbeitsspeicher liegt: kein einziger zusätzlicher Lesezugriff.
 
-// Gelöschte Einträge einer Sammlung, zuletzt gelöschte zuerst (updatedAt ist die Zeit der letzten Änderung)
+// Gelöschte Einträge einer Sammlung, zuletzt gelöschte zuerst (updatedAt ist die Zeit der letzten Änderung).
+// Endgültig entfernte (purged, "Papierkorb leeren") stehen nicht mehr im Papierkorb.
 export function deletedOf(coll) {
-  return [...all[coll].values()].filter((x) => x.deleted).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  return [...all[coll].values()].filter((x) => x.deleted && !x.purged).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+
+// Papierkorb leeren (Wunsch Tim, 19.11.2026). Nur Admins. Echt gelöscht wird weiterhin nicht: Die Regeln erlauben
+// kein "delete", und ein echt gelöschtes Dokument würden die anderen Geräte nie erfahren (sie laden nur Änderungen)
+// und es stünde dort weiter im Papierkorb. Stattdessen bekommt jeder Eintrag purged: true: Er verschwindet überall
+// aus dem Papierkorb, lässt sich nicht mehr wiederherstellen und kommt nicht mehr ins Backup.
+// Clips eines Matches aus dem Papierkorb gehen mit (sie sind sonst unsichtbar, aber nicht gelöscht).
+// Liefert { matches, players, clips } = Anzahl der endgültig entfernten Einträge.
+export async function purgeTrash() {
+  if (!S.isAdmin) throw say("Den Papierkorb leeren dürfen nur Admins.");
+  const pick = { players: deletedOf("players"), matches: deletedOf("matches"), clips: deletedOf("clips") };
+  const gone = new Set(pick.matches.map((m) => m.id));
+  const withMatch = [...all.clips.values()].filter((c) => !c.purged && gone.has(c.matchId) && !pick.clips.includes(c));
+  pick.clips = [...pick.clips, ...withMatch];
+  const count = { matches: pick.matches.length, players: pick.players.length, clips: pick.clips.length };
+  if (!S.demo) {
+    const { db, F } = await loadDb();
+    const mine = run;
+    for (const coll of ["players", "matches", "clips"]) {
+      for (let i = 0; i < pick[coll].length; i += 400) {
+        const batch = F.writeBatch(db);
+        for (const d of pick[coll].slice(i, i + 400)) {
+          batch.update(F.doc(db, coll, d.id), { deleted: true, purged: true, updatedAt: F.serverTimestamp() });
+        }
+        batch.commit().catch((e) => failed(coll, e, mine));
+      }
+    }
+  }
+  const now = Date.now();
+  for (const coll of ["players", "matches", "clips"]) {
+    for (const d of pick[coll]) all[coll].set(d.id, { ...d, deleted: true, purged: true, updatedAt: now });
+    publish(coll);
+  }
+  changed();
+  return count;
 }
 
 // Alle Einträge einer Sammlung, auch die gelöschten (für den Export und den Vergleich beim Import)

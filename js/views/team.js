@@ -4,13 +4,13 @@
 // Papierkorb, Export und Import haben eigene Meldungsfelder: msgBox (#auth-msg) gehört hier der Team-Liste.
 import { S, changed } from "../state.js";
 import { RES_LABEL, MAPS } from "../constants.js";
-import { $, esc, norm, toast, copyText, fmtDate } from "../util.js";
+import { $, esc, norm, toast, fmtDate } from "../util.js";
 import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, cleanEmails, validEmail } from "../team.js";
 import { validWebhook, validMapTarget, anyHook } from "../discord.js";
-import { deletedOf, everything, known, restore, remove } from "../data.js";
+import { deletedOf, everything, known, restore, remove, purgeTrash } from "../data.js";
 import { buildCsv, buildJson, download, fileName, readImport, applyImport } from "../backup.js";
 import { result } from "../stats.js";
-import { appUrl, errorText } from "../auth.js";
+import { errorText } from "../auth.js";
 import { run, setMsg, msgBox } from "./auth.js";
 
 // ---------- Erster Start: Team anlegen ----------
@@ -35,6 +35,7 @@ let trashMsg = null;     // Meldung im Papierkorb: { kind, text }
 let ioMsg = null;        // Meldung bei Export und Import
 let plan = null;         // geprüfte Import-Datei, wartet auf Bestätigung (siehe backup.js)
 let importing = false;
+let purgeAsk = false;    // Rückfrage "Papierkorb endgültig leeren?" ist offen
 const SHOW = 8;          // so viele Einträge pro Gruppe im Papierkorb, der Rest nach "Alle zeigen"
 const showAll = { matches: false, players: false, clips: false };
 
@@ -80,23 +81,6 @@ function membersPanel() {
     <div class="panel-body"><div class="roster">${rows}</div>${addForm}</div></section>`;
 }
 
-function sharePanel() {
-  const url = appUrl();
-  return `<section class="panel"><div class="panel-head"><h2>Jemanden ins Team holen</h2></div>
-    <div class="panel-body share">
-      <div class="copybox"><code>${esc(url)}</code>
-        <button class="btn small" type="button" data-action="share-copy">Link kopieren</button></div>
-      <ol class="steps">
-        <li><b>Link schicken.</b> Die Person öffnet ihn am Handy oder PC.</li>
-        <li><b>Anmelden</b> mit Google oder mit E-Mail und Passwort (dann einmal die Bestätigungs-Mail öffnen).</li>
-        <li><b>Freischalten:</b> Die App zeigt ihr „Noch nicht freigeschaltet“ und ihre E-Mail-Adresse. Die schickt sie einem Admin, der sie oben einträgt. Danach tippt sie auf „Erneut prüfen“.</li>
-        <li><b>Zum Home-Bildschirm:</b>
-          <span class="os"><b>iPhone:</b> in Safari öffnen → Teilen-Knopf (Quadrat mit Pfeil) → „Zum Home-Bildschirm“.</span>
-          <span class="os"><b>Android:</b> in Chrome öffnen → Menü ⋮ → „App installieren“ (oder „Zum Startbildschirm hinzufügen“).</span></li>
-      </ol>
-      <p class="hint">Auf dem iPhone hat die App vom Home-Bildschirm einen eigenen Speicher: Dort muss man sich einmal neu anmelden, auch wenn man in Safari schon angemeldet war.</p>
-    </div></section>`;
-}
 
 function backupPanel() {
   const ready = allLoaded();
@@ -113,7 +97,7 @@ function backupPanel() {
       </div>`;
     imp = `<h3 class="sub-head">Import (nur Admins)</h3>${imp}`;
   }
-  return `<section class="panel"><div class="panel-head"><h2>Daten exportieren</h2>
+  return `<section class="panel"><div class="panel-head"><h2>Backups + Export</h2>
       <span class="hint">${ready ? `${plural(n.m, "Match", "Matches")} · ${n.p} Spieler · ${plural(n.c, "Clip", "Clips")}${gone ? ` · ${gone} im Papierkorb` : ""}` : "Daten laden noch …"}</span></div>
     <div class="panel-body io">
       <p class="hint">Im Gratisplan gibt es keine automatischen Backups. Lad ab und zu ein JSON-Backup herunter und heb es gut auf.</p>
@@ -208,11 +192,19 @@ function trashPanel() {
     : n
       ? trashGroup("matches", "Matches", matches, matchRow) + trashGroup("players", "Spieler", players, playerRow) + trashGroup("clips", "Einzeln entfernte Clips", clips, clipRow)
       : '<p class="hint">Der Papierkorb ist leer.</p>';
+  // Papierkorb leeren (nur Admins, mit Rückfrage): js/data.js purgeTrash
+  const purge = !allLoaded() || !n ? ""
+    : purgeAsk
+      ? `<div class="confirm purge"><span><b>${plural(n, "Eintrag", "Einträge")} endgültig entfernen?</b> Danach lässt sich nichts davon wiederherstellen, und es kommt auch nicht mehr ins Backup.${matches.length ? " Clips der Matches gehen mit." : ""} Lad vorher am besten ein Backup herunter (Bereich „Backups + Export“).</span>
+          <button class="btn small danger solid" type="button" data-action="trash-purge">Endgültig leeren</button>
+          <button class="btn small" type="button" data-action="trash-purge-cancel">Abbrechen</button></div>`
+      : '<div class="actions purge"><button class="btn small danger" type="button" data-action="trash-purge-ask">Papierkorb leeren</button></div>';
   return `<section class="panel"><div class="panel-head"><h2>Papierkorb</h2><span class="hint">${allLoaded() ? plural(n, "Eintrag", "Einträge") : ""}</span></div>
     <div class="panel-body">
       ${box(trashMsg, "trash-msg")}
       ${body}
-      <p class="hint trash-note">Gelöscht wird in der App nie endgültig. Clips eines gelöschten Matches stehen hier nicht einzeln: Sie kommen mit dem Match zurück. Gelöschte Clip-Notizen lassen sich nicht wiederherstellen.</p>
+      ${purge}
+      <p class="hint trash-note">Gelöschtes landet erst hier und lässt sich zurückholen. Endgültig weg ist es erst nach „Papierkorb leeren“. Clips eines gelöschten Matches stehen hier nicht einzeln: Sie kommen mit dem Match zurück. Gelöschte Clip-Notizen lassen sich nicht wiederherstellen.</p>
     </div></section>`;
 }
 
@@ -270,23 +262,51 @@ function refsPanel() {
   const body = !S.loaded.agentRefs ? '<p class="hint">Lädt …</p>'
     : refs.length ? `<div class="refs">${refs.map(tile).join("")}</div>`
       : '<p class="hint">Noch keine Beispiele. Sie entstehen von selbst, sobald ihr nach dem Auslesen einen falsch erkannten Agent korrigiert und das Match speichert.</p>';
-  return `<section class="panel"><div class="panel-head"><h2>Agenten-Beispiele fürs Auslesen</h2><span class="hint">${S.loaded.agentRefs ? plural(refs.length, "Bild", "Bilder") : ""}</span></div>
+  return `<section class="panel"><div class="panel-head"><h2>KI-Trainingsbilder</h2><span class="hint">${S.loaded.agentRefs ? plural(refs.length, "Bild", "Bilder") : ""}</span></div>
     <div class="panel-body">
       <p class="hint">Damit die KI Agents nicht verwechselt: Korrigiert ihr nach dem Auslesen einen Agent und speichert, merkt sich die App das kleine Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen vergleicht die KI mit diesen Bildern. Pro Agent bleiben höchstens 3, ein neues ersetzt das älteste. Zeigt ein Bild etwas anderes als den Namen darunter, entfernt es mit ×.</p>
       ${body}
     </div></section>`;
 }
 
+// ---------- Klappbare Bereiche (Wunsch Tim, 19.11.2026: "übersichtlicher") ----------
+// Jeder Bereich ist eine Zeile mit Titel und Kurz-Info, aufgeklappt wird nur, was man braucht. Welche offen sind,
+// merkt sich das Gerät (localStorage). Beim ersten Mal ist nur die Team-Liste offen.
+const FOLD_KEY = "valo-team-open";
+const openFolds = (() => {
+  try {
+    const v = JSON.parse(localStorage.getItem(FOLD_KEY) || "null");
+    return new Set(Array.isArray(v) ? v : ["members"]);
+  } catch (e) { return new Set(["members"]); }
+})();
+
+// Macht aus einem Bereich (<section class="panel"> mit <div class="panel-head">) einen Klapp-Bereich
+function fold(key, html) {
+  return html
+    .replace(/^\s*<section class="panel"><div class="panel-head">([\s\S]*?)<\/div>/, (_, head) =>
+      `<details class="panel fold" data-fold="${key}"${openFolds.has(key) ? " open" : ""}><summary class="panel-head">${head}<span class="fold-mark" aria-hidden="true"></span></summary>`)
+    .replace(/<\/section>\s*$/, "</details>");
+}
+
+// Auf- und Zuklappen merken ("toggle" steigt nicht auf, deshalb in der Capture-Phase)
+document.addEventListener("toggle", (e) => {
+  const d = e.target;
+  if (!d || !d.dataset || !d.dataset.fold) return;
+  if (d.open) openFolds.add(d.dataset.fold); else openFolds.delete(d.dataset.fold);
+  try { localStorage.setItem(FOLD_KEY, JSON.stringify([...openFolds])); } catch (err) { /* nur Bequemlichkeit */ }
+}, true);
+
 export function teamView() {
   const me = S.user ? S.user.email : "";
   return `<div class="view-head"><div><div class="eyebrow">Verwaltung</div><h1>Team</h1>
-      <p>Wer auf dieser Liste steht, darf die App benutzen.${me ? ` Du bist angemeldet als <b class="mail">${esc(me)}</b>.` : ""}</p></div></div>
-    ${membersPanel()}
-    ${sharePanel()}
-    ${backupPanel()}
-    ${discordPanel()}
-    ${refsPanel()}
-    ${S.isAdmin ? trashPanel() : '<p class="hint">Gelöschte Matches, Spieler und Clips kann ein Admin im Papierkorb wiederherstellen.</p>'}`;
+      <p>Wer auf dieser Liste steht, darf die App benutzen.${me ? ` Du bist angemeldet als <b class="mail">${esc(me)}</b>.` : ""} Tipp auf einen Bereich, um ihn auf- oder zuzuklappen.</p></div></div>
+    <div class="folds">
+    ${fold("members", membersPanel())}
+    ${fold("discord", discordPanel())}
+    ${fold("refs", refsPanel())}
+    ${fold("backup", backupPanel())}
+    ${S.isAdmin ? fold("trash", trashPanel()) : '<p class="hint">Gelöschte Matches, Spieler und Clips kann ein Admin im Papierkorb wiederherstellen.</p>'}
+    </div>`;
 }
 
 // ---------- Meldungen ohne Neuzeichnen ----------
@@ -299,6 +319,9 @@ function say(which, kind, text) {
   el.className = "msg " + (m ? m.kind : "");
   el.textContent = m ? m.text : "";
   el.hidden = !m;
+  // Steht die Meldung in einem zugeklappten Bereich: aufklappen, sonst sähe sie niemand
+  const d = el.closest("details");
+  if (m && d && !d.open) d.open = true;
   if (m) el.scrollIntoView({ block: "nearest" });
 }
 
@@ -306,6 +329,7 @@ function say(which, kind, text) {
 window.addEventListener("hashchange", () => {
   if (location.hash === "#team") return;
   if (!importing) plan = null;
+  purgeAsk = false;
   trashMsg = null; ioMsg = null;
 });
 
@@ -354,11 +378,21 @@ export const actions = {
     await removeMember(el.dataset.email);
     toast(el.dataset.email + " entfernt.");
   }, { demoOk: true }),
-  "share-copy": async () => {
-    const ok = await copyText(appUrl());
-    toast(ok ? "Link kopiert." : "Kopieren ging nicht. Markier den Link und kopier ihn von Hand.");
-  },
   "trash-restore": (el) => doRestore(el.dataset.coll, el.dataset.id),
+  "trash-purge-ask": () => { if (S.isAdmin) { purgeAsk = true; changed(); } },
+  "trash-purge-cancel": () => { purgeAsk = false; changed(); },
+  "trash-purge": async () => {
+    if (!S.isAdmin) return;
+    purgeAsk = false;
+    try {
+      const c = await purgeTrash();
+      const parts = [c.matches ? plural(c.matches, "Match", "Matches") : "", c.players ? `${c.players} Spieler` : "", c.clips ? plural(c.clips, "Clip", "Clips") : ""].filter(Boolean);
+      say("trash", "ok", `Papierkorb geleert: ${parts.join(", ") || "nichts"} endgültig entfernt.${S.demo ? " (Vorschau: nur im Arbeitsspeicher.)" : ""}`);
+    } catch (e) {
+      say("trash", "error", errorText(e) || "Leeren hat nicht geklappt.");
+    }
+    changed();
+  },
   "ref-remove": async (el) => {
     const r = S.agentRefs.find((x) => x.id === el.dataset.id);
     if (!r) return;

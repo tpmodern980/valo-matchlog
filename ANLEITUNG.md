@@ -181,9 +181,9 @@ Es kostet nichts und braucht kein Bezahlkonto: 10.000 Prüfungen pro Monat sind 
 2. In der Zeile **Firebase AI Logic** soll **Erzwungen** („Enforced“) stehen. Steht dort „Nicht erzwungen“: Zeile anklicken → einrichten → **Erzwungen** wählen. Im zweiten Fenster („Replay protection“, Schutz vor Wiederverwendung) kannst du die Vorgabe lassen; die App kommt mit jeder Einstellung dort zurecht.
 3. **Wichtig: Bei „Cloud Firestore“ und „Authentication“ App Check nicht erzwingen.** Die App lädt App Check erst, wenn jemand ein Bild ausliest. Würdest du es dort erzwingen, käme niemand mehr an die Daten.
 
-## Schritt 9: Agenten-Beispiele einschalten (eine Zeile in den Regeln)
+## Schritt 9: KI-Trainingsbilder einschalten (eine Zeile in den Regeln)
 
-Die KI verwechselt beim Auslesen manchmal Agents, die sich ähnlich sehen (zum Beispiel Waylay und Deadlock). Deshalb lernt die App aus euren Korrekturen: Ändert jemand nach dem Auslesen einen falsch erkannten Agent und speichert das Match, merkt sie sich das kleine Agenten-Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen bekommt die KI alle diese Bilder als beschriftete Beispieltafel zum Vergleich. Die Bilder liegen in Firestore (Sammlung `agentRefs`, je etwa 3 KB), nur das Team kann sie sehen. Ansehen und falsche entfernen: Tab **„Team“**, Bereich **„Agenten-Beispiele fürs Auslesen“**.
+Die KI verwechselt beim Auslesen manchmal Agents, die sich ähnlich sehen (zum Beispiel Waylay und Deadlock). Deshalb lernt die App aus euren Korrekturen: Ändert jemand nach dem Auslesen einen falsch erkannten Agent und speichert das Match, merkt sie sich das kleine Agenten-Bild aus dem Screenshot mit dem richtigen Namen. Beim nächsten Auslesen bekommt die KI alle diese Bilder als beschriftete Beispieltafel zum Vergleich. Die Bilder liegen in Firestore (Sammlung `agentRefs`, je etwa 3 KB), nur das Team kann sie sehen. Ansehen und falsche entfernen: Tab **„Team“**, Bereich **„KI-Trainingsbilder“**.
 
 Dafür braucht Firestore eine Regel mehr. **Einmal machen:**
 
@@ -253,7 +253,7 @@ Ein Feld leeren und speichern nimmt den Eintrag wieder heraus. Bei einem Forum b
 
 ## Backup und Wiederherstellen
 
-Im Gratisplan von Firebase gibt es **keine automatischen Backups**. Alles dafür steht im Tab **„Team“**.
+Im Gratisplan von Firebase gibt es **keine automatischen Backups**. Alles dafür steht im Tab **„Team“**, Bereiche **„Backups + Export“** und **„Papierkorb“**.
 
 **Backup herunterladen (alle im Team):** „Backup (JSON) herunterladen“. Die Datei enthält alles: Spieler, Matches (mit dem Scoreboard der Gegner und den Trades bei Premier), Clips mit Notizen und den Papierkorb. Am besten regelmäßig, etwa einmal im Monat, und die Datei an einem sicheren Ort aufheben (z. B. OneDrive oder Google Drive). Der Download kostet keine Lesezugriffe: Die App nimmt, was sie schon geladen hat.
 
@@ -261,7 +261,8 @@ Im Gratisplan von Firebase gibt es **keine automatischen Backups**. Alles dafür
 - **Excel:** Datei doppelt anklicken. Sie ist für deutsches Excel gemacht (Semikolon, Komma bei Zahlen, Umlaute).
 - **Google Sheets:** Datei → Importieren → Hochladen → Trennzeichen „Semikolon“ wählen. Damit Zahlen wie „1,25“ als Zahl erkannt werden, muss das Gebietsschema der Tabelle „Deutschland“ sein (Datei → Einstellungen).
 
-**Papierkorb (nur Admins):** Gelöschte Matches, entfernte Spieler und einzeln entfernte Clips stehen dort, mit dem Knopf „Wiederherstellen“. Endgültig gelöscht wird in der App nie.
+**Papierkorb (nur Admins):** Gelöschte Matches, entfernte Spieler und einzeln entfernte Clips stehen dort, mit dem Knopf „Wiederherstellen“.
+- **„Papierkorb leeren“** (mit Rückfrage) entfernt alles darin endgültig: Es lässt sich nicht mehr wiederherstellen und kommt nicht mehr ins Backup. Clips eines Matches aus dem Papierkorb gehen mit. Vorher am besten ein Backup herunterladen. Technisch bleibt in der Datenbank ein unsichtbarer Rest (ein paar KB): Nur so erfahren alle Geräte, dass der Eintrag weg ist.
 - Clips eines gelöschten Matches stehen nicht einzeln im Papierkorb: Sie kommen mit dem Match zurück.
 - Ein Spieler lässt sich nicht zurückholen, wenn sein Name oder Ingame-Name inzwischen einem anderen Spieler gehört. Dann erst dort den Namen herausnehmen.
 - Entfernte Clip-Notizen lassen sich nicht wiederherstellen (höchstens aus einem Backup).

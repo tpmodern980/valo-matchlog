@@ -235,6 +235,17 @@ select { padding-right: 28px; }
 .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .panel-head h2 { font-size: 17px; letter-spacing: .04em; text-transform: uppercase; }
 .panel-body { padding: 16px; }
+.panel-body .purge { margin-top: 14px; }
+/* Klappbare Bereiche (Tab Team) */
+.folds { display: flex; flex-direction: column; gap: 10px; }
+details.fold > summary { cursor: pointer; list-style: none; user-select: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary h2 { flex: 1 1 auto; }
+details.fold:not([open]) > summary { border-bottom: 0; }
+details.fold > summary:hover h2 { color: var(--accent); }
+.fold-mark { flex: none; width: 9px; height: 9px; margin: 0 4px 3px 6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); }
+details.fold[open] .fold-mark { transform: rotate(-135deg); margin-bottom: -3px; }
+@media (prefers-reduced-motion: no-preference) { .fold-mark { transition: transform .15s; } }
 .table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; }
 th, td { padding: 9px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }

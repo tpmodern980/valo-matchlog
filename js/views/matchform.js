@@ -384,7 +384,7 @@ function applyScan(res) {
     }
     fillTeam("rows", b.players, b, rep, clash);
     fillTeam("foes", b.opponents || [], b, rep, clash);
-    if (b.sheet) rep.done.push(`Agents mit ${b.sheet} Beispielbildern des Teams verglichen (Tab „Team“, „Agenten-Beispiele“).`);
+    if (b.sheet) rep.done.push(`Agents mit ${b.sheet} Beispielbildern des Teams verglichen (Tab „Team“, „KI-Trainingsbilder“).`);
   }
 
   if (t) {

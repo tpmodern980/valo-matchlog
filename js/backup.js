@@ -29,7 +29,8 @@ export function buildJson() {
     // Die Team-Liste steht nur zur Information drin. Der Import ändert sie nicht.
     team: S.team ? { emails: [...S.team.emails], admins: [...S.team.admins] } : null,
   };
-  for (const coll of COLLS) out[coll] = everything(coll).map(sorted).sort(byId);
+  // Endgültig entfernte Einträge ("Papierkorb leeren", purged) kommen nicht mehr ins Backup
+  for (const coll of COLLS) out[coll] = everything(coll).filter((x) => !x.purged).map(sorted).sort(byId);
   return JSON.stringify(out, null, 2);
 }
 
