@@ -27,8 +27,9 @@ export const S = {
   error: "",
   authTab: "login",     // Login-Seite: "login" | "register" | "reset"
   players: [], matches: [], clips: [],
-  agentRefs: [],        // Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js)
-  loaded: { players: false, matches: false, clips: false, agentRefs: false },
+  agentRefs: [],        // KI-Trainingsbilder fürs Screenshot-Auslesen (js/agentrefs.js)
+  weeks: [],            // Umfrage und Wochenplan pro Woche (Tab "Planung", js/views/plan.js)
+  loaded: { players: false, matches: false, clips: false, agentRefs: false, weeks: false },
   filters: loadFilters(),
 };
 

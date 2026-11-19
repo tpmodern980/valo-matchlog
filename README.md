@@ -36,7 +36,9 @@ Die Seite direkt als Datei zu öffnen (`file://`) funktioniert nicht, weil ES-Mo
 | `js/firebase.js` | Lädt das Firebase-SDK vom CDN und startet es |
 | `js/auth.js` | Anmeldung und Freischaltung |
 | `js/team.js` | Team-Liste (wer die App benutzen darf) |
-| `js/views/` | Die einzelnen Ansichten |
+| `js/views/` | Die einzelnen Ansichten (u. a. `plan.js`: Tab „Planung“ mit Wochenumfrage und Wochenplan) |
+| `js/discord.js` | Posts in Discord über Webhooks (Ergebnisse, Umfrage, Wochenplan) |
+| `js/agentrefs.js` | KI-Trainingsbilder fürs Screenshot-Auslesen |
 | `js/stats.js` | Berechnungen |
 | `js/demo.js` | Beispieldaten für die Vorschau |
 | `fonts/` | Schriften Barlow und Chakra Petch (SIL Open Font License, Lizenztexte liegen dabei) |

@@ -1,6 +1,6 @@
 # Anleitung: Firebase einrichten
 
-Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 bis 9, freiwillig: Die App läuft auch ohne). Dazu **Discord verbinden** (Schritt 10, freiwillig). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
+Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 bis 9, freiwillig: Die App läuft auch ohne). Dazu **Discord verbinden** (Schritt 10, freiwillig) und die **Planung** (Schritt 11). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
 
 Du brauchst: ein Google-Konto und etwa 15 Minuten. Es kostet nichts. Du musst nirgends eine Kreditkarte angeben. Falls die Konsole ein Upgrade auf „Blaze“ anbietet: ablehnen.
 
@@ -219,6 +219,30 @@ Ein Feld leeren und speichern nimmt den Eintrag wieder heraus. Bei einem Forum b
 **Danach bei jedem Match:** Auf der Match-Seite steht oben **„In Discord posten“**. Der Knopf zeigt erst eine Vorschau und sagt, in welchen Kanal oder Beitrag es geht; gepostet wird mit **„Jetzt posten“**. Danach steht dort „Discord ✓“; ein zweites Mal posten geht, die App fragt aber vorher nach.
 
 **Gut zu wissen:** Wer die Webhook-Adresse kennt, kann in diesen Kanal schreiben. Sie liegt nur in Firestore bei der Team-Liste (nur fürs Team lesbar, nicht im öffentlichen Repo). Gib sie nicht weiter. Ist sie doch rausgerutscht: in Discord den Webhook löschen, einen neuen anlegen und hier eintragen. Ein Feld im Tab „Team“ leeren und speichern entfernt die Adresse aus der App. Blockiert ein Werbeblocker `discord.com`, kommt beim Posten eine Meldung; dann für ScrimStar ausschalten.
+
+## Schritt 11: Planung einschalten (eine Zeile in den Regeln)
+
+Im Tab **„Planung“** läuft die Wochenumfrage („Wann könnt ihr?“) und der Wochenplan. Die Daten liegen in Firestore in der Sammlung `weeks`. Dafür braucht Firestore eine Regel mehr. **Einmal machen:**
+
+1. Firebase-Konsole → **Firestore** → Reiter **Regeln**.
+2. Unter der Zeile mit `match /agentRefs/{id}` diese Zeile einfügen:
+   ```
+   match /weeks/{id}     { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
+   ```
+3. **Veröffentlichen**.
+
+Ohne diese Zeile zeigt der Tab nur „Lade Planung …“, alles andere läuft weiter.
+
+**Für den Discord-Planungs-Kanal** (freiwillig): In Discord für euren Planungs-Kanal (ein normaler Text-Kanal, kein Forum) einen Webhook anlegen, im Tab **„Team“** → **„Discord“** → **„Planungs-Kanal“** einfügen → Speichern. Dann kündigt die App neue Umfragen dort an und postet auf Knopfdruck den Wochenplan.
+
+**Einmal vorher: Konten zuordnen.** Tab **„Team“** → „Freigeschaltete E-Mails“: Bei jeder Adresse unter **„Ist im Team“** den passenden Spieler wählen, bei der Managerin **„Managerin“**. Dann stimmt jeder automatisch als er selbst ab und kann sich nicht verklicken; die Managerin stimmt nicht mit ab. Jeder Spieler lässt sich nur einem Konto zuordnen. Wer noch nicht zugeordnet ist, wählt in der Planung selbst unter „Ich bin“ (dort lassen sich vergebene Spieler nicht wählen).
+
+**So läuft eine Woche:**
+1. **Managerin (oder ein anderer Admin):** Tab „Planung“, mit den Pfeilen die Woche wählen → **„Umfrage erstellen“** → Tage anhaken, pro Tag Scrim (18 / 19 / 20 Uhr) oder Premier (18:00 / 18:30) → **„Umfrage starten“**. Ist der Planungs-Kanal eingetragen, steht die Umfrage sofort mit Link in Discord.
+2. **Spieler:** Link antippen oder Tab „Planung“ öffnen (oben steht „Du stimmst ab als …“). Dann pro Tag alle Uhrzeiten antippen, zu denen man kann, oder „kann nicht“. Gespeichert wird sofort.
+3. **Alle sehen** unter „Wer kann wann?“ pro Tag und Uhrzeit, wer kann. Grün = mindestens 5. Darunter steht, wer noch nicht abgestimmt hat.
+4. **Managerin:** Unter „Wochenplan“ mit **„+ Termin“** die Termine eintragen (Tag, Uhrzeit, Art, Gegner, Notiz). Die App schlägt die Uhrzeit vor, zu der die meisten können. Dann **„Wochenplan in Discord posten“**.
+5. **Während der Woche:** Wird ein Match eingetragen (gleicher Tag, gleiche Art), bekommt der Termin von selbst einen **grünen Haken** mit Ergebnis, Antippen springt zum Match. Fällt ein Termin aus: „Bearbeiten“ → Status **„abgesagt“** → **rotes X**. Bei „Bearbeiten“ lässt sich auch ein anderes Match von Hand verknüpfen.
 
 ## Wenn etwas nicht klappt
 

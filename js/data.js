@@ -8,16 +8,17 @@ import { S, changed } from "./state.js";
 import { loadDb, clearDb, dbLoaded } from "./firebase.js";
 import { newId, toast } from "./util.js";
 
-// agentRefs: Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js). Freiwillig: Fehlt die Regel dafür
-// in Firestore, läuft alles andere weiter (nur eine Warnung in der Konsole).
-const COLLS = ["players", "matches", "clips", "agentRefs"];
-const OPTIONAL = new Set(["agentRefs"]);
-const ID_PREFIX = { players: "p", matches: "m", clips: "c", agentRefs: "r" };
+// agentRefs: KI-Trainingsbilder fürs Screenshot-Auslesen (js/agentrefs.js). weeks: Umfrage und Wochenplan pro
+// Woche (Tab "Planung", js/views/plan.js). Beide freiwillig: Fehlt die Regel dafür in Firestore, läuft alles andere
+// weiter (nur eine Warnung in der Konsole).
+const COLLS = ["players", "matches", "clips", "agentRefs", "weeks"];
+const OPTIONAL = new Set(["agentRefs", "weeks"]);
+const ID_PREFIX = { players: "p", matches: "m", clips: "c", agentRefs: "r", weeks: "w" };
 // Merker im Browser: Auf diesem Gerät liegen geladene Daten (damit sie auch nach einer abgelaufenen Anmeldung entfernt werden)
 const CACHE_FLAG = "valo-has-cache";
 
 // Alle Dokumente pro Sammlung, auch die gelöschten (die braucht später der Papierkorb)
-const all = { players: new Map(), matches: new Map(), clips: new Map(), agentRefs: new Map() };
+const all = { players: new Map(), matches: new Map(), clips: new Map(), agentRefs: new Map(), weeks: new Map() };
 let stops = [];        // Abos beenden
 let run = 0;           // zählt hoch, damit Antworten eines alten Starts ignoriert werden
 let running = false;
@@ -120,7 +121,7 @@ async function watch(coll, db, F, mine) {
   }, (e) => {
     if (mine !== run) return;
     console.warn(`Daten „${coll}“ konnten nicht geladen werden:`, e.code || e.message,
-      OPTIONAL.has(coll) && e.code === "permission-denied" ? "(In den Firestore-Regeln fehlt die Zeile für agentRefs, ANLEITUNG.md „KI-Trainingsbilder“.)" : "");
+      OPTIONAL.has(coll) && e.code === "permission-denied" ? `(In den Firestore-Regeln fehlt die Zeile für ${coll}, ANLEITUNG.md „${coll === "weeks" ? "Planung" : "KI-Trainingsbilder"}“.)` : "");
     // Bei "permission-denied" zeigt auth.js ohnehin die Sperrseite. Freiwillige Sammlungen melden sich nicht.
     if (e.code !== "permission-denied" && !warned && !OPTIONAL.has(coll)) {
       warned = true;
@@ -237,6 +238,19 @@ export async function listRemove(coll, id, field, value) {
   await send(coll, id, (F) => ({ [field]: F.arrayRemove(value) }));
   const list = Array.isArray(old[field]) ? old[field] : [];
   show(coll, id, { ...old, [field]: list.filter((x) => x !== value), updatedAt: Date.now() });
+}
+
+// Ein einzelnes verschachteltes Feld setzen, z. B. path = ["votes", uid] (Stimme eines Spielers in einer Woche).
+// Firestore ändert nur diesen Teil (Feldpfad), so überschreiben sich zwei gleichzeitige Abstimmungen nicht.
+// value = undefined entfernt das Feld.
+export async function setPath(coll, id, path, value) {
+  const old = current(coll, id);
+  await send(coll, id, (F) => ({ [path.join(".")]: value === undefined ? F.deleteField() : value }));
+  const next = structuredClone(old);
+  let o = next;
+  for (const k of path.slice(0, -1)) { if (!o[k] || typeof o[k] !== "object") o[k] = {}; o = o[k]; }
+  if (value === undefined) delete o[path[path.length - 1]]; else o[path[path.length - 1]] = value;
+  show(coll, id, { ...next, updatedAt: Date.now() });
 }
 
 // Weich löschen: Der Eintrag verschwindet aus den Ansichten, bleibt aber in der Datenbank.

@@ -11,6 +11,9 @@ import { S } from "./state.js";
 import { num, fmt2, fmtDate, norm } from "./util.js";
 import { result, roundInfo, kdOf } from "./stats.js";
 import { appUrl } from "./auth.js";
+// Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
+// benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
+import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch } from "./views/plan.js";
 
 // Webhook-Adressen von Discord (auch die Test-Versionen ptb/canary und die alte discordapp.com)
 const WEBHOOK = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
@@ -139,3 +142,67 @@ export async function postMatch(m) {
   if (res.status === 429) throw say("Discord bremst gerade (zu viele Nachrichten). Warte kurz und versuch es noch einmal.");
   throw say(`Discord hat die Nachricht nicht angenommen (Fehler ${res.status}).`);
 }
+
+// ---------- Planung (Tab "Planung", js/views/plan.js) ----------
+// Eigener Webhook für den Planungs-Kanal (config/team.discordPlan): Umfrage ankündigen und Wochenplan posten.
+
+export const planHookOn = () => validWebhook(S.team && S.team.discordPlan);
+
+async function sendPlanHook(payload) {
+  const say = (text) => Object.assign(new Error(text), { plain: true });
+  const url = S.team && S.team.discordPlan;
+  if (!validWebhook(url)) throw say("Für die Planung ist kein Discord-Kanal eingetragen (Tab „Team“ → Discord).");
+  if (S.demo) { console.info("Vorschau: Diese Nachricht ginge an Discord:", payload); return; }
+  let res;
+  try {
+    res = await fetch(url.trim() + "?wait=true", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  } catch (e) {
+    throw say("Discord war nicht erreichbar. Prüf die Verbindung (ein Werbeblocker kann discord.com sperren) und versuch es noch einmal.");
+  }
+  if (res.ok) return;
+  let code = 0;
+  try { code = Number((await res.json()).code) || 0; } catch (e) { /* ohne Einzelheiten */ }
+  if (code === 220001) throw say("Der Planungs-Webhook gehört zu einem Forum-Kanal. Nimm für die Planung einen normalen Text-Kanal.");
+  if (res.status === 404 || res.status === 401) throw say("Discord kennt den Webhook des Planungs-Kanals nicht (mehr). Ein Admin trägt im Tab „Team“ einen neuen ein.");
+  if (res.status === 429) throw say("Discord bremst gerade (zu viele Nachrichten). Warte kurz und versuch es noch einmal.");
+  throw say(`Discord hat die Nachricht nicht angenommen (Fehler ${res.status}).`);
+}
+
+const FOOT = { text: "ScrimStar · Fan-Projekt, nicht mit Riot Games verbunden" };
+
+// Umfrage ankündigen: welche Tage, welche Uhrzeiten, Link zum Abstimmen
+export function buildPollPost(w) {
+  const link = appUrl() + planLink(w.start);
+  const lines = (w.days || []).map((d) => `**${dayLabel(d.date)}** · ${d.kind === "premier" ? "Premier" : "Scrim"} · ${(SLOTS[d.kind] || SLOTS.scrim).map(slotLabel).join(" / ")}`);
+  return {
+    username: "ScrimStar",
+    embeds: [{
+      title: cut(`📅 Umfrage ${weekLabel(w.start)}`, 256), url: link, color: 0x0B7480,
+      description: cut(`Wann könnt ihr? Bitte in ScrimStar abstimmen, mehrere Uhrzeiten gehen.\n**[Jetzt abstimmen](${link})**\n\n${lines.join("\n")}`, 4000),
+      footer: FOOT,
+    }],
+  };
+}
+export const postPoll = (w) => sendPlanHook(buildPollPost(w));
+
+// Wochenplan: alle Termine der Woche, abgesagte durchgestrichen, gespielte mit Ergebnis
+export function buildPlanPost(w) {
+  const link = appUrl() + planLink(w.start);
+  const plan = (w.plan || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || "").localeCompare(String(b.time || "")));
+  const lines = plan.map((e) => {
+    const text = `**${dayLabel(e.date)}**${e.time ? ` ${e.time}` : ""} · ${md(e.type)}${e.opponent ? ` vs ${md(e.opponent)}` : ""}${e.note ? ` – ${md(e.note)}` : ""}`;
+    if (e.status === "cancelled") return `❌ ~~${text}~~ (abgesagt)`;
+    const m = linkedMatch(e, w);
+    if (m) return result(m) === "Q" ? `✅ ${text} (gespielt)` : `✅ ${text} → ${num(m.scoreUs)}:${num(m.scoreThem)} ${HEAD[result(m)].word}`;
+    return `▫️ ${text}`;
+  });
+  return {
+    username: "ScrimStar",
+    embeds: [{
+      title: cut(`🗓️ Wochenplan ${weekLabel(w.start)}`, 256), url: link, color: 0x0B7480,
+      description: cut(lines.length ? lines.join("\n") : "Noch keine Termine.", 4000),
+      footer: FOOT,
+    }],
+  };
+}
+export const postPlan = (w) => sendPlanHook(buildPlanPost(w));

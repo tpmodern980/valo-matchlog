@@ -5,7 +5,7 @@
 import { S, changed } from "../state.js";
 import { RES_LABEL, MAPS } from "../constants.js";
 import { $, esc, norm, toast, fmtDate } from "../util.js";
-import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, cleanEmails, validEmail } from "../team.js";
+import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, setLink, cleanEmails, validEmail } from "../team.js";
 import { validWebhook, validMapTarget, anyHook } from "../discord.js";
 import { deletedOf, everything, known, restore, remove, purgeTrash } from "../data.js";
 import { buildCsv, buildJson, download, fileName, readImport, applyImport } from "../backup.js";
@@ -55,6 +55,22 @@ function membersPanel() {
   const t = S.team || { emails: [], admins: [] };
   const me = S.user ? S.user.email : "";
   const all = cleanEmails([...t.emails, ...t.admins]).sort((a, b) => (b === me) - (a === me) || a.localeCompare(b));
+  const links = t.links || {};
+  const players = S.players.slice().sort((a, b) => a.name.localeCompare(b.name, "de"));
+  // Wer ist dieses Konto? Spieler aus dem Roster oder die Managerin (für den Tab "Planung")
+  const linkOf = (email) => {
+    const v = links[email] || "";
+    if (S.isAdmin) {
+      const taken = new Set(Object.entries(links).filter(([e]) => e !== email).map(([, id]) => id));
+      return `<label class="field link-pick"><span>Ist im Team</span><select data-change="team-link" data-email="${esc(email)}" aria-label="Wer ist ${esc(email)}?">
+          <option value=""${v ? "" : " selected"}>– nicht zugeordnet –</option>
+          <option value="manager"${v === "manager" ? " selected" : ""}>Managerin</option>
+          ${players.map((p) => `<option value="${esc(p.id)}"${v === p.id ? " selected" : ""}${taken.has(p.id) ? " disabled" : ""}>${esc(p.name)}${taken.has(p.id) ? " (schon vergeben)" : ""}</option>`).join("")}
+        </select></label>`;
+    }
+    const name = v === "manager" ? "Managerin" : (players.find((p) => p.id === v) || {}).name;
+    return name ? `<small class="link-name">${esc(name)}</small>` : "";
+  };
   const rows = all.map((email) => {
     const admin = t.admins.includes(email);
     const tools = S.isAdmin && email !== me
@@ -63,7 +79,7 @@ function membersPanel() {
           <button class="btn small danger" type="button" data-action="team-remove" data-email="${esc(email)}">Entfernen</button>
         </div>`
       : "";
-    return `<div class="roster-row"><div class="member"><b class="mail">${esc(email)}</b>${admin ? ' <span class="tag">Admin</span>' : ""}${email === me ? ' <span class="tag">du</span>' : ""}</div>${tools}</div>`;
+    return `<div class="roster-row"><div class="member"><b class="mail">${esc(email)}</b>${admin ? ' <span class="tag">Admin</span>' : ""}${email === me ? ' <span class="tag">du</span>' : ""}</div>${tools}${linkOf(email)}</div>`;
   }).join("");
 
   const addForm = S.isAdmin
@@ -228,7 +244,8 @@ function discordPanel() {
   const def = (S.team && S.team.discordWebhook) || "";
   const maps = discordMaps();
   const mapCount = maps.filter((n) => validMapTarget(mapHook(n))).length;
-  const parts = [validWebhook(def) ? "Standard" : "", mapCount ? `${mapCount} ${mapCount === 1 ? "Map" : "Maps"}` : ""].filter(Boolean);
+  const planHook = (S.team && S.team.discordPlan) || "";
+  const parts = [validWebhook(def) ? "Standard" : "", mapCount ? `${mapCount} ${mapCount === 1 ? "Map" : "Maps"}` : "", validWebhook(planHook) ? "Planung" : ""].filter(Boolean);
   const state = `<span class="hint">${parts.length ? parts.join(" + ") : "nicht eingerichtet"}</span>`;
   if (!S.isAdmin) {
     return `<section class="panel"><div class="panel-head"><h2>Discord</h2>${state}</div>
@@ -246,6 +263,9 @@ function discordPanel() {
         ${field("dh-default", "default", "Webhook (Forum oder Standard-Kanal)", def, "https://discord.com/api/webhooks/…")}
         <h3 class="group">Pro Map: Link zum Forum-Beitrag oder eigener Webhook</h3>
         ${maps.map((n, i) => field(`dh-${i}`, "map:" + n, esc(n), mapHook(n), "https://discord.com/channels/…")).join("")}
+        <h3 class="group">Planungs-Kanal (Tab „Planung“)</h3>
+        <p class="hint">Hierhin kündigt die App neue Umfragen an und postet den Wochenplan. Ein normaler Text-Kanal (kein Forum): eigenen Webhook für diesen Kanal anlegen.</p>
+        ${field("dh-plan", "plan", "Webhook des Planungs-Kanals", planHook, "https://discord.com/api/webhooks/…")}
         <div class="actions"><button class="btn primary" type="submit">Speichern</button></div>
       </form>
     </div></section>`;
@@ -433,6 +453,22 @@ export const actions = {
 };
 
 export const changes = {
+  // Konto einem Spieler (oder der Managerin) zuordnen
+  "team-link": async (el) => {
+    if (!S.isAdmin) return;
+    const email = el.dataset.email, value = el.value;
+    const links = (S.team && S.team.links) || {};
+    if (value && value !== "manager" && Object.entries(links).some(([e, id]) => e !== email && id === value)) {
+      toast("Dieser Spieler gehört schon zu einer anderen E-Mail.");
+      changed();
+      return;
+    }
+    try {
+      await setLink(email, value);
+      const name = value === "manager" ? "Managerin" : (S.players.find((p) => p.id === value) || {}).name;
+      toast(value ? `${email} ist jetzt ${name}.` : `Zuordnung für ${email} entfernt.`);
+    } catch (e) { toast(errorText(e) || "Speichern hat nicht geklappt."); changed(); }
+  },
   "imp-file": async (el) => {
     const file = el.files && el.files[0];
     el.value = "";          // dieselbe Datei lässt sich so noch einmal wählen
@@ -453,13 +489,16 @@ export const changes = {
 export const forms = {
   "discord-hooks": (form) => {
     if (!S.isAdmin) return;
-    let def = "";
+    let def = "", plan = "";
     const maps = {};
     for (const [name, raw] of new FormData(form).entries()) {
       const url = String(raw || "").trim();
       if (name === "default") {
         if (url && !validWebhook(url)) return toast("Webhook oben: Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
         def = url;
+      } else if (name === "plan") {
+        if (url && !validWebhook(url)) return toast("Planungs-Kanal: Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
+        plan = url;
       } else if (url) {
         if (!validMapTarget(url)) return toast(`${name.slice(4)}: Das ist weder ein Link zu einem Discord-Beitrag (https://discord.com/channels/…) noch eine Webhook-Adresse.`);
         maps[name.slice(4)] = url;
@@ -469,8 +508,8 @@ export const forms = {
     const posts = Object.entries(maps).filter(([, v]) => !validWebhook(v)).map(([k]) => k);
     if (posts.length && !def) return toast(`Für die Forum-Beiträge (${posts.join(", ")}) fehlt oben der Webhook des Forums.`);
     const n = Object.keys(maps).length;
-    setDiscordHooks(def, maps).then(() => toast(def || n
-      ? `Gespeichert: ${[def ? "Standard-Kanal" : "", n ? `${n} ${n === 1 ? "Map" : "Maps"}` : ""].filter(Boolean).join(" und ")}.`
+    setDiscordHooks(def, maps, plan).then(() => toast(def || n || plan
+      ? `Gespeichert: ${[def ? "Standard-Kanal" : "", n ? `${n} ${n === 1 ? "Map" : "Maps"}` : "", plan ? "Planungs-Kanal" : ""].filter(Boolean).join(", ")}.`
       : "Discord ist getrennt (keine Adresse eingetragen)."))
       .catch((e) => toast(errorText(e) || "Speichern hat nicht geklappt."));
   },

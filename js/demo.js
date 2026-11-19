@@ -2,7 +2,8 @@
 // Die Zahlen entstehen aus einem festen Zufalls-Startwert, sind also bei jedem Laden gleich.
 import { S } from "./state.js";
 import { setLocal } from "./data.js";
-import { daysAgo } from "./util.js";
+import { daysAgo, isoDate } from "./util.js";
+import { mondayOf, addDays } from "./views/plan.js";
 
 function rng(seed) {
   let s = seed >>> 0;
@@ -182,11 +183,43 @@ export function loadDemo() {
     ref(3, "Gekko", "fix", null, "#3E8F4F"),
   ]);
   // Erfundener angemeldeter Admin und eine Team-Liste (example.com gehört niemandem)
+  // Planung (Tab "Planung"): Umfrage dieser Woche mit Stimmen und einem Plan. Die Termine nehmen die Beispiel-Matches
+  // dieser Woche (dann steht dort ein grüner Haken), dazu ein abgesagter und ein kommender Termin.
+  const monday = mondayOf(isoDate(new Date()));
+  const days = [0, 1, 2, 3, 4, 5, 6].map((i) => ({ date: addDays(monday, i), kind: i === 5 ? "premier" : "scrim" }));
+  // Feste Muster pro Spieler (kein Zufall): welche Zeiten an welchem Wochentag
+  const pattern = {
+    pdemo1: [["18", "19", "20"], ["19", "20"], ["no"], ["18", "19"], ["19", "20"], ["18:00", "18:30"], ["no"]],
+    pdemo2: [["19", "20"], ["19"], ["19", "20"], ["no"], ["20"], ["18:30"], ["19", "20"]],
+    pdemo3: [["19"], ["18", "19", "20"], ["19", "20"], ["19"], ["no"], ["18:00", "18:30"], []],
+    pdemo4: [["19", "20"], ["19", "20"], ["20"], ["19", "20"], ["19"], ["18:30"], ["no"]],
+    pdemo5: [["18", "19"], ["19"], ["19", "20"], ["no"], ["19", "20"], ["18:00", "18:30"], ["20"]],
+    pdemo6: [["no"], ["20"], [], ["19", "20"], ["18", "19", "20"], ["no"], []],
+  };
+  const votes = {};
+  for (const [pid, rows] of Object.entries(pattern)) {
+    const picks = {};
+    rows.forEach((r, i) => { if (r.length) picks[days[i].date] = r; });
+    // Kairo ist der angemeldete Beispiel-Admin (uid "demo"), die anderen bekommen erfundene Konten
+    const name = PLAYERS.find((p) => p.id === pid).name;
+    votes[pid === "pdemo1" ? "demo" : "u" + pid] = { email: name.toLowerCase() + "@example.com", playerId: pid, name, picks, at: now };
+  }
+  const weekMatches = GAMES.map(([d, type, opponent], i) => ({ date: daysAgo(d), type, opponent, id: "mdemo" + (i + 1) }))
+    .filter((m) => m.date >= monday);
+  const plan = weekMatches.map((m, i) => ({ id: "edemo" + i, date: m.date, time: m.type === "Premier" ? "18:30" : "19:00", type: m.type, opponent: m.opponent, note: "", status: "planned", match: null }));
+  plan.push({ id: "edemo-x", date: addDays(monday, 4), time: "20:00", type: "Scrim", opponent: "Mitternacht", note: "Gegner hat kurzfristig abgesagt", status: "cancelled", match: null });
+  plan.push({ id: "edemo-p", date: addDays(monday, 5), time: "18:30", type: "Premier", opponent: "", note: "Treffen 18:00 im Discord", status: "planned", match: null });
+  setLocal("weeks", [{ id: "wdemo1", start: monday, days, votes, plan, pollPostedAt: now - 5 * 86400000, planPostedAt: null, createdAt: now - 6 * 86400000, createdBy: null, deleted: false }]);
   S.demo = true;
   S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };
   S.team = {
     emails: ["kairo@example.com", "managerin@example.com", "mats@example.com", "lumo@example.com", "feli@example.com", "brix@example.com", "zeno@example.com"],
     admins: ["kairo@example.com", "managerin@example.com"],
+    // Wer welches Konto ist (Tab "Team"): die Spieler und die Managerin
+    links: {
+      "kairo@example.com": "pdemo1", "mats@example.com": "pdemo2", "lumo@example.com": "pdemo3",
+      "feli@example.com": "pdemo4", "brix@example.com": "pdemo5", "zeno@example.com": "pdemo6", "managerin@example.com": "manager",
+    },
   };
   S.isAdmin = true;
 }

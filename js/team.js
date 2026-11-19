@@ -7,6 +7,10 @@ import { loadDb } from "./firebase.js";
 // E-Mails immer kleingeschrieben und ohne Doppelte (die Regeln vergleichen kleingeschrieben)
 export const cleanEmails = (list) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x || "").trim().toLowerCase()).filter(Boolean))];
 export const validEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+// Zuordnung Konto -> Spieler: E-Mail kleingeschrieben, nur Einträge mit Spieler-ID oder "manager"
+export const cleanLinks = (v) => (v && typeof v === "object" && !Array.isArray(v)
+  ? Object.fromEntries(Object.entries(v).map(([k, id]) => [String(k).trim().toLowerCase(), typeof id === "string" ? id : ""]).filter(([k, id]) => k && id))
+  : {});
 // Webhooks pro Map: nur Einträge mit Text behalten
 const cleanHooks = (v) => (v && typeof v === "object" && !Array.isArray(v)
   ? Object.fromEntries(Object.entries(v).filter(([k, url]) => k && typeof url === "string" && url.trim()).map(([k, url]) => [k, url.trim()]))
@@ -45,6 +49,11 @@ export async function watchTeam(email, cb) {
       emails: cleanEmails(d.emails), admins: cleanEmails(d.admins),
       discordWebhook: typeof d.discordWebhook === "string" ? d.discordWebhook : "",
       discordMaps: cleanHooks(d.discordMaps),
+      // discordPlan: Webhook des Planungs-Kanals (Umfragen und Wochenplan, Tab "Planung")
+      discordPlan: typeof d.discordPlan === "string" ? d.discordPlan : "",
+      // links: { "<email>": "<playerId>" | "manager" }: Wer ist welches Konto (Tab "Team"). Damit stimmt im Tab
+      // "Planung" jeder automatisch als er selbst ab; "manager" = Managerin, stimmt nicht mit ab (Wunsch Tim, 19.11.2026)
+      links: cleanLinks(d.links),
     };
     // Stammt die Liste nur aus dem Zwischenspeicher des Geräts, zählt sie erst, wenn man selbst draufsteht.
     // (Auf einem geteilten Gerät könnte sie von jemand anderem stammen.)
@@ -89,18 +98,31 @@ export async function addMember(email, asAdmin) {
 }
 
 export async function removeMember(email) {
-  if (S.demo) return demoChange((t) => { t.emails = t.emails.filter((x) => x !== email); t.admins = t.admins.filter((x) => x !== email); });
+  // Die Zuordnung zum Spieler geht mit
+  const links = { ...((S.team && S.team.links) || {}) };
+  delete links[email];
+  if (S.demo) { S.team = { ...S.team, links }; return demoChange((t) => { t.emails = t.emails.filter((x) => x !== email); t.admins = t.admins.filter((x) => x !== email); }); }
   const { F, ref } = await teamRef();
-  await F.updateDoc(ref, { emails: F.arrayRemove(email), admins: F.arrayRemove(email), updatedAt: F.serverTimestamp() });
+  await F.updateDoc(ref, { emails: F.arrayRemove(email), admins: F.arrayRemove(email), links, updatedAt: F.serverTimestamp() });
 }
 
-// Discord-Webhooks speichern: Standard-Adresse (url, "" = keine) und eine Adresse pro Map (maps). Ersetzt beides
-// ganz. Nur Admins (Firestore-Regeln: config/team).
-export async function setDiscordHooks(url, maps) {
-  const clean = cleanHooks(maps);
-  if (S.demo) { S.team = { ...S.team, discordWebhook: url, discordMaps: clean }; changed(); return; }
+// Konto einem Spieler zuordnen (value = Spieler-ID), als Managerin markieren ("manager") oder lösen (""). Nur Admins.
+// Geschrieben wird die ganze Liste (E-Mails enthalten Punkte, die Firestore sonst als Feldpfad lesen würde).
+export async function setLink(email, value) {
+  const links = { ...((S.team && S.team.links) || {}) };
+  if (value) links[email] = value; else delete links[email];
+  if (S.demo) { S.team = { ...S.team, links }; changed(); return; }
   const { F, ref } = await teamRef();
-  await F.updateDoc(ref, { discordWebhook: url, discordMaps: clean, updatedAt: F.serverTimestamp() });
+  await F.updateDoc(ref, { links, updatedAt: F.serverTimestamp() });
+}
+
+// Discord-Webhooks speichern: Standard-Adresse (url, "" = keine), ein Ziel pro Map (maps) und der Planungs-Kanal
+// (plan). Ersetzt alles ganz. Nur Admins (Firestore-Regeln: config/team).
+export async function setDiscordHooks(url, maps, plan = "") {
+  const clean = cleanHooks(maps);
+  if (S.demo) { S.team = { ...S.team, discordWebhook: url, discordMaps: clean, discordPlan: plan }; changed(); return; }
+  const { F, ref } = await teamRef();
+  await F.updateDoc(ref, { discordWebhook: url, discordMaps: clean, discordPlan: plan, updatedAt: F.serverTimestamp() });
 }
 
 export async function setAdmin(email, on) {
