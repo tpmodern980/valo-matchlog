@@ -1,6 +1,6 @@
 # Anleitung: Firebase einrichten
 
-Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 bis 9, freiwillig: Die App läuft auch ohne). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
+Diese Anleitung ist für den Admin, der die App einmal einrichtet. Sie wächst mit den Bau-Etappen. Bisher beschrieben: **Anmeldung und Zugriff** (Schritt 1 bis 6) und das **Screenshot-Auslesen** (Schritt 7 bis 9, freiwillig: Die App läuft auch ohne). Dazu **Discord verbinden** (Schritt 10, freiwillig). Weiter unten: Backup, Installation auf dem Handy, **neue Versionen veröffentlichen** und **Logo austauschen**.
 
 Du brauchst: ein Google-Konto und etwa 15 Minuten. Es kostet nichts. Du musst nirgends eine Kreditkarte angeben. Falls die Konsole ein Upgrade auf „Blaze“ anbietet: ablehnen.
 
@@ -201,6 +201,16 @@ Ohne diese Zeile läuft die App ganz normal weiter, sie lernt nur nichts. In der
 - Gelernt wird nur aus Bildern, die gerade ausgelesen wurden, und **nur aus Korrekturen**: In der Zeile steht beim Speichern ein anderer Agent als der, den die KI gelesen hat (oder die KI hatte gar keinen erkannt). Was die KI richtig erkannt hat, braucht kein Beispiel.
 - **Höchstens 3 Bilder pro Agent.** Kommt eine weitere Korrektur dazu, ersetzt das neue Bild das älteste. So stehen nur die Agents da, die Probleme machen, und es werden nicht immer mehr.
 - Steht unter einem Bild im Team-Tab der falsche Name, mit × entfernen. Sonst lernt die KI das Falsche.
+
+## Schritt 10: Discord verbinden (freiwillig)
+
+Damit lässt sich jedes Match mit einem Knopf in euren Discord-Kanal posten: Ergebnis, Map, Art, Gegner, Scoreboard (K/D/A, Agent, MVP), Rundenverlauf und Notizen, mit Link zum Match in ScrimStar.
+
+1. **In Discord:** Rechtsklick auf euren Server → **Servereinstellungen** → **Integrationen** → **Webhooks** → **Neuer Webhook**. Namen geben (z. B. „ScrimStar“), den **Kanal** wählen, in dem die Ergebnisse landen sollen, **Webhook-URL kopieren**. Dafür brauchst du auf dem Server das Recht „Webhooks verwalten“.
+2. **In ScrimStar** (als Admin): Tab **„Team“** → Bereich **„Discord“** → Adresse einfügen → **Speichern**.
+3. Auf jeder Match-Seite steht jetzt oben **„In Discord posten“**. Der Knopf zeigt erst eine Vorschau, gepostet wird mit **„Jetzt posten“**. Danach steht dort „Discord ✓“; ein zweites Mal posten geht, die App fragt aber vorher nach.
+
+**Gut zu wissen:** Wer die Webhook-Adresse kennt, kann in diesen Kanal schreiben. Sie liegt nur in Firestore bei der Team-Liste (nur fürs Team lesbar, nicht im öffentlichen Repo). Gib sie nicht weiter. Ist sie doch rausgerutscht: in Discord den Webhook löschen, einen neuen anlegen und hier eintragen. „Discord trennen“ im Tab „Team“ entfernt sie aus der App. Blockiert ein Werbeblocker `discord.com`, kommt beim Posten eine Meldung; dann für ScrimStar ausschalten.
 
 ## Wenn etwas nicht klappt
 

@@ -556,6 +556,15 @@ button.ts:hover { filter: brightness(1.08); }
 .head-side { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; justify-content: flex-end; }
 .detail-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .detail-top .btn { min-height: 38px; }
+.detail-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+/* Vorschau der Discord-Nachricht (ähnlich wie Discord sie zeigt) */
+.dc-embed { border-left: 4px solid var(--dc, var(--accent)); background: var(--surface-2); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; overflow-wrap: anywhere; }
+.dc-title { font-weight: 700; color: var(--accent); }
+.dc-desc { color: var(--muted); }
+.dc-name { font-weight: 700; margin-bottom: 2px; }
+.dc-foot { color: var(--muted); font-size: 12px; }
+.dc-embed code { background: var(--surface); }
+.dc .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .notes-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* Scoreboard am Handy: Agent unter dem Namen statt in eigener Spalte, schmalere Zellen */
 .agent-sm { display: none; }

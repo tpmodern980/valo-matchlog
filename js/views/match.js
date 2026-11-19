@@ -1,12 +1,71 @@
 // Ansicht "Match-Detail": Kopf mit Ergebnis, Scoreboard, Rundenverlauf, Notizen, Clips.
 // (Die Clips stehen in clips.js, das Formular zum Bearbeiten in matchform.js.)
-import { S } from "../state.js";
+import { S, changed } from "../state.js";
 import { clipsPanel } from "./clips.js";
 import { RES_LABEL, STAT_FIELDS, ALL_STAT_FIELDS, TINY_LABEL } from "../constants.js";
-import { esc, fmtDate, fmt0, num, pct } from "../util.js";
+import { esc, fmtDate, fmt0, num, pct, toast, isoDate } from "../util.js";
 import { result, roundInfo, rowKey } from "../stats.js";
+import { change } from "../data.js";
+import { buildPost, postMatch, validWebhook } from "../discord.js";
+import { errorText } from "../auth.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
+
+// ---------- In Discord posten (js/discord.js) ----------
+// Der Knopf zeigt erst eine Vorschau der Nachricht, gepostet wird erst nach "Jetzt posten".
+let dcOpen = null;     // Match-ID, deren Vorschau offen ist
+let dcBusy = false;
+window.addEventListener("hashchange", () => { dcOpen = null; });
+
+const hookOn = () => Boolean(S.team && validWebhook(S.team.discordWebhook));
+
+// Discord-Formatierung für die Vorschau in HTML: **fett**, `Code`, \-Escapes
+function mdHtml(text) {
+  return esc(text).replace(/\\([\\*_~`|>#[\]])/g, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\n/g, "<br>");
+}
+
+function discordPanel(m) {
+  if (dcOpen !== m.id || !hookOn()) return "";
+  const e = buildPost(m).embeds[0];
+  const done = m.discordAt ? `<p class="hint warn-text">Dieses Match wurde schon am ${esc(fmtDate(isoDate(new Date(m.discordAt))).full)} in Discord gepostet. Noch einmal posten?</p>` : "";
+  return `<section class="panel dc"><div class="panel-head"><h2>In Discord posten</h2><span class="hint">Vorschau</span></div>
+    <div class="panel-body">
+      <div class="dc-embed" style="--dc:#${e.color.toString(16).padStart(6, "0")}">
+        <div class="dc-title">${esc(e.title)}</div>
+        <div class="dc-desc">${mdHtml(e.description)}</div>
+        ${e.fields.map((f) => `<div class="dc-field"><div class="dc-name">${esc(f.name)}</div><div>${mdHtml(f.value)}</div></div>`).join("")}
+        <div class="dc-foot">${esc(e.footer.text)}</div>
+      </div>
+      ${done}
+      <div class="actions">
+        <button class="btn primary" type="button" data-action="dc-send" data-id="${esc(m.id)}"${dcBusy ? " disabled" : ""}>${dcBusy ? "Wird gepostet …" : m.discordAt ? "Nochmal posten" : "Jetzt posten"}</button>
+        <button class="btn" type="button" data-action="dc-cancel">Abbrechen</button>
+      </div>
+      ${S.demo ? '<p class="hint">Vorschau: Es wird nichts an Discord geschickt.</p>' : ""}
+    </div></section>`;
+}
+
+export const actions = {
+  "dc-open": (el) => { dcOpen = el.dataset.id; changed(); },
+  "dc-cancel": () => { dcOpen = null; changed(); },
+  "dc-send": async (el) => {
+    const m = S.matches.find((x) => x.id === el.dataset.id);
+    if (!m || dcBusy) return;
+    dcBusy = true; changed();
+    try {
+      await postMatch(m);
+      dcOpen = null;
+      toast(S.demo ? "Vorschau: Nichts gesendet. Echt geht die Nachricht in euren Discord-Kanal." : "In Discord gepostet.");
+      // Merken, dass es gepostet ist (damit niemand aus Versehen doppelt postet)
+      try { await change("matches", m.id, { discordAt: Date.now() }); } catch (e) { /* nur ein Merker */ }
+    } catch (e) {
+      toast(e.plain ? e.message : (errorText(e) || "Posten hat nicht geklappt."));
+    } finally {
+      dcBusy = false; changed();
+    }
+  },
+};
 
 export function matchView(id) {
   const back = '<a class="back" href="#matches">← Alle Matches</a>';
@@ -15,15 +74,17 @@ export function matchView(id) {
   if (!m) return back + '<div class="empty"><h2>Match nicht gefunden</h2><p>Vielleicht wurde es gelöscht.</p></div>';
 
   const r = result(m), d = fmtDate(m.date);
+  const dcBtn = hookOn() && dcOpen !== m.id
+    ? `<button class="btn" type="button" data-action="dc-open" data-id="${esc(m.id)}" title="${m.discordAt ? "Schon in Discord gepostet" : "Ergebnis und Scoreboard in euren Discord-Kanal posten"}">${m.discordAt ? "Discord ✓" : "In Discord posten"}</button>` : "";
   const top = `<div class="detail-top">${back}
-    <button class="btn" type="button" data-action="mf-edit" data-id="${esc(m.id)}">Bearbeiten</button></div>`;
+    <div class="detail-btns">${dcBtn}<button class="btn" type="button" data-action="mf-edit" data-id="${esc(m.id)}">Bearbeiten</button></div></div>`;
   const head = `<div class="detail-head">
     <div><div class="eyebrow">${esc(m.type || "Match")} · ${esc(d.full)}</div><h1>${esc(m.map || "Map?")}</h1>
       <div class="detail-meta"><span>vs ${esc(m.opponent || "unbekannt")}</span></div></div>
     <div class="detail-score"><div class="score">${esc(m.scoreUs ?? "?")}<span class="sep">:</span>${esc(m.scoreThem ?? "?")}</div><div class="res ${r}">${RES_LABEL[r]}</div></div>
   </div>`;
   const notes = m.notes ? `<section class="panel"><div class="panel-head"><h2>Notizen</h2></div><div class="panel-body notes-text">${esc(m.notes)}</div></section>` : "";
-  return top + head + scoreboard(m) + roundsPanel(m) + notes + clipsPanel(m);
+  return top + head + discordPanel(m) + scoreboard(m) + roundsPanel(m) + notes + clipsPanel(m);
 }
 
 // K/D zum Vergleichen: ohne Deaths unendlich, ohne Werte ganz hinten

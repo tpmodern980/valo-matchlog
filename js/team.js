@@ -35,7 +35,8 @@ export async function watchTeam(email, cb) {
     const cached = snap.metadata.fromCache;
     if (!snap.exists()) { cb({ state: cached ? "waiting" : "new" }); return; }
     const d = snap.data();
-    const team = { emails: cleanEmails(d.emails), admins: cleanEmails(d.admins) };
+    // discordWebhook: Adresse zum Posten in Discord (js/discord.js), leer = nicht eingerichtet
+    const team = { emails: cleanEmails(d.emails), admins: cleanEmails(d.admins), discordWebhook: typeof d.discordWebhook === "string" ? d.discordWebhook : "" };
     // Stammt die Liste nur aus dem Zwischenspeicher des Geräts, zählt sie erst, wenn man selbst draufsteht.
     // (Auf einem geteilten Gerät könnte sie von jemand anderem stammen.)
     const listed = team.emails.includes(email) || team.admins.includes(email);
@@ -54,7 +55,7 @@ export async function watchTeam(email, cb) {
 function demoChange(fn) {
   const t = { emails: [...S.team.emails], admins: [...S.team.admins] };
   fn(t);
-  S.team = { emails: cleanEmails(t.emails), admins: cleanEmails(t.admins) };
+  S.team = { ...S.team, emails: cleanEmails(t.emails), admins: cleanEmails(t.admins) };
   changed();
 }
 
@@ -82,6 +83,13 @@ export async function removeMember(email) {
   if (S.demo) return demoChange((t) => { t.emails = t.emails.filter((x) => x !== email); t.admins = t.admins.filter((x) => x !== email); });
   const { F, ref } = await teamRef();
   await F.updateDoc(ref, { emails: F.arrayRemove(email), admins: F.arrayRemove(email), updatedAt: F.serverTimestamp() });
+}
+
+// Discord-Webhook eintragen oder entfernen (url = "" entfernt). Nur Admins (Firestore-Regeln: config/team).
+export async function setDiscordWebhook(url) {
+  if (S.demo) { S.team = { ...S.team, discordWebhook: url }; changed(); return; }
+  const { F, ref } = await teamRef();
+  await F.updateDoc(ref, { discordWebhook: url, updatedAt: F.serverTimestamp() });
 }
 
 export async function setAdmin(email, on) {

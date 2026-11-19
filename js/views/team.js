@@ -5,7 +5,8 @@
 import { S, changed } from "../state.js";
 import { RES_LABEL } from "../constants.js";
 import { $, esc, norm, toast, copyText, fmtDate } from "../util.js";
-import { createTeam, addMember, removeMember, setAdmin, cleanEmails, validEmail } from "../team.js";
+import { createTeam, addMember, removeMember, setAdmin, setDiscordWebhook, cleanEmails, validEmail } from "../team.js";
+import { validWebhook } from "../discord.js";
 import { deletedOf, everything, known, restore, remove } from "../data.js";
 import { buildCsv, buildJson, download, fileName, readImport, applyImport } from "../backup.js";
 import { result } from "../stats.js";
@@ -215,6 +216,27 @@ function trashPanel() {
     </div></section>`;
 }
 
+// Discord: Webhook für "In Discord posten" auf der Match-Seite (js/discord.js). Eintragen dürfen nur Admins.
+function discordPanel() {
+  const hook = (S.team && S.team.discordWebhook) || "";
+  const on = validWebhook(hook);
+  const state = `<span class="hint">${on ? "eingerichtet" : "nicht eingerichtet"}</span>`;
+  if (!S.isAdmin) {
+    return `<section class="panel"><div class="panel-head"><h2>Discord</h2>${state}</div>
+      <div class="panel-body"><p class="hint">${on ? "Auf jeder Match-Seite gibt es den Knopf „In Discord posten“: Er schickt Ergebnis und Scoreboard in euren Discord-Kanal." : "Ein Admin kann hier einen Discord-Kanal verbinden. Dann lässt sich jedes Match mit einem Knopf in Discord posten."}</p></div></section>`;
+  }
+  return `<section class="panel"><div class="panel-head"><h2>Discord</h2>${state}</div>
+    <div class="panel-body">
+      <p class="hint">Mit einem Webhook schickt ScrimStar Ergebnis und Scoreboard eines Matches in euren Discord-Kanal (Knopf „In Discord posten“ auf der Match-Seite). So bekommst du die Adresse: In Discord beim Server <b>Servereinstellungen → Integrationen → Webhooks → Neuer Webhook</b>, Namen und Kanal wählen, <b>Webhook-URL kopieren</b>. Wer die Adresse kennt, kann in diesen Kanal schreiben: Sie ist nur für euer Team sichtbar, gib sie nicht weiter.</p>
+      <form class="alias-add" data-form="discord-hook" novalidate>
+        <label class="field"><span>Webhook-URL</span>
+          <input type="url" id="discord-hook" name="hook" data-keep maxlength="300" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://discord.com/api/webhooks/…" value="${esc(hook)}"></label>
+        <button class="btn" type="submit">Speichern</button>
+      </form>
+      ${on ? '<button class="linkish" type="button" data-action="discord-clear">Discord trennen</button>' : ""}
+    </div></section>`;
+}
+
 // Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js): ansehen und falsche entfernen
 function refsPanel() {
   const refs = S.agentRefs.slice().sort((a, b) => String(a.agent).localeCompare(String(b.agent), "de") || (b.createdAt || 0) - (a.createdAt || 0));
@@ -240,6 +262,7 @@ export function teamView() {
     ${membersPanel()}
     ${sharePanel()}
     ${backupPanel()}
+    ${discordPanel()}
     ${refsPanel()}
     ${S.isAdmin ? trashPanel() : '<p class="hint">Gelöschte Matches, Spieler und Clips kann ein Admin im Papierkorb wiederherstellen.</p>'}`;
 }
@@ -313,6 +336,11 @@ export const actions = {
     const ok = await copyText(appUrl());
     toast(ok ? "Link kopiert." : "Kopieren ging nicht. Markier den Link und kopier ihn von Hand.");
   },
+  "discord-clear": () => {
+    if (!S.isAdmin) return;
+    setDiscordWebhook("").then(() => { const el = $("#discord-hook"); if (el) el.value = ""; toast("Discord ist getrennt."); })
+      .catch((e) => toast(errorText(e) || "Das hat nicht geklappt."));
+  },
   "trash-restore": (el) => doRestore(el.dataset.coll, el.dataset.id),
   "ref-remove": async (el) => {
     const r = S.agentRefs.find((x) => x.id === el.dataset.id);
@@ -372,6 +400,14 @@ export const changes = {
 };
 
 export const forms = {
+  "discord-hook": (form) => {
+    if (!S.isAdmin) return;
+    const url = String(new FormData(form).get("hook") || "").trim();
+    if (!url) return toast("Bitte die Webhook-URL aus Discord einfügen.");
+    if (!validWebhook(url)) return toast("Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
+    setDiscordWebhook(url).then(() => toast("Discord ist verbunden. Auf jeder Match-Seite gibt es jetzt „In Discord posten“."))
+      .catch((e) => toast(errorText(e) || "Speichern hat nicht geklappt."));
+  },
   "team-setup": (form) => {
     const lines = cleanEmails(String(new FormData(form).get("emails") || "").split(/[\s,;]+/));
     const bad = lines.filter((x) => !validEmail(x));
