@@ -4,9 +4,11 @@
 // Agent wird sonst falsch erkannt oder weggelassen. Neuen Agent hier eintragen (und VERSION in sw.js erhöhen).
 export const MAPS = ["Abyss", "Ascent", "Bind", "Breeze", "Corrode", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"];
 export const AGENTS = ["Astra", "Breach", "Brimstone", "Chamber", "Clove", "Cypher", "Deadlock", "Fade", "Gekko", "Harbor", "Hush", "Iso", "Jett", "KAY/O", "Killjoy", "Neon", "Omen", "Phoenix", "Raze", "Reyna", "Sage", "Skye", "Sova", "Tejo", "Veto", "Viper", "Vyse", "Waylay", "Yoru"];
-// Agents, die die KI beim Auslesen leicht verwechselt (laut Tim, 16.11.2026): Das Formular bittet dann ums Prüfen.
+// Agents, die die KI beim Auslesen leicht verwechselt (laut Tim, 16.11.2026; Fade/Hush seit 17.11.2026):
+// Das Formular bittet dann ums Prüfen. Dieselben Paare stehen im Prompt (boardPrompt in js/scan.js).
 export const AGENT_LOOKALIKE = {
   Gekko: ["Waylay"], Waylay: ["Gekko", "Deadlock"], Deadlock: ["Waylay"], Iso: ["Vyse"], Vyse: ["Iso"],
+  Fade: ["Hush"], Hush: ["Fade"],
 };
 // Arten von Matches: mehr gibt es bei uns nicht (Entscheidung Tim, 13.11.2026)
 export const TYPES = ["Scrim", "Premier", "Turnier"];
