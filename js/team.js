@@ -7,6 +7,10 @@ import { loadDb } from "./firebase.js";
 // E-Mails immer kleingeschrieben und ohne Doppelte (die Regeln vergleichen kleingeschrieben)
 export const cleanEmails = (list) => [...new Set((Array.isArray(list) ? list : []).map((x) => String(x || "").trim().toLowerCase()).filter(Boolean))];
 export const validEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+// Webhooks pro Map: nur Einträge mit Text behalten
+const cleanHooks = (v) => (v && typeof v === "object" && !Array.isArray(v)
+  ? Object.fromEntries(Object.entries(v).filter(([k, url]) => k && typeof url === "string" && url.trim()).map(([k, url]) => [k, url.trim()]))
+  : {});
 
 let stop = null;
 let run = 0;   // zählt hoch, damit Antworten einer alten Abfrage ignoriert werden
@@ -35,8 +39,13 @@ export async function watchTeam(email, cb) {
     const cached = snap.metadata.fromCache;
     if (!snap.exists()) { cb({ state: cached ? "waiting" : "new" }); return; }
     const d = snap.data();
-    // discordWebhook: Adresse zum Posten in Discord (js/discord.js), leer = nicht eingerichtet
-    const team = { emails: cleanEmails(d.emails), admins: cleanEmails(d.admins), discordWebhook: typeof d.discordWebhook === "string" ? d.discordWebhook : "" };
+    // discordWebhook: Standard-Adresse zum Posten in Discord (js/discord.js), leer = keine.
+    // discordMaps: { "<Map>": Adresse } für einen eigenen Kanal pro Map (Wunsch Tim, 19.11.2026)
+    const team = {
+      emails: cleanEmails(d.emails), admins: cleanEmails(d.admins),
+      discordWebhook: typeof d.discordWebhook === "string" ? d.discordWebhook : "",
+      discordMaps: cleanHooks(d.discordMaps),
+    };
     // Stammt die Liste nur aus dem Zwischenspeicher des Geräts, zählt sie erst, wenn man selbst draufsteht.
     // (Auf einem geteilten Gerät könnte sie von jemand anderem stammen.)
     const listed = team.emails.includes(email) || team.admins.includes(email);
@@ -85,11 +94,13 @@ export async function removeMember(email) {
   await F.updateDoc(ref, { emails: F.arrayRemove(email), admins: F.arrayRemove(email), updatedAt: F.serverTimestamp() });
 }
 
-// Discord-Webhook eintragen oder entfernen (url = "" entfernt). Nur Admins (Firestore-Regeln: config/team).
-export async function setDiscordWebhook(url) {
-  if (S.demo) { S.team = { ...S.team, discordWebhook: url }; changed(); return; }
+// Discord-Webhooks speichern: Standard-Adresse (url, "" = keine) und eine Adresse pro Map (maps). Ersetzt beides
+// ganz. Nur Admins (Firestore-Regeln: config/team).
+export async function setDiscordHooks(url, maps) {
+  const clean = cleanHooks(maps);
+  if (S.demo) { S.team = { ...S.team, discordWebhook: url, discordMaps: clean }; changed(); return; }
   const { F, ref } = await teamRef();
-  await F.updateDoc(ref, { discordWebhook: url, updatedAt: F.serverTimestamp() });
+  await F.updateDoc(ref, { discordWebhook: url, discordMaps: clean, updatedAt: F.serverTimestamp() });
 }
 
 export async function setAdmin(email, on) {

@@ -3,10 +3,10 @@
 // Papierkorb und Import sind nur für Admins (die Firestore-Regeln setzen das auch auf dem Server durch).
 // Papierkorb, Export und Import haben eigene Meldungsfelder: msgBox (#auth-msg) gehört hier der Team-Liste.
 import { S, changed } from "../state.js";
-import { RES_LABEL } from "../constants.js";
+import { RES_LABEL, MAPS } from "../constants.js";
 import { $, esc, norm, toast, copyText, fmtDate } from "../util.js";
-import { createTeam, addMember, removeMember, setAdmin, setDiscordWebhook, cleanEmails, validEmail } from "../team.js";
-import { validWebhook } from "../discord.js";
+import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, cleanEmails, validEmail } from "../team.js";
+import { validWebhook, validMapTarget, anyHook } from "../discord.js";
 import { deletedOf, everything, known, restore, remove } from "../data.js";
 import { buildCsv, buildJson, download, fileName, readImport, applyImport } from "../backup.js";
 import { result } from "../stats.js";
@@ -216,24 +216,46 @@ function trashPanel() {
     </div></section>`;
 }
 
-// Discord: Webhook für "In Discord posten" auf der Match-Seite (js/discord.js). Eintragen dürfen nur Admins.
+// Discord: Webhooks für "In Discord posten" auf der Match-Seite (js/discord.js). Eintragen dürfen nur Admins.
+// Ein Webhook gehört zu einem Kanal. Das Team hat einen Kanal pro Map: oben der Standard-Kanal, darunter eins pro Map.
+// Welche Maps es gibt: die bekannten (MAPS), die aus den Matches und die, für die schon etwas eingetragen ist.
+function discordMaps() {
+  const list = [...MAPS];
+  const add = (name) => { const n = String(name || "").trim(); if (n && !list.some((x) => norm(x) === norm(n))) list.push(n); };
+  for (const m of S.matches) add(m.map);
+  for (const k of Object.keys((S.team && S.team.discordMaps) || {})) add(k);
+  return list.sort((a, b) => a.localeCompare(b, "de"));
+}
+const mapHook = (name) => {
+  const maps = (S.team && S.team.discordMaps) || {};
+  const key = Object.keys(maps).find((k) => norm(k) === norm(name));
+  return key ? maps[key] : "";
+};
+
 function discordPanel() {
-  const hook = (S.team && S.team.discordWebhook) || "";
-  const on = validWebhook(hook);
-  const state = `<span class="hint">${on ? "eingerichtet" : "nicht eingerichtet"}</span>`;
+  const def = (S.team && S.team.discordWebhook) || "";
+  const maps = discordMaps();
+  const mapCount = maps.filter((n) => validMapTarget(mapHook(n))).length;
+  const parts = [validWebhook(def) ? "Standard" : "", mapCount ? `${mapCount} ${mapCount === 1 ? "Map" : "Maps"}` : ""].filter(Boolean);
+  const state = `<span class="hint">${parts.length ? parts.join(" + ") : "nicht eingerichtet"}</span>`;
   if (!S.isAdmin) {
     return `<section class="panel"><div class="panel-head"><h2>Discord</h2>${state}</div>
-      <div class="panel-body"><p class="hint">${on ? "Auf jeder Match-Seite gibt es den Knopf „In Discord posten“: Er schickt Ergebnis und Scoreboard in euren Discord-Kanal." : "Ein Admin kann hier einen Discord-Kanal verbinden. Dann lässt sich jedes Match mit einem Knopf in Discord posten."}</p></div></section>`;
+      <div class="panel-body"><p class="hint">${anyHook() ? "Auf der Match-Seite gibt es den Knopf „In Discord posten“: Er schickt Ergebnis und Scoreboard in den Discord-Kanal der Map (oder in den Standard-Kanal)." : "Ein Admin kann hier Discord verbinden. Dann lässt sich jedes Match mit einem Knopf in Discord posten."}</p></div></section>`;
   }
+  const field = (id, name, label, value, hint) => `<label class="field"><span>${label}</span>
+      <input type="text" id="${id}" name="${esc(name)}" data-keep maxlength="300" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" placeholder="${hint}" value="${esc(value)}"></label>`;
   return `<section class="panel"><div class="panel-head"><h2>Discord</h2>${state}</div>
     <div class="panel-body">
-      <p class="hint">Mit einem Webhook schickt ScrimStar Ergebnis und Scoreboard eines Matches in euren Discord-Kanal (Knopf „In Discord posten“ auf der Match-Seite). So bekommst du die Adresse: In Discord beim Server <b>Servereinstellungen → Integrationen → Webhooks → Neuer Webhook</b>, Namen und Kanal wählen, <b>Webhook-URL kopieren</b>. Wer die Adresse kennt, kann in diesen Kanal schreiben: Sie ist nur für euer Team sichtbar, gib sie nicht weiter.</p>
-      <form class="alias-add" data-form="discord-hook" novalidate>
-        <label class="field"><span>Webhook-URL</span>
-          <input type="url" id="discord-hook" name="hook" data-keep maxlength="300" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://discord.com/api/webhooks/…" value="${esc(hook)}"></label>
-        <button class="btn" type="submit">Speichern</button>
+      <p class="hint">ScrimStar schickt Ergebnis und Scoreboard eines Matches nach Discord (Knopf „In Discord posten“ auf der Match-Seite), und zwar dorthin, wo die Map des Matches hingehört.</p>
+      <p class="hint"><b>Forum-Kanal mit einem Beitrag pro Map:</b> Oben den Webhook des Forums eintragen (In Discord: <b>Servereinstellungen → Integrationen → Webhooks → Neuer Webhook</b>, das Forum als Kanal wählen, <b>Webhook-URL kopieren</b>). Bei jeder Map den Link ihres Beitrags (Rechtsklick auf den Beitrag → <b>Link kopieren</b>).<br>
+      <b>Eigene Kanäle:</b> Bei einer Map geht statt des Links auch die Webhook-Adresse eines eigenen Kanals. Maps ohne Eintrag gehen in den Kanal oben (bei einem Forum geht das nicht: Dort braucht jede Map ihren Beitrag).<br>
+      Wer eine Webhook-Adresse kennt, kann in diesen Kanal schreiben: Sie sind nur für euer Team sichtbar, gib sie nicht weiter.</p>
+      <form class="dc-hooks" data-form="discord-hooks" novalidate>
+        ${field("dh-default", "default", "Webhook (Forum oder Standard-Kanal)", def, "https://discord.com/api/webhooks/…")}
+        <h3 class="group">Pro Map: Link zum Forum-Beitrag oder eigener Webhook</h3>
+        ${maps.map((n, i) => field(`dh-${i}`, "map:" + n, esc(n), mapHook(n), "https://discord.com/channels/…")).join("")}
+        <div class="actions"><button class="btn primary" type="submit">Speichern</button></div>
       </form>
-      ${on ? '<button class="linkish" type="button" data-action="discord-clear">Discord trennen</button>' : ""}
     </div></section>`;
 }
 
@@ -336,11 +358,6 @@ export const actions = {
     const ok = await copyText(appUrl());
     toast(ok ? "Link kopiert." : "Kopieren ging nicht. Markier den Link und kopier ihn von Hand.");
   },
-  "discord-clear": () => {
-    if (!S.isAdmin) return;
-    setDiscordWebhook("").then(() => { const el = $("#discord-hook"); if (el) el.value = ""; toast("Discord ist getrennt."); })
-      .catch((e) => toast(errorText(e) || "Das hat nicht geklappt."));
-  },
   "trash-restore": (el) => doRestore(el.dataset.coll, el.dataset.id),
   "ref-remove": async (el) => {
     const r = S.agentRefs.find((x) => x.id === el.dataset.id);
@@ -400,12 +417,27 @@ export const changes = {
 };
 
 export const forms = {
-  "discord-hook": (form) => {
+  "discord-hooks": (form) => {
     if (!S.isAdmin) return;
-    const url = String(new FormData(form).get("hook") || "").trim();
-    if (!url) return toast("Bitte die Webhook-URL aus Discord einfügen.");
-    if (!validWebhook(url)) return toast("Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
-    setDiscordWebhook(url).then(() => toast("Discord ist verbunden. Auf jeder Match-Seite gibt es jetzt „In Discord posten“."))
+    let def = "";
+    const maps = {};
+    for (const [name, raw] of new FormData(form).entries()) {
+      const url = String(raw || "").trim();
+      if (name === "default") {
+        if (url && !validWebhook(url)) return toast("Webhook oben: Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
+        def = url;
+      } else if (url) {
+        if (!validMapTarget(url)) return toast(`${name.slice(4)}: Das ist weder ein Link zu einem Discord-Beitrag (https://discord.com/channels/…) noch eine Webhook-Adresse.`);
+        maps[name.slice(4)] = url;
+      }
+    }
+    // Ein Forum-Beitrag braucht den Webhook des Forums oben
+    const posts = Object.entries(maps).filter(([, v]) => !validWebhook(v)).map(([k]) => k);
+    if (posts.length && !def) return toast(`Für die Forum-Beiträge (${posts.join(", ")}) fehlt oben der Webhook des Forums.`);
+    const n = Object.keys(maps).length;
+    setDiscordHooks(def, maps).then(() => toast(def || n
+      ? `Gespeichert: ${[def ? "Standard-Kanal" : "", n ? `${n} ${n === 1 ? "Map" : "Maps"}` : ""].filter(Boolean).join(" und ")}.`
+      : "Discord ist getrennt (keine Adresse eingetragen)."))
       .catch((e) => toast(errorText(e) || "Speichern hat nicht geklappt."));
   },
   "team-setup": (form) => {

@@ -206,11 +206,19 @@ Ohne diese Zeile läuft die App ganz normal weiter, sie lernt nur nichts. In der
 
 Damit lässt sich jedes Match mit einem Knopf in euren Discord-Kanal posten: Ergebnis, Map, Art, Gegner, Scoreboard (K/D/A, Agent, MVP), Rundenverlauf und Notizen, mit Link zum Match in ScrimStar.
 
-1. **In Discord:** Rechtsklick auf euren Server → **Servereinstellungen** → **Integrationen** → **Webhooks** → **Neuer Webhook**. Namen geben (z. B. „ScrimStar“), den **Kanal** wählen, in dem die Ergebnisse landen sollen, **Webhook-URL kopieren**. Dafür brauchst du auf dem Server das Recht „Webhooks verwalten“.
-2. **In ScrimStar** (als Admin): Tab **„Team“** → Bereich **„Discord“** → Adresse einfügen → **Speichern**.
-3. Auf jeder Match-Seite steht jetzt oben **„In Discord posten“**. Der Knopf zeigt erst eine Vorschau, gepostet wird mit **„Jetzt posten“**. Danach steht dort „Discord ✓“; ein zweites Mal posten geht, die App fragt aber vorher nach.
+ScrimStar postet jedes Match dorthin, wo seine Map hingehört. Ein Webhook gehört in Discord zu genau einem Kanal; bei einem **Forum-Kanal** lässt er sich nur fürs ganze Forum anlegen, nicht für einzelne Beiträge. Deshalb gibt es zwei Wege:
 
-**Gut zu wissen:** Wer die Webhook-Adresse kennt, kann in diesen Kanal schreiben. Sie liegt nur in Firestore bei der Team-Liste (nur fürs Team lesbar, nicht im öffentlichen Repo). Gib sie nicht weiter. Ist sie doch rausgerutscht: in Discord den Webhook löschen, einen neuen anlegen und hier eintragen. „Discord trennen“ im Tab „Team“ entfernt sie aus der App. Blockiert ein Werbeblocker `discord.com`, kommt beim Posten eine Meldung; dann für ScrimStar ausschalten.
+**A) Forum-Kanal mit einem Beitrag pro Map** (so ist es bei uns):
+1. **Webhook fürs Forum:** In Discord Rechtsklick auf euren Server → **Servereinstellungen** → **Integrationen** → **Webhooks** → **Neuer Webhook**. Namen geben (z. B. „ScrimStar“), als Kanal **das Forum** wählen, **Webhook-URL kopieren**. Dafür brauchst du auf dem Server das Recht „Webhooks verwalten“.
+2. **Links zu den Beiträgen:** Im Forum Rechtsklick auf den Beitrag einer Map (z. B. „Ascent“) → **Link kopieren**. Für jede Map wiederholen.
+3. **In ScrimStar** (als Admin): Tab **„Team“** → Bereich **„Discord“** → oben den Webhook des Forums einfügen, bei jeder Map den Link ihres Beitrags → **Speichern**.
+
+**B) Eigene Kanäle:** Für jeden Kanal einen Webhook anlegen wie oben und die Webhook-Adresse direkt bei der Map eintragen. Oben ein Standard-Kanal für Maps ohne Eintrag (leer lassen = dort kein Knopf). Beides lässt sich mischen.
+
+Ein Feld leeren und speichern nimmt den Eintrag wieder heraus. Bei einem Forum braucht jede Map, die ihr spielt, ihren Beitrag; fehlt einer, sagt die App beim Posten Bescheid.
+**Danach bei jedem Match:** Auf der Match-Seite steht oben **„In Discord posten“**. Der Knopf zeigt erst eine Vorschau und sagt, in welchen Kanal oder Beitrag es geht; gepostet wird mit **„Jetzt posten“**. Danach steht dort „Discord ✓“; ein zweites Mal posten geht, die App fragt aber vorher nach.
+
+**Gut zu wissen:** Wer die Webhook-Adresse kennt, kann in diesen Kanal schreiben. Sie liegt nur in Firestore bei der Team-Liste (nur fürs Team lesbar, nicht im öffentlichen Repo). Gib sie nicht weiter. Ist sie doch rausgerutscht: in Discord den Webhook löschen, einen neuen anlegen und hier eintragen. Ein Feld im Tab „Team“ leeren und speichern entfernt die Adresse aus der App. Blockiert ein Werbeblocker `discord.com`, kommt beim Posten eine Meldung; dann für ScrimStar ausschalten.
 
 ## Wenn etwas nicht klappt
 

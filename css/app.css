@@ -565,6 +565,11 @@ button.ts:hover { filter: brightness(1.08); }
 .dc-foot { color: var(--muted); font-size: 12px; }
 .dc-embed code { background: var(--surface); }
 .dc .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.dc-where { margin: 0 0 10px; }
+/* Discord-Kanäle im Tab Team: Standard plus ein Feld pro Map */
+.dc-hooks { display: flex; flex-direction: column; gap: 10px; }
+.dc-hooks .group { margin-top: 6px; }
+.dc-hooks .actions { display: flex; gap: 8px; }
 .notes-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 /* Scoreboard am Handy: Agent unter dem Namen statt in eigener Spalte, schmalere Zellen */
 .agent-sm { display: none; }

@@ -6,7 +6,7 @@ import { RES_LABEL, STAT_FIELDS, ALL_STAT_FIELDS, TINY_LABEL } from "../constant
 import { esc, fmtDate, fmt0, num, pct, toast, isoDate } from "../util.js";
 import { result, roundInfo, rowKey } from "../stats.js";
 import { change } from "../data.js";
-import { buildPost, postMatch, validWebhook } from "../discord.js";
+import { buildPost, postMatch, hookFor } from "../discord.js";
 import { errorText } from "../auth.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
@@ -17,7 +17,8 @@ let dcOpen = null;     // Match-ID, deren Vorschau offen ist
 let dcBusy = false;
 window.addEventListener("hashchange", () => { dcOpen = null; });
 
-const hookOn = () => Boolean(S.team && validWebhook(S.team.discordWebhook));
+// Gibt es für dieses Match einen Discord-Kanal (eigener Kanal seiner Map oder der Standard-Kanal)?
+const hookOn = (m) => Boolean(hookFor(m));
 
 // Discord-Formatierung für die Vorschau in HTML: **fett**, `Code`, \-Escapes
 function mdHtml(text) {
@@ -26,11 +27,16 @@ function mdHtml(text) {
 }
 
 function discordPanel(m) {
-  if (dcOpen !== m.id || !hookOn()) return "";
+  if (dcOpen !== m.id || !hookOn(m)) return "";
   const e = buildPost(m).embeds[0];
+  const target = hookFor(m);
+  const where = `<p class="hint dc-where">${target.thread ? `Geht in den Forum-Beitrag für <b>${esc(target.map)}</b>.`
+    : target.map ? `Geht in den Discord-Kanal für <b>${esc(target.map)}</b>.`
+    : "Geht in den <b>Standard-Kanal</b> (für diese Map ist nichts Eigenes eingetragen)."}</p>`;
   const done = m.discordAt ? `<p class="hint warn-text">Dieses Match wurde schon am ${esc(fmtDate(isoDate(new Date(m.discordAt))).full)} in Discord gepostet. Noch einmal posten?</p>` : "";
   return `<section class="panel dc"><div class="panel-head"><h2>In Discord posten</h2><span class="hint">Vorschau</span></div>
     <div class="panel-body">
+      ${where}
       <div class="dc-embed" style="--dc:#${e.color.toString(16).padStart(6, "0")}">
         <div class="dc-title">${esc(e.title)}</div>
         <div class="dc-desc">${mdHtml(e.description)}</div>
@@ -74,7 +80,7 @@ export function matchView(id) {
   if (!m) return back + '<div class="empty"><h2>Match nicht gefunden</h2><p>Vielleicht wurde es gelöscht.</p></div>';
 
   const r = result(m), d = fmtDate(m.date);
-  const dcBtn = hookOn() && dcOpen !== m.id
+  const dcBtn = hookOn(m) && dcOpen !== m.id
     ? `<button class="btn" type="button" data-action="dc-open" data-id="${esc(m.id)}" title="${m.discordAt ? "Schon in Discord gepostet" : "Ergebnis und Scoreboard in euren Discord-Kanal posten"}">${m.discordAt ? "Discord ✓" : "In Discord posten"}</button>` : "";
   const top = `<div class="detail-top">${back}
     <div class="detail-btns">${dcBtn}<button class="btn" type="button" data-action="mf-edit" data-id="${esc(m.id)}">Bearbeiten</button></div></div>`;
