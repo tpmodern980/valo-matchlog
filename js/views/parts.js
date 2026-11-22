@@ -2,7 +2,7 @@
 import { S } from "../state.js";
 import { TYPES, MAPS, RES_LABEL } from "../constants.js";
 import { esc, norm, fmtDate } from "../util.js";
-import { result, RANGES } from "../stats.js";
+import { result, rangeOptions } from "../stats.js";
 
 // Filterzeile (Art, Map, Zeitraum). Änderungen fängt main.js über data-filter ab.
 // Muss vor filtered() aufgerufen werden: räumt einen gemerkten Map-Filter weg, den es nicht mehr gibt.
@@ -16,12 +16,13 @@ export function filterBar(showMap) {
   if (S.loaded.matches && f.map !== "alle" && !maps.some((m) => norm(m) === norm(f.map))) f.map = "alle";
   // Dasselbe für eine gemerkte Art, die es nicht mehr gibt
   if (f.type !== "alle" && !TYPES.includes(f.type)) f.type = "alle";
-  if (!RANGES.some(([v]) => v === f.range)) f.range = "alle";
+  // Ein gelöschter Act: zurück auf "Gesamt" (erst, wenn die Team-Daten da sind)
+  if (S.team && !rangeOptions().some(([v]) => v === f.range)) f.range = "alle";
   const o = (v, label, cur) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(label)}</option>`;
   return `<div class="filters">
     <label class="field"><span>Art</span><select id="f-type" data-filter="type">${o("alle", "Alle", f.type)}${TYPES.map((t) => o(t, t, f.type)).join("")}</select></label>
     ${showMap ? `<label class="field"><span>Map</span><select id="f-map" data-filter="map">${o("alle", "Alle", f.map)}${maps.map((m) => o(m, m, f.map)).join("")}</select></label>` : ""}
-    <label class="field"><span>Zeitraum</span><select id="f-range" data-filter="range">${RANGES.map(([v, label]) => o(v, label, f.range)).join("")}</select></label>
+    <label class="field"><span>Zeitraum</span><select id="f-range" data-filter="range">${rangeOptions().map(([v, label]) => o(v, label, f.range)).join("")}</select></label>
   </div>`;
 }
 

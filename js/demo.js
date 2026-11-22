@@ -264,6 +264,8 @@ export function loadDemo() {
     },
     // Tab "Strats": erfundener Drive-Ordner mit gezeichneten Beispielbildern (js/strats.js, demoFiles)
     stratsFolder: "demo-root", stratsKey: "demo",
+    // Acts (Filter "Zeitraum"): ein früherer und der aktuelle
+    seasons: [{ name: "V26 Act 5", start: daysAgo(70) }, { name: "V26 Act 6", start: daysAgo(26) }],
   };
   S.isAdmin = true;
 }

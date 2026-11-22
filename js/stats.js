@@ -13,16 +13,30 @@ export function result(m) {
 
 // Matches nach den Filtern oben (Art, Map, Zeitraum). Gelöschte sind schon vorher aussortiert.
 // anyMap: Die Maps-Seite vergleicht alle Maps, dort gilt der Map-Filter nicht (und wird auch nicht angezeigt).
-// Zeitraum: "alle", eine Zahl Tage ("7", "30", "90") oder "last10" = die 10 neuesten Matches (nach Art und Map gefiltert).
+// Zeitraum: "alle", eine Zahl Tage ("7", "30", "90"), "last10" = die 10 neuesten Matches (nach Art und Map gefiltert)
+// oder "act:JJJJ-MM-TT" = ein Act aus config/team.seasons (vom Start bis zum Start des nächsten Acts).
 export const RANGES = [["alle", "Gesamt"], ["7", "Letzte 7 Tage"], ["30", "Letzte 30 Tage"], ["90", "Letzte 90 Tage"], ["last10", "Letzte 10 Matches"]];
+const seasons = () => (S.team && S.team.seasons) || [];
+// Alle Zeiträume für den Filter: die festen und die Acts (neuester zuerst, der aktuelle als "Aktueller Act")
+export function rangeOptions() {
+  const acts = seasons().slice().reverse().map((x, i) => [`act:${x.start}`, i === 0 ? `Aktueller Act: ${x.name}` : x.name]);
+  return [...RANGES, ...acts];
+}
+function actSpan(range) {
+  const start = range.slice(4), list = seasons(), i = list.findIndex((x) => x.start === start);
+  if (i < 0) return null;
+  return { from: start, to: list[i + 1] ? list[i + 1].start : null };   // "to" gehört schon zum nächsten Act
+}
 export function filtered({ anyMap = false } = {}) {
   const f = S.filters;
   const days = /^\d+$/.test(f.range) ? Number(f.range) : null;
   const cutoff = days ? daysAgo(days) : null;
+  const act = String(f.range).startsWith("act:") ? actSpan(f.range) : null;
   const list = S.matches.filter((m) =>
     (f.type === "alle" || m.type === f.type) &&
     (anyMap || f.map === "alle" || norm(m.map) === norm(f.map)) &&
-    (!cutoff || (m.date || "") >= cutoff));
+    (!cutoff || (m.date || "") >= cutoff) &&
+    (!act || ((m.date || "") >= act.from && (!act.to || (m.date || "") < act.to))));
   return f.range === "last10" ? sortMatches(list).slice(0, 10) : list;
 }
 

@@ -244,6 +244,7 @@ export function buildRecapPost(start, w = null) {
   if (people.length) lines.push("", ...people);
   const mapBits = [r.most ? `meistgespielt ${md(r.most.name)} (${r.most.n}×, ${rec(r.most)})` : "", r.best && (!r.most || r.best.key !== r.most.key) ? `beste ${md(r.best.name)} (${rec(r.best)})` : ""].filter(Boolean);
   if (mapBits.length) lines.push("", `🗺️ Maps: ${mapBits.join(" · ")}`);
+  if (r.form.length) lines.push(`📈 Form: ${r.form.map((x) => `${x.dir === "up" ? "↑" : "↓"} ${md(x.name)} ${x.delta > 0 ? "+" : "−"}${Math.abs(Math.round(x.delta * 100))} %`).join(" · ")}`);
   const goals = goalLines(start, true, isoToday());
   if (goals.length) lines.push("", "**Wochenziele**", ...goals);
   if (r.plan) lines.push(`🗓️ Plan: ${r.plan.played} von ${r.plan.total} ${r.plan.total === 1 ? "Termin" : "Terminen"} gespielt${r.plan.cancelled ? ` · ${r.plan.cancelled} abgesagt` : ""}${r.plan.rest ? ` · ${r.plan.rest} ${r.plan.rest === 1 ? "Ruhetag" : "Ruhetage"}` : ""}`);

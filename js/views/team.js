@@ -5,7 +5,7 @@
 import { S, changed } from "../state.js";
 import { RES_LABEL, MAPS } from "../constants.js";
 import { $, esc, norm, toast, fmtDate } from "../util.js";
-import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, setLink, setStratsDrive, cleanEmails, validEmail } from "../team.js";
+import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, setLink, setStratsDrive, setSeasons, cleanEmails, validEmail } from "../team.js";
 import { stratsOn, folderId, validKey, testDrive, loadStrats } from "../strats.js";
 import { validWebhook, validMapTarget, anyHook } from "../discord.js";
 import { deletedOf, everything, known, restore, remove, purgeTrash } from "../data.js";
@@ -297,6 +297,23 @@ function stratsPanel() {
     </div></section>`;
 }
 
+// Acts/Saisons (Wunsch Tim, 22.11.2026): stehen im Filter "Zeitraum" (js/stats.js rangeOptions). Anlegen nur Admins.
+function seasonsPanel() {
+  const list = ((S.team && S.team.seasons) || []).slice().reverse();
+  const rows = list.map((x, i) => `<div class="member"><span><b>${esc(x.name)}</b> <span class="muted">ab ${esc(fmtDate(x.start).full)}</span>${i === 0 ? ' <span class="tag">aktuell</span>' : ""}</span>
+      ${S.isAdmin ? `<button class="alias-x" type="button" data-action="season-del" data-start="${esc(x.start)}" aria-label="${esc(x.name)} löschen" title="Löschen">×</button>` : ""}</div>`).join("");
+  const form = S.isAdmin ? `<form class="dc-hooks season-form" data-form="season-add" novalidate>
+      <label class="field"><span>Name</span><input type="text" name="name" maxlength="40" required placeholder="z. B. V26 Act 6" autocomplete="off"></label>
+      <label class="field"><span>Start</span><input type="date" name="start" required></label>
+      <div class="actions"><button class="btn primary" type="submit">Act hinzufügen</button></div></form>` : "";
+  return `<section class="panel"><div class="panel-head"><h2>Acts / Saisons</h2><span class="hint">${list.length ? `${list.length} ${list.length === 1 ? "Act" : "Acts"}` : "noch keine"}</span></div>
+    <div class="panel-body">
+      <p class="hint">Jeder Act steht im Filter „Zeitraum“ (der neueste als „Aktueller Act“). Ein Act geht vom Start bis zum Start des nächsten.${S.isAdmin ? "" : " Anlegen kann ein Admin."}</p>
+      ${rows ? `<div class="roster">${rows}</div>` : ""}
+      ${form}
+    </div></section>`;
+}
+
 // Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js): ansehen und falsche entfernen
 function refsPanel() {
   const refs = S.agentRefs.slice().sort((a, b) => String(a.agent).localeCompare(String(b.agent), "de") || (b.createdAt || 0) - (a.createdAt || 0));
@@ -350,6 +367,7 @@ export function teamView() {
     ${fold("members", membersPanel())}
     ${fold("discord", discordPanel())}
     ${fold("strats", stratsPanel())}
+    ${fold("seasons", seasonsPanel())}
     ${fold("refs", refsPanel())}
     ${fold("backup", backupPanel())}
     ${S.isAdmin ? fold("trash", trashPanel()) : '<p class="hint">Gelöschte Matches, Spieler und Clips kann ein Admin im Papierkorb wiederherstellen.</p>'}
@@ -420,6 +438,12 @@ async function doRestore(coll, id) {
 // ---------- Klicks, Formulare, Datei-Auswahl ----------
 
 export const actions = {
+  "season-del": async (el) => {
+    if (!S.isAdmin) return;
+    if (!el.dataset.sure) { el.dataset.sure = "1"; el.textContent = "Löschen?"; el.style.width = "auto"; setTimeout(() => { if (el.isConnected) changed(); }, 4000); return; }
+    try { await setSeasons(((S.team && S.team.seasons) || []).filter((x) => x.start !== el.dataset.start)); toast("Act gelöscht."); }
+    catch (e) { toast(errorText(e) || "Löschen hat nicht geklappt."); }
+  },
   "team-admin": (el) => run(() => setAdmin(el.dataset.email, Boolean(el.dataset.on)), { demoOk: true }),
   "team-remove": (el) => run(async () => {
     await removeMember(el.dataset.email);
@@ -514,6 +538,17 @@ export const changes = {
 };
 
 export const forms = {
+  "season-add": async (form) => {
+    if (!S.isAdmin) return;
+    const data = new FormData(form);
+    const name = String(data.get("name") || "").trim(), start = String(data.get("start") || "");
+    if (!name) return toast("Bitte einen Namen eintragen, z. B. V26 Act 6.");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) return toast("Bitte das Startdatum wählen.");
+    const list = (S.team && S.team.seasons) || [];
+    if (list.some((x) => x.start === start)) return toast("An diesem Tag beginnt schon ein Act.");
+    try { await setSeasons([...list, { name, start }]); toast(`„${name}“ angelegt. Er steht jetzt im Filter „Zeitraum“.`); }
+    catch (e) { toast(errorText(e) || "Speichern hat nicht geklappt."); }
+  },
   "discord-hooks": (form) => {
     if (!S.isAdmin) return;
     let def = "", plan = "";

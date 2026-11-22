@@ -3,7 +3,7 @@
 // Rechnet nur mit dem, was schon im Arbeitsspeicher liegt (Matches, Plan der Woche): kein zusätzlicher Lesezugriff.
 import { S } from "./state.js";
 import { TYPES } from "./constants.js";
-import { result, teamSummary, mapStats, playerStats, kdOf, sortMatches } from "./stats.js";
+import { result, teamSummary, mapStats, playerStats, kdOf, sortMatches, formOf } from "./stats.js";
 import { linkedMatch } from "./views/plan.js";
 
 const addDays = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const t = new Date(y, m - 1, d + n); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
@@ -49,7 +49,13 @@ export function weekRecap(start, w = null) {
     plan = { total: games.length, played, cancelled, rest };
   }
 
+  // Form-Trend (Wunsch Tim, 22.11.2026): wer zum Ende dieser Woche heiß oder kalt läuft (alle Matches bis Sonntag)
+  const end = addDays(start, 6);
+  const form = playerStats(S.matches.filter((m) => m.date && m.date <= end)).filter((s) => s.status !== "ex")
+    .map((s) => ({ name: s.name, f: formOf(s) })).filter((x) => x.f && x.f.dir !== "flat")
+    .map((x) => ({ name: x.name, dir: x.f.dir, delta: x.f.delta })).sort((a, b) => b.delta - a.delta);
+
   // Vorwoche zum Vergleich
   const prev = matchesOfWeek(addDays(start, -7));
-  return { start, list, sum, byType, most, best, mvp, topKills, topFb, plan, prev: prev.length ? teamSummary(prev) : null, results: list.map((m) => ({ m, r: result(m) })) };
+  return { start, list, sum, byType, most, best, mvp, topKills, topFb, plan, form, prev: prev.length ? teamSummary(prev) : null, results: list.map((m) => ({ m, r: result(m) })) };
 }

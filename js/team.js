@@ -58,6 +58,8 @@ export async function watchTeam(email, cb) {
       // Stehen hier statt im öffentlichen Repo, damit niemand den Ordner über GitHub findet.
       stratsFolder: typeof d.stratsFolder === "string" ? d.stratsFolder : "",
       stratsKey: typeof d.stratsKey === "string" ? d.stratsKey : "",
+      // Acts/Saisons als Zeitraum im Filter (Wunsch Tim, 22.11.2026): [{ name, start: "JJJJ-MM-TT" }], älteste zuerst
+      seasons: cleanSeasons(d.seasons),
     };
     // Stammt die Liste nur aus dem Zwischenspeicher des Geräts, zählt sie erst, wenn man selbst draufsteht.
     // (Auf einem geteilten Gerät könnte sie von jemand anderem stammen.)
@@ -69,6 +71,16 @@ export async function watchTeam(email, cb) {
     stop = null;
     cb(error.code === "permission-denied" ? { state: "blocked" } : { state: "error", error });
   });
+}
+
+// Acts: nur gültige Einträge (Name, Datum), nach Start sortiert, kein Datum doppelt
+export function cleanSeasons(list) {
+  const seen = new Set();
+  return (Array.isArray(list) ? list : [])
+    .filter((x) => x && typeof x.name === "string" && x.name.trim() && /^\d{4}-\d{2}-\d{2}$/.test(String(x.start || "")))
+    .map((x) => ({ name: x.name.trim().slice(0, 40), start: x.start }))
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .filter((x) => !seen.has(x.start) && seen.add(x.start));
 }
 
 // ---------- Schreiben ----------
@@ -134,6 +146,14 @@ export async function setStratsDrive(folder, key) {
   if (S.demo) { S.team = { ...S.team, stratsFolder: folder, stratsKey: key }; changed(); return; }
   const { F, ref } = await teamRef();
   await F.updateDoc(ref, { stratsFolder: folder, stratsKey: key, updatedAt: F.serverTimestamp() });
+}
+
+// Acts speichern (ganze Liste). Nur Admins (Firestore-Regeln: config/team).
+export async function setSeasons(list) {
+  const seasons = cleanSeasons(list);
+  if (S.demo) { S.team = { ...S.team, seasons }; changed(); return; }
+  const { F, ref } = await teamRef();
+  await F.updateDoc(ref, { seasons, updatedAt: F.serverTimestamp() });
 }
 
 export async function setAdmin(email, on) {

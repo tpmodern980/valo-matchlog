@@ -180,6 +180,8 @@ function recapPanel(start, w) {
     [r.topKills ? `Meiste Kills: <b>${esc(r.topKills.name)}</b> (${r.topKills.kills})` : "", r.topFb ? `Meiste First Bloods: <b>${esc(r.topFb.name)}</b> (${r.topFb.fb})` : ""].filter(Boolean).join(" · "),
   ].filter(Boolean).map((x) => (x.startsWith("<p") ? x : `<p class="hint">${x}</p>`)).join("");
   const mapBits = [r.most ? `meistgespielt <b>${esc(r.most.name)}</b> (${r.most.n}×, ${rec(r.most)})` : "", r.best && (!r.most || r.best.key !== r.most.key) ? `beste <b>${esc(r.best.name)}</b> (${rec(r.best)})` : ""].filter(Boolean).join(" · ");
+  const pc = (d) => `${d > 0 ? "+" : "−"}${Math.abs(Math.round(d * 100))} %`;
+  const formLine = r.form.length ? `Form (KPR letzte 5 Matches): ${r.form.map((x) => `<span class="form ${x.dir}">${x.dir === "up" ? "↑" : "↓"} ${esc(x.name)} ${pc(x.delta)}</span>`).join(" · ")}` : "";
   const planLine = r.plan ? `Plan: ${r.plan.played} von ${r.plan.total} ${r.plan.total === 1 ? "Termin" : "Terminen"} gespielt${r.plan.cancelled ? ` · ${r.plan.cancelled} abgesagt` : ""}${r.plan.rest ? ` · ${r.plan.rest} ${r.plan.rest === 1 ? "Ruhetag" : "Ruhetage"}` : ""}` : "";
   const when = (t) => (t ? fmtDate(isoDate(new Date(t))).full : "");
   const btn = S.isAdmin && planHookOn()
@@ -191,6 +193,7 @@ function recapPanel(start, w) {
       <div class="rc-list">${res}</div>
       ${people}
       ${mapBits ? `<p class="hint">Maps: ${mapBits}</p>` : ""}
+      ${formLine ? `<p class="hint">${formLine}</p>` : ""}
       ${planLine ? `<p class="hint">${planLine}</p>` : ""}
       ${btn}
     </div></section>`;
