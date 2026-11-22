@@ -315,7 +315,7 @@ function entryForm(w, e) {
   const oppList = [...new Set(S.matches.map((m) => String(m.opponent || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
   return `<form class="pe-form" data-form="plan-entry" data-week="${esc(w.id)}" data-id="${e ? esc(e.id) : "new"}" novalidate>
       <label class="field"><span>Tag</span><select name="date">${days.map((d) => `<option value="${d}"${d === date ? " selected" : ""}>${esc(dayLabel(d))}</option>`).join("")}</select></label>
-      <label class="field"><span>${e ? "Uhrzeit" : "Uhrzeit(en)"}</span><input type="text" name="time" inputmode="${e ? "numeric" : "text"}" maxlength="${e ? 5 : 40}" value="${esc(time)}" placeholder="${e ? "19:00" : "19:00, 20:30"}"></label>
+      <label class="field"><span>${e ? "Uhrzeit" : "Uhrzeit(en)"}</span><input type="text" name="time" class="time-in" inputmode="text" autocomplete="off" maxlength="${e ? 5 : 40}" value="${esc(time)}" placeholder="${e ? "19:00" : "19:00, 20:30"}"></label>
       <label class="field"><span>Art</span><select name="type">${opts(PLAN_TYPES, type)}</select></label>
       ${e ? "" : '<p class="hint wide">Mehrere Scrims am selben Tag: Uhrzeiten mit Komma trennen (z. B. 19:00, 20:30). Gegner genauso, in derselben Reihenfolge.</p>'}
       <label class="field wide"><span>Gegner (falls bekannt)</span><input type="text" name="opponent" list="dl-plan-opp" maxlength="40" value="${esc(e ? e.opponent || "" : "")}" autocomplete="off"></label>
@@ -508,7 +508,8 @@ export const forms = {
       catch (e) { fail(e); }
       return;
     }
-    const fix = (t) => t.trim().replace(/^(\d{1,2})$/, "$1:00").replace(/^(\d)[:.]/, "0$1:").replace(".", ":");
+    // 19 → 19:00, 1930 → 19:30, 930 → 09:30, 19.30 / 19,30 → 19:30
+    const fix = (t) => t.trim().replace(/^(\d{1,2})[.,h](\d{2})$/, "$1:$2").replace(/^(\d{1,2})(\d{2})$/, "$1:$2").replace(/^(\d{1,2})$/, "$1:00").replace(/^(\d):/, "0$1:");
     // Neuer Termin: mehrere Uhrzeiten mit Komma = mehrere Termine am selben Tag (Wunsch Tim, 22.11.2026)
     const times = isNew ? [...new Set(String(data.get("time") || "").split(/[,;]+|\s+(?=\d)/).map(fix).filter(Boolean))] : [fix(String(data.get("time") || ""))].filter(Boolean);
     if (times.some((t) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(t))) return toast("Uhrzeit bitte als 19:00 oder 18:30 eintragen (mehrere mit Komma).");
@@ -535,6 +536,14 @@ export const forms = {
     catch (e) { fail(e); }
   },
 };
+
+// Uhrzeit tippen: Nach vier Ziffern kommt der Doppelpunkt von selbst (1930 → 19:30). Der Doppelpunkt geht auch direkt.
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if (!el.classList || !el.classList.contains("time-in") || e.inputType === "deleteContentBackward") return;
+  const v = el.value.replace(/(^|[,;]\s*|\s)(\d{2})(\d{2})(?=$|[,;\s])/g, "$1$2:$3");
+  if (v !== el.value) el.value = v;
+});
 
 export const changes = {
   // "Ich bin …": merken (auf diesem Gerät und in der eigenen Stimme dieser Woche)
