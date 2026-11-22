@@ -378,7 +378,7 @@ In der Umfrage lässt sich ein Tag als **VOD-Review** anlegen (18 / 19 / 20 Uhr)
 
 ## Mehrere Scrims an einem Tag
 
-Uhrzeiten gehen mit Doppelpunkt (19:30) oder einfach als Ziffern (1930 wird beim Tippen zu 19:30). Beim Eintragen eines Termins (Planung → Wochenplan → „+ Termin“) lassen sich mehrere Uhrzeiten mit Komma eintragen, z. B. **19:00, 20:30**. Dann entsteht für jede Uhrzeit ein eigener Termin am selben Tag. Gegner genauso mit Komma in derselben Reihenfolge (ein einzelner Gegner gilt für alle). Die Matches ordnet die App der Reihe nach zu, ein passender Gegner geht vor.
+Uhrzeiten gehen mit Doppelpunkt (19:30) oder einfach als Ziffern (1930 wird beim Tippen zu 19:30). Beim Eintragen oder Bearbeiten eines Termins (Planung → Wochenplan) lassen sich mehrere Uhrzeiten mit Komma eintragen, z. B. **19:00, 20:30**. Dann entsteht für jede Uhrzeit ein eigener Termin am selben Tag. Gegner genauso mit Komma in derselben Reihenfolge (ein einzelner Gegner gilt für alle). Die Matches ordnet die App der Reihe nach zu, ein passender Gegner geht vor.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 

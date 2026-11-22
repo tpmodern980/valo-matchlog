@@ -315,9 +315,9 @@ function entryForm(w, e) {
   const oppList = [...new Set(S.matches.map((m) => String(m.opponent || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
   return `<form class="pe-form" data-form="plan-entry" data-week="${esc(w.id)}" data-id="${e ? esc(e.id) : "new"}" novalidate>
       <label class="field"><span>Tag</span><select name="date">${days.map((d) => `<option value="${d}"${d === date ? " selected" : ""}>${esc(dayLabel(d))}</option>`).join("")}</select></label>
-      <label class="field"><span>${e ? "Uhrzeit" : "Uhrzeit(en)"}</span><input type="text" name="time" class="time-in" inputmode="text" autocomplete="off" maxlength="${e ? 5 : 40}" value="${esc(time)}" placeholder="${e ? "19:00" : "19:00, 20:30"}"></label>
+      <label class="field"><span>Uhrzeit(en)</span><input type="text" name="time" class="time-in" inputmode="text" autocomplete="off" maxlength="40" value="${esc(time)}" placeholder="19:00, 20:30"></label>
       <label class="field"><span>Art</span><select name="type">${opts(PLAN_TYPES, type)}</select></label>
-      ${e ? "" : '<p class="hint wide">Mehrere Scrims am selben Tag: Uhrzeiten mit Komma trennen (z. B. 19:00, 20:30). Gegner genauso, in derselben Reihenfolge.</p>'}
+      <p class="hint wide">Mehrere Scrims am selben Tag: Uhrzeiten mit Komma trennen (z. B. <b>19:00, 20:30</b>), dann wird jede ein eigener Termin. Gegner genauso, in derselben Reihenfolge.</p>
       <label class="field wide"><span>Gegner (falls bekannt)</span><input type="text" name="opponent" list="dl-plan-opp" maxlength="40" value="${esc(e ? e.opponent || "" : "")}" autocomplete="off"></label>
       <datalist id="dl-plan-opp">${oppList.map((o) => `<option value="${esc(o)}"></option>`).join("")}</datalist>
       <label class="field wide"><span>Notiz</span><input type="text" name="note" maxlength="120" value="${esc(e ? e.note || "" : "")}" autocomplete="off"></label>
@@ -511,28 +511,30 @@ export const forms = {
     // 19 → 19:00, 1930 → 19:30, 930 → 09:30, 19.30 / 19,30 → 19:30
     const fix = (t) => t.trim().replace(/^(\d{1,2})[.,h](\d{2})$/, "$1:$2").replace(/^(\d{1,2})(\d{2})$/, "$1:$2").replace(/^(\d{1,2})$/, "$1:00").replace(/^(\d):/, "0$1:");
     // Neuer Termin: mehrere Uhrzeiten mit Komma = mehrere Termine am selben Tag (Wunsch Tim, 22.11.2026)
-    const times = isNew ? [...new Set(String(data.get("time") || "").split(/[,;]+|\s+(?=\d)/).map(fix).filter(Boolean))] : [fix(String(data.get("time") || ""))].filter(Boolean);
+    // Auch beim Bearbeiten: weitere Uhrzeiten werden zusätzliche Termine am selben Tag
+    const times = [...new Set(String(data.get("time") || "").split(/[,;]+|\s+(?=\d)/).map(fix).filter(Boolean))];
     if (times.some((t) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(t))) return toast("Uhrzeit bitte als 19:00 oder 18:30 eintragen (mehrere mit Komma).");
     if (times.length > 6) return toast("Höchstens 6 Termine auf einmal.");
-    const opps = String(data.get("opponent") || "").split(isNew && times.length > 1 ? /\s*[,;]\s*/ : /$^/).map((x) => x.trim().slice(0, 40));
+    const opps = String(data.get("opponent") || "").split(times.length > 1 ? /\s*[,;]\s*/ : /$^/).map((x) => x.trim().slice(0, 40));
     const base = {
       date: String(data.get("date")),
       type: PLAN_TYPES.includes(String(data.get("type"))) ? String(data.get("type")) : "Scrim",
       note: String(data.get("note") || "").trim().slice(0, 120),
     };
     const fields = { ...base, time: times[0] || "", opponent: opps[0] || "" };
-    if (isNew) {
-      (times.length ? times : [""]).forEach((t, i) => plan.push({
+    const extra = (from) => (times.length ? times : [""]).forEach((t, i) => i >= from && plan.push({
         id: "e" + Date.now().toString(36) + i + Math.random().toString(36).slice(2, 6), ...base, time: t,
         opponent: opps.length === 1 ? opps[0] : opps[i] || "", status: "planned", match: null,
       }));
-    } else {
+    if (isNew) extra(0);
+    else {
       const i = plan.findIndex((e) => e.id === form.dataset.id);
       if (i < 0) return;
       const match = String(data.get("match") || "");
       plan[i] = { ...plan[i], ...fields, status: data.get("status") === "cancelled" ? "cancelled" : "planned", match: match || null };
+      extra(1);
     }
-    try { await change("weeks", w.id, { plan }); editId = null; changed(); toast(isNew ? (times.length > 1 ? `${times.length} Termine eingetragen.` : "Termin eingetragen.") : "Termin gespeichert."); }
+    try { await change("weeks", w.id, { plan }); editId = null; changed(); toast(times.length > 1 ? `${times.length} Termine ${isNew ? "eingetragen" : "gespeichert"}.` : isNew ? "Termin eingetragen." : "Termin gespeichert."); }
     catch (e) { fail(e); }
   },
 };
