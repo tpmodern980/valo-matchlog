@@ -11,6 +11,7 @@ import { playerTable } from "./player.js";
 
 let openId = null;      // welcher Spieler gerade zum Bearbeiten aufgeklappt ist
 let asking = false;     // Sicherheitsfrage "wirklich entfernen?" im aufgeklappten Spieler
+let addStaff = false;   // im Formular "Spieler hinzufügen" ist Staff gewählt: dann keine Rollen (spielt nicht mit)
 let msgAt = "add";      // wo die Meldung erscheint: im aufgeklappten Spieler ("row") oder beim Formular ("add")
 
 // Meldung dorthin legen, wo gerade getippt wurde. Eingaben überleben das Neuzeichnen (data-keep).
@@ -76,12 +77,12 @@ function editor(p) {
         <input type="text" id="alias-new-${id}" name="alias" data-keep maxlength="40" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="z. B. Name#TAG"></label>
       <button class="btn" type="submit">Hinzufügen</button>
     </form>
-    <div class="role-edit">
+    ${p.status === "staff" ? '<p class="hint">Staff spielt nicht mit, deshalb ohne Rolle.</p>' : `<div class="role-edit">
       <label class="field"><span>Rolle</span>
         <select id="role-${id}" data-change="roster-role" data-id="${id}" data-which="role">${ROLES.map((r) => option(r, r, p.role)).join("")}</select></label>
       <label class="field"><span>Zweite Rolle</span>
         <select id="role2-${id}" data-change="roster-role" data-id="${id}" data-which="role2">${option("", "keine", p.role2 || "")}${ROLES.filter((r) => r !== p.role).map((r) => option(r, r, p.role2)).join("")}</select></label>
-    </div>
+    </div>`}
     ${msgAt === "row" ? msgBox() : ""}
     ${tools}
   </div>`;
@@ -125,9 +126,9 @@ export function playersView() {
         <input type="text" id="np-name" name="name" data-keep maxlength="40" autocomplete="off" placeholder="z. B. Tim"></label>
       <label class="field wide"><span>Ingame-Namen</span>
         <input type="text" id="np-aliases" name="aliases" data-keep maxlength="200" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="z. B. Tim#EUW, TimAlt#1234"></label>
-      <label class="field"><span>Rolle</span><select id="np-role" name="role" data-keep>${ROLES.map((r) => o(r, r)).join("")}</select></label>
-      <label class="field"><span>Zweite Rolle</span><select id="np-role2" name="role2" data-keep>${o("", "keine")}${ROLES.map((r) => o(r, r)).join("")}</select></label>
-      <label class="field"><span>Stamm, Sub oder Staff</span><select id="np-status" name="status" data-keep>${o("stamm", "Stamm")}${o("sub", "Sub")}${o("staff", "Staff (z. B. Managerin, spielt nicht mit)")}</select></label>
+      <label class="field"><span>Stamm, Sub oder Staff</span><select id="np-status" name="status" data-keep data-change="roster-add-status">${o("stamm", "Stamm")}${o("sub", "Sub")}${o("staff", "Staff (z. B. Managerin, spielt nicht mit)")}</select></label>
+      ${addStaff ? "" : `<label class="field"><span>Rolle</span><select id="np-role" name="role" data-keep>${ROLES.map((r) => o(r, r)).join("")}</select></label>
+      <label class="field"><span>Zweite Rolle</span><select id="np-role2" name="role2" data-keep>${o("", "keine")}${ROLES.map((r) => o(r, r)).join("")}</select></label>`}
       <button class="btn primary" type="submit">Spieler hinzufügen</button>
     </form>
     ${msgAt === "add" ? msgBox() : ""}
@@ -161,7 +162,8 @@ export const actions = {
     if (!p) return;
     spot("row");
     run(async () => {
-      await change("players", p.id, { status });
+      // Vom Staff zurück zu den Spielern: Rolle "Flex", bis jemand eine wählt
+      await change("players", p.id, status !== "staff" && !p.role ? { status, role: "Flex" } : { status });
       toast(p.name + (status === "sub" ? " ist jetzt Sub." : status === "staff" ? " ist jetzt Staff (spielt nicht mit)." : " ist jetzt Stammspieler."));
     }, opt);
   },
@@ -179,6 +181,8 @@ export const actions = {
 
 // Auswahlfelder, die sofort speichern (data-change)
 export const changes = {
+  // Staff gewählt: Rollen ausblenden (und wieder einblenden, wenn es doch ein Spieler ist)
+  "roster-add-status": (el) => { addStaff = el.value === "staff"; changed(); },
   "roster-role": (el) => {
     const p = find(el.dataset.id), which = el.dataset.which, value = el.value;
     if (!p) return;
@@ -206,9 +210,10 @@ export const forms = {
     const role = ROLES.includes(data.get("role")) ? data.get("role") : "Flex";
     const role2 = ROLES.includes(data.get("role2")) ? data.get("role2") : null;
     const status = ["sub", "staff"].includes(data.get("status")) ? data.get("status") : "stamm";
+    const staff = status === "staff";
     spot("add");
     if (!norm(name)) return setMsg("error", "Bitte gib einen Anzeigenamen ein.");
-    if (role2 === role) return setMsg("error", "Die zweite Rolle muss eine andere sein als die erste. Wähl „keine“, wenn es nur eine gibt.");
+    if (!staff && role2 === role) return setMsg("error", "Die zweite Rolle muss eine andere sein als die erste. Wähl „keine“, wenn es nur eine gibt.");
     const twin = owner(name);
     if (twin) return setMsg("error", `„${name}“ steht schon im Roster${sameText(twin.name, name) ? "" : " (als Ingame-Name von " + twin.name + ")"}.`);
     for (const a of aliases) {
@@ -217,10 +222,12 @@ export const forms = {
       if (other) return setMsg("error", `Der Ingame-Name „${a}“ gehört schon zu ${other.name}.`);
     }
     run(async () => {
-      await create("players", { name, aliases, role, role2, status, active: true });
+      addStaff = false;
+      await create("players", { name, aliases, role: staff ? null : role, role2: staff ? null : role2, status, active: true });
       // Formular leeren (die Auswahlfelder springen auf den ersten Eintrag zurück)
       for (const id of ["np-name", "np-aliases"]) { const el = $("#" + id); if (el) el.value = ""; }
       for (const id of ["np-role", "np-role2", "np-status"]) { const el = $("#" + id); if (el) el.selectedIndex = 0; }
+      changed();
       toast(name + " ist jetzt im Roster.");
     }, opt);
   },

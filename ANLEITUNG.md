@@ -370,7 +370,7 @@ Admins sehen auf der Startseite einen Hinweis, solange der Rückblick der Vorwoc
 
 ## Managerin mit Profil (Staff)
 
-Im Tab **Spieler** gibt es neben Stamm und Sub die Gruppe **Staff (spielt nicht mit)**. So bekommt die Managerin ein eigenes Profil mit Bild, Riot-ID und tracker.gg-Link, taucht aber in keiner Statistik, keiner Aufstellung, keiner Abstimmung und bei keinen Abzeichen auf. Einrichten (Admin): 1. Spieler → „Spieler hinzufügen“, Name und Riot-ID eintragen, bei „Stamm, Sub oder Staff“ **Staff** wählen. 2. Tab **Team** → bei ihrer E-Mail unter „Ist im Team“ ihren Namen wählen (statt „Managerin“). Danach kann sie unter Spieler → „Mein Profil“ ihr Profil selbst bearbeiten.
+Im Tab **Spieler** gibt es neben Stamm und Sub die Gruppe **Staff (spielt nicht mit)**. So bekommt die Managerin ein eigenes Profil mit Bild, Riot-ID und tracker.gg-Link, taucht aber in keiner Statistik, keiner Aufstellung, keiner Abstimmung und bei keinen Abzeichen auf. Einrichten (Admin): 1. Spieler → „Spieler hinzufügen“, Name und Riot-ID eintragen, bei „Stamm, Sub oder Staff“ **Staff** wählen (die Rollen-Felder verschwinden dann). 2. Tab **Team** → bei ihrer E-Mail unter „Ist im Team“ ihren Namen wählen (statt „Managerin“). Danach kann sie unter Spieler → „Mein Profil“ ihr Profil selbst bearbeiten.
 
 ## VOD-Review im Wochenplan
 
