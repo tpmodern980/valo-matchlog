@@ -400,7 +400,7 @@ Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch 
 
 **„Ich kann doch nicht“:** Wer für einen bevorstehenden Termin aufgestellt ist (oder laut Umfrage kann), sieht im Wochenplan diesen Knopf (zweimal tippen). Die App nimmt ihn raus und lässt den Nächsten nachrücken, der laut Umfrage zu der Uhrzeit auch kann (steht mit „Ersatz“ dabei). In dino scrim zeiten kommt eine Meldung: wer abgesagt hat, wer nachrückt (wird angepingt) und die neue Aufstellung. Gibt es keinen Ersatz, fragt die Meldung „Wer kann einspringen?“. „Ich kann doch“ nimmt die Absage zurück.
 
-**Pings im Wochenplan-Post:** Alle, die bei einem noch nicht gespielten Termin aufgestellt sind und eine Discord-ID im Profil haben, werden beim Posten des Wochenplans angepingt.
+**Pings:** Angepingt wird nur bei der Umfrage-Erinnerung (wer noch nicht abgestimmt hat) und bei einer Absage (wer nachrückt). Der Wochenplan-Post pingt niemanden.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
