@@ -6,7 +6,7 @@ import { esc, norm, pct } from "../util.js";
 import { mapStats } from "../stats.js";
 import { record } from "./parts.js";
 import { poolAverage } from "./mappool.js";
-import { stratsOn, stratsState, loadStrats, thumbUrl, driveUrl, isImage, stratTitle, countMap, countSide } from "../strats.js";
+import { stratsOn, stratsState, loadStrats, thumbUrl, driveUrl, isImage, stratTitle, countMap, countSide, isInactive } from "../strats.js";
 
 const MAP_KEY = "valo-strats-map", SIDE_KEY = "valo-strats-side";
 const remember = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* nur Bequemlichkeit */ } };
@@ -26,7 +26,7 @@ function setOpen(v) {
 // Welche Map ist gewählt? Aus der Adresse, sonst zuletzt gewählt, sonst die erste aktive mit Strats.
 function pickMap(maps, id) {
   const find = (name) => name && maps.find((m) => norm(m.base) === norm(name));
-  return find(id) || find(recall(MAP_KEY)) || maps.find((m) => !m.note && countMap(m)) || maps.find((m) => countMap(m)) || maps[0] || null;
+  return find(id) || find(recall(MAP_KEY)) || maps.find((m) => !isInactive(m) && countMap(m)) || maps.find((m) => countMap(m)) || maps[0] || null;
 }
 
 export function stratsView(id) {
@@ -54,9 +54,9 @@ export function stratsView(id) {
     : `<a class="btn small" href="${esc(driveUrl(f))}" target="_blank" rel="noopener">📄 ${esc(f.name)} ↗</a>`).join("")}</div>${tools}</div>`;
 
   // Map-Auswahl: aktive Maps als Knöpfe, inaktive/gebannte eingeklappt
-  const chip = (m) => `<a class="chip-btn" href="${stratsLink(m.base)}" aria-pressed="${map && m.id === map.id}">${esc(m.base)} <small>${countMap(m)}</small></a>`;
-  const active = tree.maps.filter((m) => !m.note), other = tree.maps.filter((m) => m.note);
-  const otherOpen = map && map.note;
+  const chip = (m) => `<a class="chip-btn" href="${stratsLink(m.base)}" aria-pressed="${map && m.id === map.id}">${esc(m.base)} <small>${m.note ? `${esc(m.note)} · ` : ""}${countMap(m)}</small></a>`;
+  const active = tree.maps.filter((m) => !isInactive(m)), other = tree.maps.filter(isInactive);
+  const otherOpen = map && isInactive(map);
   const picker = `<div class="st-maps chips">${active.map(chip).join("")}</div>
     ${other.length ? `<details class="st-more"${otherOpen ? " open" : ""}><summary>Weitere Maps (${other.length})</summary>
       <div class="chips">${other.map((m) => `<a class="chip-btn" href="${stratsLink(m.base)}" aria-pressed="${map && m.id === map.id}">${esc(m.base)} <small>${esc(m.note)} · ${countMap(m)}</small></a>`).join("")}</div></details>` : ""}`;

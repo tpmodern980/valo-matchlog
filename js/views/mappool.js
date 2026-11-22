@@ -13,7 +13,7 @@ import { MAPS } from "../constants.js";
 import { esc, norm, pct, toast } from "../util.js";
 import { upsertPath, change } from "../data.js";
 import { mapStats } from "../stats.js";
-import { stratsOn, stratsState, loadStrats, hasStrats } from "../strats.js";
+import { stratsOn, stratsState, loadStrats, hasStrats, isInactive } from "../strats.js";
 import { record } from "./parts.js";
 import { stratsLink } from "./strats.js";
 import { errorText } from "../auth.js";
@@ -33,16 +33,18 @@ const voterOf = (v) => {
 };
 const iAmManager = () => Boolean(S.user && links()[S.user.email] === "manager");
 
-// Aktueller Pool: aktive Map-Ordner aus Drive, sonst alle bekannten Maps
+// Aktueller Pool: Map-Ordner aus Drive ohne "(inactiv)" (also mit "Lotus (perma bann)"), sonst alle bekannten Maps.
+// notes: Zusatz aus dem Ordnernamen pro Map, z. B. { Lotus: "perma bann" }
 export function currentPool() {
   if (stratsOn()) {
     const { tree } = stratsState();
     if (tree && tree.maps.length) {
-      const active = tree.maps.filter((m) => !m.note).map((m) => MAPS.find((x) => norm(x) === norm(m.base)) || m.base);
-      if (active.length) return { maps: active, from: "drive" };
+      const inPool = tree.maps.filter((m) => !isInactive(m));
+      const name = (m) => MAPS.find((x) => norm(x) === norm(m.base)) || m.base;
+      if (inPool.length) return { maps: inPool.map(name), from: "drive", notes: Object.fromEntries(inPool.filter((m) => m.note).map((m) => [name(m), m.note])) };
     }
   }
-  return { maps: MAPS.slice(), from: "all" };
+  return { maps: MAPS.slice(), from: "all", notes: {} };
 }
 
 // Auswertung pro Map: Ø Sterne, Anzahl Stimmen, Bann-Stimmen (Namen), Bilanz aus allen Matches

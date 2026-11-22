@@ -180,6 +180,10 @@ function build(folder, files) {
   return { root, maps };
 }
 
+// Steht die Map gerade nicht im Pool? Nur Ordner wie "Ascent (inactiv)". Andere Zusätze wie "Lotus (perma bann)"
+// bleiben im Pool (die Map ist im Spiel, das Team bannt sie nur), Wunsch Tim 22.11.2026.
+export const isInactive = (m) => /in[ae]ktiv|inactiv|inactive/i.test(m.note || "");
+
 // Wie viele Strats hat eine Map / Seite?
 export const countSide = (s) => s.groups.reduce((n, g) => n + g.files.length, 0);
 export const countMap = (m) => m.sides.reduce((n, s) => n + countSide(s), 0);

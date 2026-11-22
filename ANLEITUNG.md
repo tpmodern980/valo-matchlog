@@ -248,7 +248,7 @@ Ohne diese Zeile zeigt der Tab nur „Lade Planung …“, alles andere läuft w
 
 Der Tab **„Strats“** zeigt eure Taktik-Screenshots direkt aus einem Google-Drive-Ordner. Die Bilder bleiben in Drive. Die App speichert nichts davon, Firestore und der Gratisplan bleiben unberührt. Neue Strats legt ihr einfach in Drive ab.
 
-**Aufbau des Ordners:** pro Map ein Ordner (z. B. `Bind`), darin `Attack` und `Defense`. Darunter dürfen Unterordner liegen (z. B. `Pistol`, `Defaults`), die App zeigt sie als Gruppen. Maps mit Klammer im Namen, z. B. `Ascent (inactiv)` oder `Lotus (perma bann)`, stehen eingeklappt unter „Weitere Maps“. Dateien direkt im obersten Ordner (z. B. ein Plan als Bild oder eine Tabelle) erscheinen oben als Knöpfe. Der Dateiname ohne `.png` ist der Name der Strat.
+**Aufbau des Ordners:** pro Map ein Ordner (z. B. `Bind`), darin `Attack` und `Defense`. Darunter dürfen Unterordner liegen (z. B. `Pistol`, `Defaults`), die App zeigt sie als Gruppen. Maps mit „(inactiv)“ im Namen, z. B. `Ascent (inactiv)`, sind nicht im Pool und stehen eingeklappt unter „Weitere Maps“. Andere Zusätze wie `Lotus (perma bann)` bleiben im Pool, der Zusatz steht klein dabei. Dateien direkt im obersten Ordner (z. B. ein Plan als Bild oder eine Tabelle) erscheinen oben als Knöpfe. Der Dateiname ohne `.png` ist der Name der Strat.
 
 **Einmal einrichten:**
 1. **Ordner freigeben:** In Google Drive Rechtsklick auf den Ordner → **Teilen** → **Teilen** → bei „Allgemeiner Zugriff“ **„Jeder, der über den Link verfügt“**, Rolle **Betrachter** → **Link kopieren**. Wer den Link kennt, sieht die Strats. Gebt ihn deshalb nicht weiter.
