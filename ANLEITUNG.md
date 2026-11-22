@@ -376,6 +376,10 @@ Im Tab **Spieler** gibt es neben Stamm und Sub die Gruppe **Staff (spielt nicht 
 
 In der Umfrage lässt sich ein Tag als **VOD-Review** anlegen (18 / 19 / 20 Uhr), und im Wochenplan gibt es die Art **VOD-Review**. Wie Training wird dafür kein Match erwartet.
 
+## Mehrere Scrims an einem Tag
+
+Beim Eintragen eines Termins (Planung → Wochenplan → „+ Termin“) lassen sich mehrere Uhrzeiten mit Komma eintragen, z. B. **19:00, 20:30**. Dann entsteht für jede Uhrzeit ein eigener Termin am selben Tag. Gegner genauso mit Komma in derselben Reihenfolge (ein einzelner Gegner gilt für alle). Die Matches ordnet die App der Reihe nach zu, ein passender Gegner geht vor.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.
