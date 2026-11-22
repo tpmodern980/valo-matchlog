@@ -427,7 +427,7 @@ function planPanel(w) {
     const scoutLink = known && !m && e.status !== "cancelled" ? `<a class="linkish pl-scout" href="#opponent-${esc(encodeURIComponent(e.opponent))}">🔎 Steckbrief</a>` : "";
     // Aufstellung: wer spielt (aus der Umfrage oder von Hand), bei mehr als 5 wählt ein Admin
     const lu = lineupOf(w, e);
-    let lineupHtml = "";
+    let lineupHtml = "", whoHtml = "", lineupBtn = "";
     if (lineupId === e.id) {
       const pool = [...lu.avail, ...S.players.filter((p) => p.status !== "staff" && !lu.avail.includes(p.id)).sort(byName).map((p) => p.id)];
       const chosen = new Set(lu.manual ? lu.ids : lu.ids.length ? lu.ids : lu.avail.slice(0, TEAM_SIZE));
@@ -443,14 +443,16 @@ function planPanel(w) {
         : !lu.ids.length && lu.noSlot ? `<span class="muted">${esc(e.time || "Diese Uhrzeit")} stand nicht in der Umfrage · Aufstellung von Hand wählen</span>`
         : names.length ? `👥 ${names.map(esc).join(", ")}${names.length < TEAM_SIZE ? ` <span class="muted">(noch ${TEAM_SIZE - names.length} offen)</span>` : ""}${lu.manual ? "" : ' <span class="muted">· aus der Umfrage</span>'}`
         : '<span class="muted">Noch niemand eingetragen</span>';
-      const btn = S.isAdmin ? `<button class="linkish" type="button" data-action="plan-lineup" data-id="${esc(e.id)}">${lu.need ? "Jetzt wählen" : "Ändern"}</button>` : "";
-      lineupHtml = `<div class="pl-lineup${lu.need ? " need" : ""}">${text} ${btn}</div>`;
+      // Die Namen stehen direkt unter Art und Gegner im Termin selbst (nicht unter den Knöpfen): Sonst sah es am Handy
+      // so aus, als gehörten sie zum nächsten Termin (Tim, 22.11.2026)
+      whoHtml = `<small class="pl-who${lu.need ? " need" : ""}">${text}</small>`;
+      lineupBtn = S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-lineup" data-id="${esc(e.id)}">${lu.need ? "Aufstellung wählen" : "Aufstellung"}</button>` : "";
     }
     const main = `<div class="pl-when"><b>${esc(e.time || "–")}</b></div>
-      <div class="pl-what"><span class="tag">${esc(e.type)}</span>${e.opponent ? ` vs ${esc(e.opponent)}` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</div>`;
+      <div class="pl-what"><span class="tag">${esc(e.type)}</span>${e.opponent ? ` vs ${esc(e.opponent)}` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}${whoHtml}</div>`;
     return `<div class="pl-row${e.status === "cancelled" ? " cancelled" : ""}">
       ${m ? `<a class="pl-main" href="#match-${esc(m.id)}">${main}</a>` : `<div class="pl-main">${main}</div>`}
-      ${status}${scoutLink}${oppTools}
+      ${status}${scoutLink}${oppTools}${lineupBtn}
       ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}
       ${lineupHtml}</div>`;
   };
