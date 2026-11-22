@@ -288,6 +288,14 @@ Nach dem Anfragen erscheint beim Neuen **„Admin Bescheid geben“**: Das öffn
 
 Die komplette Fassung steht in `firestore.rules`. Ohne diesen Block bekommt die Person beim Anfragen eine Meldung und schickt ihre E-Mail wie bisher direkt an einen Admin.
 
+## Spieler-Profile
+
+Auf jeder Spieler-Seite gibt es **„Profil bearbeiten“** (für den Spieler selbst, wenn sein Konto im Tab „Team“ ihm zugeordnet ist, und für alle Admins): **Profilbild** (wird verkleinert gespeichert), **Riot-ID** (Name#Tag, daraus der Link zu **tracker.gg**), bis zu drei **Main-Agents** und die **Rolle**. Im Tab „Spieler“ führt **„Mein Profil“** direkt zur eigenen Seite. Das Bild steht auch in Tabelle und Roster.
+
+## Als App installieren
+
+Wer ScrimStar noch im Browser nutzt, sieht auf der Startseite einen Hinweis mit Anleitung (iPhone: Safari → Teilen → „Zum Home-Bildschirm“, Android/PC: „App installieren“ bzw. direkt der Knopf „Jetzt installieren“). „Nicht mehr zeigen“ merkt sich das Gerät.
+
 ## Match-Review und Baustellen
 
 Im Match-Formular gibt es zwei Felder: **„Lief gut“** und **„Üben wir“** (ein Punkt pro Zeile). Schon genannte „Üben wir“-Punkte stehen als Chips darunter: Antippen übernimmt sie in derselben Schreibweise. Auf der Startseite stehen unter **„Baustellen“** die „Üben wir“-Punkte der letzten 30 Tage, öfter genannte zuerst. Beide Felder gehen auch mit in den Discord-Post zum Ergebnis.

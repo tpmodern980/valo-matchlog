@@ -1175,3 +1175,23 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .member.req { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .req-btns { display: flex; gap: 6px; }
 .hm-req { border-left-color: var(--draw); }
+
+/* ---------- Spieler-Profile (js/views/profile.js) ---------- */
+.avatar { border-radius: 50%; object-fit: cover; flex: none; display: inline-block; vertical-align: middle; border: 1px solid var(--line); }
+.avatar.none { display: inline-grid; place-items: center; background: var(--surface-2); color: var(--muted); font-family: var(--font-display); font-weight: 700; }
+.pl-av { display: inline-flex; align-items: center; gap: 8px; }
+.pf-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.pf-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-mains .tag { margin: 0 0 0 4px; }
+.pf-form { display: flex; flex-direction: column; gap: 12px; max-width: 640px; }
+.pf-pic { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pf-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.pf-row .field { flex: 1 1 140px; }
+/* Hinweis "Als App installieren" (js/views/install.js) */
+.inst { border-left: 4px solid var(--accent); }
+.inst-body { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.inst-text { display: flex; flex-direction: column; gap: 4px; font-size: 14px; flex: 1 1 260px; }
+.inst-text .inst-title { font-family: var(--font-display); font-size: 17px; }
+.inst-text small { color: var(--muted); }
+.inst-text .btn { align-self: flex-start; margin-top: 4px; }
+.inst-btns { display: flex; gap: 6px; }

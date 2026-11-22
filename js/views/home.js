@@ -5,6 +5,8 @@ import { S } from "../state.js";
 import { esc, isoDate, pct, signed1, daysAgo } from "../util.js";
 import { teamSummary, sortMatches, playerStats, formOf, FORM_N } from "../stats.js";
 import { formBadge } from "./player.js";
+import { avatar } from "./profile.js";
+import { installHint } from "./install.js";
 import { matchesOfWeek } from "../recap.js";
 import { goalsOf, goalTitle, goalStatus } from "../goals.js";
 import { mondayOf, addDays, weekLabel, weekOf, dayLabel, planLink, REST } from "./plan.js";
@@ -72,7 +74,7 @@ export function homeView() {
   const form = playerStats(S.matches).filter((s) => s.status !== "ex").map((s) => ({ s, f: formOf(s) })).filter((x) => x.f)
     .sort((a, b) => b.f.delta - a.f.delta);
   const formPanel = form.length ? `<section class="panel"><div class="panel-head"><h2>Form der Spieler</h2><span class="hint">KPR der letzten ${FORM_N} Matches gegen den eigenen Schnitt</span></div>
-    <div class="hm-form">${form.map(({ s }) => `<a class="hm-player" href="#player-${esc(encodeURIComponent(s.id))}"><b>${esc(s.name)}</b>${formBadge(s)}</a>`).join("")}</div></section>` : "";
+    <div class="hm-form">${form.map(({ s }) => `<a class="hm-player" href="#player-${esc(encodeURIComponent(s.id))}"><span class="pl-av">${s.player ? avatar(s.player, 24) : ""}<b>${esc(s.name)}</b></span>${formBadge(s)}</a>`).join("")}</div></section>` : "";
 
   // Baustellen (js/review.js): was in den letzten 30 Tagen unter "Üben wir" stand, öfter genannte zuerst
   const work = workItems(daysAgo(30)).slice(0, 6);
@@ -82,5 +84,5 @@ export function homeView() {
   // Admins: offene Zugangs-Anfragen (js/access.js)
   const reqs = S.isAdmin ? (S.requests || []).length : 0;
   const reqNote = reqs ? `<a class="hm-next hm-req" href="#team"><span>Zugang</span><b>${reqs} ${reqs === 1 ? "offene Anfrage" : "offene Anfragen"}</b><small>Im Tab „Team“ freischalten</small></a>` : "";
-  return head + reqNote + nextPanel + cards + goalPanel + workPanel + formPanel + results + tipPanel;
+  return head + installHint() + reqNote + nextPanel + cards + goalPanel + workPanel + formPanel + results + tipPanel;
 }

@@ -1,5 +1,6 @@
 // Ansicht "Spieler": oben die Statistik-Tabelle (aus player.js), darunter das Roster.
 // Roster: Wer gehört zum Team, mit welchen Ingame-Namen, Stamm oder Sub.
+import { avatar, myPlayerId } from "./profile.js";
 import { S, changed } from "../state.js";
 import { ROLES } from "../constants.js";
 import { $, esc, norm, toast } from "../util.js";
@@ -88,7 +89,7 @@ function row(p) {
   const open = p.id === openId;
   const names = (p.aliases || []).length ? p.aliases.map(esc).join(" · ") : "Keine Ingame-Namen eingetragen";
   return `<div class="roster-row prow${open ? " open" : ""}">
-    <div class="member"><a class="plink" href="#player-${esc(encodeURIComponent(p.id))}"><b>${esc(p.name)}</b></a>${roleTags(p)}</div>
+    <div class="member"><a class="plink pl-av" href="#player-${esc(encodeURIComponent(p.id))}">${avatar(p, 28)}<b>${esc(p.name)}</b></a>${roleTags(p)}</div>
     <button class="btn small" type="button" data-action="roster-open" data-id="${esc(p.id)}" aria-expanded="${open}">${open ? "Schließen" : "Bearbeiten"}</button>
     ${open ? editor(p) : `<div class="prow-names">${names}</div>`}
   </div>`;
@@ -100,7 +101,8 @@ const block = (title, list, emptyText) => `<h3 class="group">${title} <span>${li
 export function playersView() {
   // Kopf zuerst: filterBar räumt veraltete Filter weg, bevor die Statistik rechnet
   const head = `<div class="view-head"><div><div class="eyebrow">Team</div><h1>Spieler</h1>
-    <p>Statistik pro Spieler, Stammspieler und Subs getrennt. Darunter das Roster mit den Ingame-Namen, über die die App die Spieler erkennt.</p></div>
+    <p>Statistik pro Spieler, Stammspieler und Subs getrennt. Darunter das Roster mit den Ingame-Namen, über die die App die Spieler erkennt.</p>
+    ${myPlayerId() ? `<p><a class="btn small" href="#player-${esc(encodeURIComponent(myPlayerId()))}">Mein Profil</a></p>` : ""}</div>
     <div class="head-side">${filterBar(true)}</div></div>`;
   if (!S.loaded.players) return head + '<p class="loading">Lade Spieler …</p>';
 

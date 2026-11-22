@@ -14,6 +14,8 @@ import * as goalPages from "./views/goals.js";
 import * as vetoPages from "./views/veto.js";
 import { homeView } from "./views/home.js";
 import * as ratingPages from "./views/opprating.js";
+import * as profilePages from "./views/profile.js";
+import * as installPages from "./views/install.js";
 import { watchRequests, stopRequests } from "./access.js";
 import { hideTip } from "./charts.js";
 import { setupView, errorView } from "./views/setup.js";
@@ -154,11 +156,11 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions, ...analysisPages.actions, ...goalPages.actions, ...vetoPages.actions, ...ratingPages.actions };
-const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms, ...planPages.forms, ...stratPages.forms, ...goalPages.forms };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions, ...analysisPages.actions, ...goalPages.actions, ...vetoPages.actions, ...ratingPages.actions, ...profilePages.actions, ...installPages.actions };
+const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms, ...planPages.forms, ...stratPages.forms, ...goalPages.forms, ...profilePages.forms };
 // Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt,
 // im Match-Formular: ein Screenshot zum Auslesen)
-const CHANGES = { ...playerPages.changes, ...clipPages.changes, ...matchForm.changes, ...teamPages.changes, ...planPages.changes, ...vetoPages.changes };
+const CHANGES = { ...playerPages.changes, ...clipPages.changes, ...matchForm.changes, ...teamPages.changes, ...planPages.changes, ...vetoPages.changes, ...profilePages.changes };
 
 document.addEventListener("change", (e) => {
   const fn = e.target.dataset ? CHANGES[e.target.dataset.change] : null;

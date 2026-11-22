@@ -4,6 +4,7 @@ import { RES_LABEL } from "../constants.js";
 import { esc, fmtDate, fmt0, fmt1, fmt2, pct } from "../util.js";
 import { filtered, playerStats, rowKey, formOf, FORM_N } from "../stats.js";
 import { agentPool } from "../analysis.js";
+import { profileHead, avatar } from "./profile.js";
 import { lineChart, barChart, chartTable } from "../charts.js";
 import { filterBar, record, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
 
@@ -14,7 +15,7 @@ const STATUS = { stamm: "Stammspieler", sub: "Sub", ex: "Nicht mehr im Roster" }
 const byKpr = (a, b) => (b.kpr ?? -1) - (a.kpr ?? -1) || b.n - a.n || a.name.localeCompare(b.name, "de");
 // K/D/A zusammengezählt. Ein Wert, der in keinem Match eingetragen ist, wird "–" (nicht 0).
 const kda = (s) => ["kills", "deaths", "assists"].map((f) => s.series.some((x) => x[f] !== null) ? s[f] : "–").join(" / ");
-const link = (s) => `<a class="plink" href="#player-${esc(encodeURIComponent(s.id))}">${esc(s.name)}</a>`;
+const link = (s) => `<a class="plink pl-av" href="#player-${esc(encodeURIComponent(s.id))}">${s.player ? avatar(s.player, 24) : ""}${esc(s.name)}</a>`;
 
 // Form-Trend: Pfeil und Änderung der KPR der letzten 5 Matches gegenüber dem Schnitt
 const ARROW = { up: "↑", down: "↓", flat: "→" };
@@ -101,7 +102,7 @@ export function playerView(id) {
   const aliases = p && (p.aliases || []).length ? p.aliases.map(esc).join(" · ") : "";
   const head = `<div class="view-head"><div><div class="eyebrow">Spieler · ${STATUS[s.status]}</div><h1>${esc(s.name)}</h1>
       ${roles || aliases ? `<p class="pmeta">${roles}${aliases}</p>` : ""}</div>
-    <div class="head-side">${bar}</div></div>`;
+    <div class="head-side">${bar}</div></div>` + profileHead(p);
   if (!s.n) {
     return back + head + (S.matches.length && !inMatches
       ? `<div class="empty"><h2>Noch kein Match</h2><p>${esc(s.name)} steht noch in keinem Match. Sobald ein Match mit diesem Spieler eingetragen ist, erscheinen hier Kennzahlen und Diagramme.</p></div>`
