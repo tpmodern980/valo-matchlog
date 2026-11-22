@@ -30,6 +30,7 @@
   <div class="wrap">
     <a class="brand" href="#matches"><img class="brand-mark" src="icons/logo.svg" alt="" width="26" height="26"><span class="brand-name" id="brand-name">ScrimStar</span></a>
     <nav class="tabs" id="tabs" aria-label="Bereiche" hidden>
+      <div class="menu-head"><b>Menü</b><button class="menu-x" type="button" id="menu-close" aria-label="Menü schließen">×</button></div>
       <a class="tab" href="#matches" data-tab="matches">Matches</a>
       <a class="tab" href="#players" data-tab="players">Spieler</a>
       <a class="tab" href="#maps" data-tab="maps">Maps</a>
@@ -40,6 +41,9 @@
       <a class="tab" href="#team" data-tab="team">Team</a>
     </nav>
     <div class="top-right" id="status"></div>
+    <!-- Handy: Menü zum Aufklappen statt Leiste unten (Wunsch Tim, 22.11.2026) -->
+    <button class="menu-btn" type="button" id="menu-btn" aria-label="Menü öffnen" aria-expanded="false" aria-controls="tabs" hidden><span class="menu-icon" aria-hidden="true"><i></i><i></i><i></i></span><span id="menu-cur"></span></button>
+    <div class="menu-backdrop" id="menu-backdrop" hidden></div>
   </div>
 </header>
 

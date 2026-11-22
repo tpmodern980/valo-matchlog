@@ -116,22 +116,39 @@ code { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; font-siz
 main.wrap { padding-block: 24px 40px; display: flex; flex-direction: column; gap: 24px; }
 .foot { padding-block: 0 calc(28px + var(--tabbar) + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: 12px; }
 
-/* Handy: Tabs als Leiste unten, gut mit dem Daumen erreichbar */
+/* Menü-Knopf und Kopf des Menüs: nur am Handy */
+.menu-btn, .menu-head, .menu-backdrop { display: none; }
+
+/* Handy: Menü zum Aufklappen von rechts, die Bereiche untereinander (seit 22.11.2026, vorher Leiste unten) */
 @media (max-width: 640px) {
-  :root { --tabbar: 52px; }
-  body.no-nav { --tabbar: 0px; }
+  .menu-btn:not([hidden]) {
+    display: inline-flex; align-items: center; gap: 8px; margin-left: auto; min-height: 40px; padding: 0 12px;
+    border: 1px solid var(--line); background: var(--surface); border-radius: 4px; cursor: pointer;
+    font-family: var(--font-display); font-weight: 600; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink);
+  }
+  /* Menü-Knopf immer oben rechts neben dem Logo; die Statuszeile rutscht bei Platzmangel darunter */
+  .menu-btn { order: 2; }
+  .top-right { order: 3; }
+  .menu-icon { display: inline-flex; flex-direction: column; gap: 3px; }
+  .menu-icon i { display: block; width: 16px; height: 2px; background: currentColor; border-radius: 1px; }
   .tabs {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
-    display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0;
-    background: var(--surface); border-top: 1px solid var(--line);
-    padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 30; width: min(280px, 82vw);
+    display: flex; flex-direction: column; flex-wrap: nowrap; gap: 0;
+    background: var(--surface); border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0, 0, 0, .18);
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) 0;
+    transform: translateX(105%); transition: transform .2s ease; visibility: hidden; overflow-y: auto;
   }
+  body.menu-open .tabs { transform: none; visibility: visible; }
+  .menu-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 8px 10px 20px; border-bottom: 1px solid var(--line); }
+  .menu-head b { font-family: var(--font-display); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .menu-x { width: 44px; height: 44px; border: 0; background: none; font-size: 26px; line-height: 1; cursor: pointer; color: var(--muted); }
   .tab {
-    display: grid; place-items: center; min-height: 52px; padding: 0;
-    font-size: 10.5px; letter-spacing: 0; border-bottom: 0; border-top: 2px solid transparent;
+    display: flex; align-items: center; min-height: 52px; padding: 0 20px;
+    font-size: 16px; letter-spacing: .05em; border-bottom: 1px solid var(--line); border-left: 4px solid transparent;
   }
-  @media (max-width: 370px) { .tab { font-size: 9.5px; } }
-  .tab[aria-current="page"] { border-top-color: var(--accent); color: var(--accent); }
+  .tab[aria-current="page"] { border-left-color: var(--accent); color: var(--accent); background: var(--surface-2); }
+  .menu-backdrop:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 29; background: rgba(0, 0, 0, .35); }
+  body.menu-open { overflow: hidden; }
   .brand-name { font-size: 16px; letter-spacing: .1em; }
   /* Filter füllen die Zeilen gleichmäßig */
   .view-head .filters { width: 100%; }

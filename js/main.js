@@ -89,6 +89,21 @@ function paint(main, html) {
   main.innerHTML = html;
 }
 
+// Handy: Menü zum Aufklappen (seitlich, die Bereiche untereinander). Am großen Bildschirm stehen die Tabs oben.
+function setMenu(open) {
+  document.body.classList.toggle("menu-open", open);
+  $("#menu-btn").setAttribute("aria-expanded", String(open));
+  $("#menu-backdrop").hidden = !open;
+  if (open) { const cur = $("#tabs [aria-current]") || $("#tabs .tab"); if (cur) cur.focus({ preventScroll: true }); }
+}
+document.addEventListener("click", (e) => {
+  if (!e.target.closest) return;
+  if (e.target.closest("#menu-btn")) setMenu(!document.body.classList.contains("menu-open"));
+  else if (e.target.closest("#menu-close, #menu-backdrop, #tabs .tab")) setMenu(false);
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("menu-open")) { setMenu(false); $("#menu-btn").focus(); } });
+window.addEventListener("hashchange", () => setMenu(false));
+
 function render() {
   const r = route();
   const app = inApp();
@@ -96,9 +111,12 @@ function render() {
   if (!app) matchForm.closeEditor();
   document.body.classList.toggle("no-nav", !app);
   $("#tabs").hidden = !app;
+  $("#menu-btn").hidden = !app;
+  if (!app) setMenu(false);
   const tab = TAB_OF[r.name] || r.name;
   document.querySelectorAll("[data-tab]").forEach((a) => {
-    if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    if (a.dataset.tab === tab) { a.setAttribute("aria-current", "page"); $("#menu-cur").textContent = a.textContent; }
+    else a.removeAttribute("aria-current");
   });
   renderStatus();
 
