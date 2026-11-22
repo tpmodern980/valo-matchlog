@@ -1,6 +1,7 @@
 // Spieler-Profile (Wunsch Tim, 22.11.2026): Jeder pflegt bei sich Profilbild, Riot-ID (mit Link zu tracker.gg),
 // Main-Agents und Rolle. Bearbeiten darf, wem der Spieler gehört (Konto-Zuordnung im Tab "Team"), und jeder Admin.
 // Gespeichert direkt am Spieler (players/<id>): riotId: "Name#Tag", mains: ["Jett", …] (höchstens 3),
+// discordId: Discord-Benutzer-ID (17–20 Ziffern) zum Anpingen bei der Umfrage-Erinnerung (seit 22.11.2026),
 // avatar: kleines JPEG als data:-Adresse (160 × 160, etwa 10 KB; Firebase Storage gibt es im Gratisplan nicht).
 import { S, changed } from "../state.js";
 import { AGENTS, ROLES } from "../constants.js";
@@ -54,9 +55,11 @@ function editor(p) {
         <label class="btn small">Bild wählen<input type="file" accept="image/*" data-change="pf-pic" hidden></label>
         ${shown ? '<button class="btn small ghost" type="button" data-action="pf-pic-del">Bild entfernen</button>' : ""}</div>
       <label class="field"><span>Riot-ID (Name#Tag)</span><input type="text" name="riotId" maxlength="24" value="${esc(p.riotId || "")}" placeholder="z. B. Kairo#EUW" autocomplete="off" autocapitalize="none" spellcheck="false"></label>
-      <div class="pf-row">${mains.map((m, i) => `<label class="field"><span>Main ${i + 1}</span><select name="main${i}">${opt("", "–", m)}${AGENTS.map((a) => opt(a, a, m)).join("")}</select></label>`).join("")}</div>
+      <label class="field"><span>Discord-ID (zum Anpingen)</span><input type="text" name="discordId" inputmode="numeric" maxlength="20" value="${esc(p.discordId || "")}" placeholder="z. B. 123456789012345678" autocomplete="off"></label>
+      <p class="hint">So findest du sie: Discord → Einstellungen → Erweitert → <b>Entwicklermodus</b> an. Dann auf deinen Namen tippen (am Handy lange drücken) → <b>Benutzer-ID kopieren</b>.</p>
+      ${p.status === "staff" ? "" : `<div class="pf-row">${mains.map((m, i) => `<label class="field"><span>Main ${i + 1}</span><select name="main${i}">${opt("", "–", m)}${AGENTS.map((a) => opt(a, a, m)).join("")}</select></label>`).join("")}</div>
       <div class="pf-row"><label class="field"><span>Rolle</span><select name="role">${ROLES.map((r) => opt(r, r, p.role)).join("")}</select></label>
-        <label class="field"><span>Zweite Rolle</span><select name="role2">${opt("", "keine", p.role2 || "")}${ROLES.map((r) => opt(r, r, p.role2)).join("")}</select></label></div>
+        <label class="field"><span>Zweite Rolle</span><select name="role2">${opt("", "keine", p.role2 || "")}${ROLES.map((r) => opt(r, r, p.role2)).join("")}</select></label></div>`}
       <div class="actions"><button class="btn primary" type="submit"${busy ? " disabled" : ""}>Speichern</button>
         <button class="btn" type="button" data-action="pf-cancel">Abbrechen</button></div>
     </form></section>`;
@@ -101,7 +104,9 @@ export const forms = {
     const role = ROLES.includes(String(data.get("role"))) ? String(data.get("role")) : p.role;
     let role2 = ROLES.includes(String(data.get("role2"))) ? String(data.get("role2")) : null;
     if (role2 === role) role2 = null;
-    const fields = { riotId, mains: [...new Set(mains)], role, role2 };
+    const discordId = String(data.get("discordId") || "").replace(/\D/g, "");
+    if (discordId && !/^\d{17,20}$/.test(discordId)) return toast("Die Discord-ID hat 17 bis 20 Ziffern (Benutzer-ID kopieren, nicht den Namen).");
+    const fields = p.status === "staff" ? { riotId, discordId } : { riotId, discordId, mains: [...new Set(mains)], role, role2 };
     if (pic !== undefined) fields.avatar = pic;
     busy = true;
     try { await change("players", p.id, fields); editing = null; pic = undefined; toast("Profil gespeichert."); }

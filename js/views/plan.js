@@ -187,7 +187,7 @@ export function missingVoters(w) {
   }
   return S.players.filter((p) => p.status !== "staff").map((p) => {
     const n = days.length - ((byPid.get(p.id) || new Set()).size);
-    return { name: p.name, open: n, all: n === days.length, sub: p.status === "sub" };
+    return { name: p.name, open: n, all: n === days.length, sub: p.status === "sub", discordId: /^\d{17,20}$/.test(p.discordId || "") ? p.discordId : "" };
   }).filter((x) => x.open > 0).sort((a, b) => b.open - a.open || a.name.localeCompare(b.name, "de"));
 }
 

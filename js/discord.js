@@ -217,8 +217,11 @@ export const postPoll = (w) => sendPlanHook(buildPollPost(w), scheduleUrl());
 export function buildRemindPost(w, miss) {
   const link = appUrl() + planLink(w.start);
   const who = miss.map((x) => `• **${md(x.name)}**${x.all ? "" : ` (${x.open} ${x.open === 1 ? "Tag" : "Tage"} offen)`}`);
+  // Anpingen geht nur im normalen Text (content), nicht im Kasten (Embed). allowed_mentions: nur genau diese Leute
+  const ids = miss.map((x) => x.discordId).filter(Boolean);
   return {
     username: "ScrimStar",
+    ...(ids.length ? { content: `${ids.map((id) => `<@${id}>`).join(" ")} bitte noch abstimmen 🗳️`, allowed_mentions: { parse: [], users: ids } } : {}),
     embeds: [{
       title: cut(`⏰ Erinnerung: Umfrage ${weekLabel(w.start)}`, 256), url: link, color: 0xD1A12A,
       description: cut(`Bitte noch abstimmen, damit der Wochenplan steht.\n**[Jetzt abstimmen](${link})**\n\n${who.join("\n")}`, 4000),

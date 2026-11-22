@@ -394,7 +394,7 @@ Unter jedem Termin steht **👥 wer spielt**. Das kommt automatisch aus der Umfr
 
 ## Erinnerung an die Umfrage
 
-Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch nicht (ganz) abgestimmt hat. **„Erinnerung posten“** schickt die Liste mit Link zur Umfrage in den Kanal für Umfrage und Wochenplan (dino scrim zeiten).
+Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch nicht (ganz) abgestimmt hat. **„Erinnerung posten“** schickt die Liste mit Link zur Umfrage in den Kanal für Umfrage und Wochenplan (dino scrim zeiten). Wer im Profil seine **Discord-ID** eingetragen hat, wird dabei angepingt (Discord → Einstellungen → Erweitert → Entwicklermodus an, dann auf den eigenen Namen → „Benutzer-ID kopieren“; eintragen unter Spieler → Profil bearbeiten). Ohne ID steht der Name nur in der Liste.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
