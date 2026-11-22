@@ -7,6 +7,7 @@
 //     pro Map: Webhooks lassen sich nur fürs ganze Forum anlegen (das ist dann der Standard-Webhook), in den
 //     Beitrag geht es über ?thread_id=<ID des Beitrags>.
 // Discord nimmt Webhook-Posts direkt aus dem Browser an (geprüft am 19.11.2026), ein eigener Server ist nicht nötig.
+import { seriesInfo, formatLabel } from "./series.js";
 import { S } from "./state.js";
 import { num, fmt2, fmtDate, norm } from "./util.js";
 import { result, roundInfo, kdOf } from "./stats.js";
@@ -64,8 +65,8 @@ const HEAD = {
 };
 
 // Zeichen, die Discord als Formatierung liest, entschärfen (Namen wie "x_X_x" oder "**Tim**")
-const md = (s) => String(s ?? "").replace(/([\\*_~`|>#[\]])/g, "\\$1");
-const cut = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+export const md = (s) => String(s ?? "").replace(/([\\*_~`|>#[\]])/g, "\\$1");
+export const cut = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
 // Scoreboard unseres Teams: nach Kills sortiert, bei Gleichstand nach K/D (wie auf der Match-Seite)
 function boardLines(m) {
@@ -92,6 +93,13 @@ export function buildPost(m) {
   const score = r === "Q" ? "" : ` ${num(m.scoreUs)}:${num(m.scoreThem)}`;
   const fields = [];
   const lines = boardLines(m);
+  // Teil einer Serie (BO3/BO5): welche Map und wie es steht
+  const ser = m.seriesId ? seriesInfo(m.seriesId) : null;
+  if (ser) {
+    const no = ser.maps.findIndex((x) => x.id === m.id) + 1;
+    const state = ser.res === "W" ? "Serie gewonnen" : ser.res === "L" ? "Serie verloren" : "Stand";
+    fields.push({ name: `${formatLabel(ser.format)}${ser.name ? " · " + md(ser.name) : ""}`, value: `Map ${no || ser.maps.length} · ${state} **${ser.w}:${ser.l}**` });
+  }
   if (lines.length) fields.push({ name: "Scoreboard", value: cut(lines.join("\n"), 1024) });
   const ri = roundInfo(m);
   if (ri) {
@@ -160,7 +168,7 @@ export async function postMatch(m) {
 
 export const planHookOn = () => validWebhook(S.team && S.team.discordPlan);
 
-async function sendPlanHook(payload) {
+export async function sendPlanHook(payload) {
   const say = (text) => Object.assign(new Error(text), { plain: true });
   const url = S.team && S.team.discordPlan;
   if (!validWebhook(url)) throw say("Für die Planung ist kein Discord-Kanal eingetragen (Tab „Team“ → Discord).");

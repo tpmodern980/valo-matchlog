@@ -40,13 +40,13 @@ export const chartPanel = (title, hint, chart, table = "") => `<section class="p
   <div class="panel-body">${chart}${table}</div></section>`;
 
 // Zeile eines Matches in einer Liste (Matches-Tab, Gegner-Detail)
-export function matchRow(m) {
+export function matchRow(m, mapNo = 0) {
   const r = result(m), d = fmtDate(m.date);
   const clipN = S.clips.filter((c) => c.matchId === m.id).length;
   return `<a class="mrow ${r}" href="#match-${esc(m.id)}">
       <div class="mrow-date"><b>${esc(d.day)}</b>${esc(d.wd)}</div>
       <div class="mrow-main"><div class="mrow-map">${esc(m.map || "Map?")}</div>
-        <div class="mrow-sub"><span class="tag">${esc(m.type || "Match")}</span>vs ${esc(m.opponent || "unbekannt")}${clipN ? ` · ${clipN} ${clipN === 1 ? "Clip" : "Clips"}` : ""}</div></div>
+        <div class="mrow-sub">${mapNo ? `<span class="tag">Map ${mapNo}</span>` : ""}<span class="tag">${esc(m.type || "Match")}</span>vs ${esc(m.opponent || "unbekannt")}${clipN ? ` · ${clipN} ${clipN === 1 ? "Clip" : "Clips"}` : ""}</div></div>
       <div class="score">${esc(m.scoreUs ?? "?")}<span class="sep">:</span>${esc(m.scoreThem ?? "?")}</div>
       <div class="res ${r}">${RES_LABEL[r]}</div>
     </a>`;

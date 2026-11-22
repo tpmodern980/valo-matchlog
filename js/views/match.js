@@ -1,5 +1,6 @@
 // Ansicht "Match-Detail": Kopf mit Ergebnis, Scoreboard, Rundenverlauf, Notizen, Clips.
 // (Die Clips stehen in clips.js, das Formular zum Bearbeiten in matchform.js.)
+import { seriesInfo, formatLabel } from "../series.js";
 import { S, changed } from "../state.js";
 import { clipsPanel } from "./clips.js";
 import { RES_LABEL, STAT_FIELDS, ALL_STAT_FIELDS, TINY_LABEL } from "../constants.js";
@@ -100,7 +101,20 @@ export function matchView(id) {
   const notes = good || work || m.notes ? `<section class="panel"><div class="panel-head"><h2>Review</h2></div><div class="panel-body">
       ${good || work ? `<div class="rv-cols">${good ? `<div><h3 class="rv-h good">Lief gut</h3>${good}</div>` : ""}${work ? `<div><h3 class="rv-h work">Üben wir</h3>${work}</div>` : ""}</div>` : ""}
       ${m.notes ? `<div class="notes-text">${esc(m.notes)}</div>` : ""}</div></section>` : "";
-  return top + head + discordPanel(m) + scoreboard(m) + roundsPanel(m) + vetoPanel(m) + notes + clipsPanel(m);
+  return top + head + seriesPanel(m) + discordPanel(m) + scoreboard(m) + roundsPanel(m) + vetoPanel(m) + notes + clipsPanel(m);
+}
+
+// Teil einer Serie (BO3/BO5, js/series.js): alle Maps mit Ergebnis, die aktuelle fett
+function seriesPanel(m) {
+  const s = m.seriesId ? seriesInfo(m.seriesId) : null;
+  if (!s) return "";
+  const word = { W: "gewonnen", L: "verloren", Q: "läuft noch" }[s.res];
+  const items = s.maps.map((x, i) => {
+    const r = result(x), line = `Map ${i + 1}: ${esc(x.map || "Map?")} ${esc(x.scoreUs ?? "?")}:${esc(x.scoreThem ?? "?")} <span class="res-word ${r}">${RES_LABEL[r]}</span>`;
+    return x.id === m.id ? `<li class="cur">${line}</li>` : `<li><a href="#match-${esc(x.id)}">${line}</a></li>`;
+  }).join("");
+  return `<section class="panel series-panel"><div class="panel-head"><h2>${formatLabel(s.format)}${s.name ? " · " + esc(s.name) : ""} · ${s.w}:${s.l}</h2><span class="hint">Serie ${word}</span></div>
+    <div class="panel-body"><ol>${items}</ol></div></section>`;
 }
 
 // K/D zum Vergleichen: ohne Deaths unendlich, ohne Werte ganz hinten

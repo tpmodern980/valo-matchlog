@@ -28,6 +28,7 @@ import * as playerPages from "./views/players.js";
 import * as matchForm from "./views/matchform.js";
 import * as clipPages from "./views/clips.js";
 import * as comparePages from "./views/compare.js";
+import * as scoutPages from "./views/scout.js";
 import { startPwa } from "./pwa.js";
 
 // Darf der Nutzer die eigentliche App sehen? Nur angemeldet und freigeschaltet (oder in der Vorschau).
@@ -157,7 +158,7 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions, ...analysisPages.actions, ...goalPages.actions, ...vetoPages.actions, ...ratingPages.actions, ...profilePages.actions, ...installPages.actions, ...comparePages.actions };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions, ...analysisPages.actions, ...goalPages.actions, ...vetoPages.actions, ...ratingPages.actions, ...profilePages.actions, ...installPages.actions, ...comparePages.actions, ...scoutPages.actions };
 const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms, ...planPages.forms, ...stratPages.forms, ...goalPages.forms, ...profilePages.forms };
 // Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt,
 // im Match-Formular: ein Screenshot zum Auslesen)

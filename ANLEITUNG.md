@@ -337,6 +337,14 @@ Trägt man ein Match ein, das es mit **gleichem Datum, Gegner und Map** schon gi
 
 Zwei Zeiträume nebeneinander: z. B. **aktueller Act gegen den Act davor** (Standard, sobald unter „Team“ zwei Acts angelegt sind), **letzte 30 Tage gegen die 30 davor**, 7 oder 90 Tage, oder die **letzten 10 Matches gegen die 10 davor**. Verglichen werden Winrate, Rundendifferenz, Runden im Angriff und in der Verteidigung, Pistols (auch nach Seite), die Folgerunde nach einem Pistol-Sieg und pro Spieler KPR und K/D. **↑** = besser, **↓** = schlechter, **→** = kaum Unterschied. Art und Map aus dem Filter oben gelten, den Zeitraum wählt ihr hier zweimal. „⇄ Tauschen“ dreht A und B um.
 
+## Serien (BO3/BO5)
+
+Im Match-Formular gibt es das Feld **„Serie (BO3/BO5)“**. Für Map 1 „Neue Serie starten“ wählen (Format und freiwillig einen Namen wie „Halbfinale“). Bei Map 2 und 3 gegen denselben Gegner (bis 2 Tage auseinander) bietet die App die Serie zur Auswahl an, am selben Tag ist sie schon vorgewählt. Ein schon eingetragenes Einzel-Match lässt sich nachträglich verbinden („Neue Serie mit …“). In der Match-Liste stehen die Maps einer Serie als ein Block mit Serien-Ergebnis (z. B. 2:1), oben gibt es die Kachel **Serien** mit eurer Serien-Bilanz. Auf jeder Map steht, welche Map der Serie sie war, und der Discord-Post nennt den Stand.
+
+## Gegner-Steckbrief
+
+Oben auf jeder Gegner-Seite (Analyse → Gegner → Name) steht der **Steckbrief**: Bilanz gegen sie (auch Serien), eure Bewertung, gespielte Maps, ihre Agents und häufigste Comp (aus den Gegner-Scoreboards), ein Veto-Vorschlag aus Map-Pool-Umfrage und Bilanz, und eure häufigsten Baustellen gegen sie. **„In Discord posten“** schickt ihn in den Planungs-Kanal (derselbe wie die Wochenziele). Es zählen immer alle Matches gegen den Gegner, die Filter oben gelten für den Steckbrief nicht.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

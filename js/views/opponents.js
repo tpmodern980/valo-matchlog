@@ -1,4 +1,5 @@
 // Ansichten "Gegner" (Liste) und "Gegner-Detail" (#opponent-<name>): Bilanz pro Gegner und alle Matches gegen ihn.
+import { scoutPanel } from "./scout.js";
 import { S } from "../state.js";
 import { esc, fmtDate, pct, signed1 } from "../util.js";
 import { filtered, opponentStats, oppKey } from "../stats.js";
@@ -65,5 +66,5 @@ export function opponentView(name) {
     <tbody>${s.maps.map((mp) => `<tr><td class="name">${esc(mp.name)}</td><td>${mp.n}</td><td>${record(mp)}</td><td>${pct(mp.wr)}</td></tr>`).join("")}</tbody></table></div></section>`;
   const matches = `<section class="sec"><div class="sec-head"><h2>Matches gegen ${esc(s.name)}</h2><span class="hint">${nMatches(s.n)}</span></div>
     <div class="match-list">${s.matches.map(matchRow).join("")}</div></section>`;
-  return back + head + cards + (s.key === "-" ? "" : ratingPanel(s.name)) + maps + matches;
+  return back + head + (s.key === "-" ? "" : scoutPanel(known.name)) + cards + (s.key === "-" ? "" : ratingPanel(s.name)) + maps + matches;
 }

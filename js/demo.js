@@ -122,6 +122,18 @@ export function loadDemo() {
     3: ["Trades nach First Blood", "Nicht einzeln auf A peeken"],
     5: ["", "Pistol in der Verteidigung"],
   };
+  // Eine Turnier-Serie (BO3 Halbfinale, js/series.js): Das Turnier-Match gegen Graue Wölfe wird Map 1, dazu zwei
+  // weitere Maps am selben Tag. Ohne Zufall (Werte aus Map 1 abgeleitet): Alle übrigen Beispielzahlen bleiben gleich.
+  const SER = { seriesId: "sdemo1", seriesName: "Halbfinale", seriesFormat: "bo3" };
+  const demoSeries = (m) => {
+    if (m.id !== "mdemo13") return [m];
+    const more = (n, map, us, them, f) => ({
+      ...m, ...SER, id: "mdemo13" + "xbc"[n], map, scoreUs: us, scoreThem: them, rounds: null, startSide: null, notes: "", good: "", work: "",
+      createdAt: m.createdAt + n * 3600000,
+      players: m.players.map((r) => ({ ...r, kills: Math.max(0, Math.round(r.kills * f)), deaths: Math.round(r.deaths / f) })),
+    });
+    return [{ ...m, ...SER }, more(1, "Ascent", 9, 13, 0.8), more(2, "Lotus", 13, 10, 1.05)];
+  };
   const withReview = (m, i) => (REVIEW[i] ? { ...m, good: REVIEW[i][0], work: REVIEW[i][1] } : m);
   setLocal("matches", [...GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
     const open = us === null;
@@ -143,7 +155,7 @@ export function loadDemo() {
       // Die neuesten Matches haben auch das Scoreboard der Gegner (freiwillig, ältere Matches haben keins)
       opponents: !open && i < 5 ? makeFoes(i, type, rounds, us > them) : [],
     };
-  }).map(exRow).map(withReview), trashedMatch]);
+  }).map(exRow).map(withReview).flatMap(demoSeries), trashedMatch]);
   // Alle drei Arten von Clips. Das YouTube-Beispiel ist der frei lizenzierte Kurzfilm "Big Buck Bunny"
   // (Blender Foundation, CC BY), er darf eingebettet werden. Die Adresse example.com gehört niemandem.
   const clip = (n, matchId, title, kind, more = {}) => ({

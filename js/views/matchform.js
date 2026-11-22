@@ -10,6 +10,7 @@ import { run, setMsg, msgBox } from "./auth.js";
 import { learn } from "../agentrefs.js";
 import { anyHook, hookFor, postMatch } from "../discord.js";
 import { points, pointKey, workItems } from "../review.js";
+import { FORMATS, seriesInfo, seriesMaps, seriesChoices, newSeriesId } from "../series.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 const MAX_ROWS = 10;
@@ -58,6 +59,7 @@ function lineup() {
 }
 
 const snapshot = () => JSON.stringify([ed.date, ed.type, ed.opponent, ed.map, ed.us, ed.them, ed.notes, ed.good, ed.work, ed.startSide, ed.rounds,
+  ed.series, ed.series ? ed.seriesName : "", ed.series ? ed.seriesFormat : "",
   ...[ed.rows, ed.foes].map((list) => list.map((r) => [r.name, r.agent, ...ALL_STAT_FIELDS.map(([f]) => r[f])]))]);
 
 function open(match) {
@@ -90,6 +92,12 @@ function open(match) {
     // Nach dem Speichern automatisch in Discord posten (Wunsch Tim, 22.11.2026)? null = automatisch entscheiden (autoPost),
     // true/false = so hat es jemand im Formular eingestellt. Schon gepostet: merkt sich das Match (discordAt).
     post: null, posted: Boolean(match && match.discordAt),
+    // Serie (js/series.js): "" = einzelnes Match, "new" = neue Serie, "s:<seriesId>" = bestehende Serie,
+    // "m:<matchId>" = mit einem einzelnen Match zu einer neuen Serie verbinden
+    series: m.seriesId ? "s:" + m.seriesId : "",
+    seriesName: m.seriesId ? ((seriesInfo(m.seriesId) || {}).name || m.seriesName || "") : "",
+    seriesFormat: m.seriesId ? ((seriesInfo(m.seriesId) || {}).format || "bo3") : (m.type === "Turnier" ? "bo3" : "bo3"),
+    seriesTouched: Boolean(match),
     busy: false,
     snap: "",
   };
@@ -620,6 +628,60 @@ function dupeHtml() {
 function drawDupe() {
   const box = $("#ed-dupe");
   if (box) box.innerHTML = dupeHtml();
+  drawSeries();
+}
+
+// ---------- Serie (BO3/BO5) ----------
+
+// Noch nichts gewählt und es gibt schon eine Serie gegen diesen Gegner am selben Tag: die vorschlagen
+function autoSeries(choices) {
+  if (ed.seriesTouched || ed.series) return;
+  const hit = choices.find((c) => c.value.startsWith("s:") && (seriesInfo(c.value.slice(2)) || {}).last?.date === ed.date);
+  if (hit) useSeries(hit.value);
+}
+function useSeries(value) {
+  ed.series = value;
+  const s = value.startsWith("s:") ? seriesInfo(value.slice(2)) : null;
+  if (s) { ed.seriesName = s.name; ed.seriesFormat = s.format; }
+}
+
+function seriesHtml() {
+  const choices = seriesChoices({ id: ed.id, date: ed.date, opponent: ed.opponent, seriesId: ed.id && ed.series.startsWith("s:") ? ed.series.slice(2) : null });
+  autoSeries(choices);
+  if (ed.series && ed.series !== "new" && !choices.some((c) => c.value === ed.series)) ed.series = "";
+  const o = (v, label) => `<option value="${esc(v)}"${v === ed.series ? " selected" : ""}>${esc(label)}</option>`;
+  const more = ed.series ? `
+      <label class="field"><span>Format</span><select id="ed-sformat" data-f="seriesFormat">${FORMATS.map(([v, t]) => o2(v, t)).join("")}</select></label>
+      <label class="field"><span>Name der Serie</span><input type="text" id="ed-sname" data-f="seriesName" maxlength="40" value="${esc(ed.seriesName)}" placeholder="freiwillig, z. B. Halbfinale" autocomplete="off"></label>` : "";
+  function o2(v, t) { return `<option value="${v}"${v === ed.seriesFormat ? " selected" : ""}>${t}</option>`; }
+  const info = ed.series.startsWith("s:") ? seriesInfo(ed.series.slice(2)) : null;
+  const at = info ? info.maps.findIndex((m) => m.id === ed.id) : -1;
+  const hint = info ? `<p class="hint">Map ${at >= 0 ? at + 1 : info.maps.length + 1} der Serie · Stand bisher ${info.w}:${info.l}</p>`
+    : ed.series.startsWith("m:") ? '<p class="hint">Beide Matches werden zu einer Serie verbunden (das andere wird Map 1).</p>'
+    : ed.series === "new" ? '<p class="hint">Dieses Match wird Map 1. Die nächsten Maps gegen denselben Gegner wählt ihr dann hier aus.</p>' : "";
+  return `<div class="grid-form series-form">
+      <label class="field"><span>Serie (BO3/BO5)</span><select id="ed-series-sel" data-f="series" data-change="mf-series">
+        ${o("", "Einzelnes Match")}${o("new", "Neue Serie starten (Map 1)")}${choices.map((c) => o(c.value, c.label)).join("")}</select></label>${more}
+    </div>${hint}`;
+}
+
+// Beim Zeichnen des ganzen Formulars: merken, was im Kasten steht (für drawSeries)
+function seriesBox() {
+  const html = seriesHtml();
+  queueMicrotask(() => { const box = $("#ed-series"); if (box) box._html = html; });
+  return html;
+}
+
+function drawSeries() {
+  const box = $("#ed-series");
+  if (!box) return;
+  // Nur neu zeichnen, wenn sich etwas ändert: Sonst verschwände z. B. das Namensfeld unter dem Finger,
+  // weil beim Verlassen des Gegner-Felds noch ein "change" kommt.
+  const html = seriesHtml();
+  if (html === box._html) return;
+  const focusId = box.contains(document.activeElement) ? document.activeElement.id : null;
+  box.innerHTML = box._html = html;
+  refocus(box, focusId);
 }
 
 function sheet() {
@@ -639,6 +701,7 @@ function sheet() {
           <input type="text" class="numf" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" id="ed-them" data-f="them" value="${esc(ed.them)}" placeholder="die" aria-label="Runden der Gegner"></div></div>
       </div>
       <div id="ed-dupe" aria-live="polite">${dupeHtml()}</div>
+      <div id="ed-series">${seriesBox()}</div>
 
       <section class="panel"><div class="panel-head"><h2>Spieler</h2><span class="hint">Leere Felder bleiben leer und zählen nicht mit</span></div>
         <div class="panel-body">
@@ -783,6 +846,13 @@ function save() {
     good: points(ed.good).join("\n"), work: points(ed.work).join("\n"),
     opponents: foes,
   };
+  // Serie: neue Kennung, bestehende übernehmen oder ein einzelnes Match mit diesem zu einer Serie verbinden
+  const choice = String(ed.series || "");
+  const link = choice.startsWith("m:") ? choice.slice(2) : null;
+  const seriesId = choice === "new" || link ? newSeriesId() : choice.startsWith("s:") ? choice.slice(2) : null;
+  fields.seriesId = seriesId;
+  fields.seriesName = seriesId ? clean(ed.seriesName) : "";
+  fields.seriesFormat = seriesId ? (ed.seriesFormat === "bo5" ? "bo5" : "bo3") : null;
   const mine = ed;
   ed.busy = true;
   run(async () => {
@@ -811,6 +881,13 @@ function save() {
       fields.players = rows.map((x) => ({ playerId: x.former ? null : x.playerId, name: x.name, agent: x.agent, ...x.stats, ...(x.former ? { former: true } : {}) }));
       let id = mine.id;
       if (id) await change("matches", id, fields); else id = await create("matches", fields);
+      // Die anderen Maps der Serie bekommen denselben Namen und dasselbe Format (und ein verbundenes Match die Kennung)
+      if (seriesId) {
+        const same = { seriesId, seriesName: fields.seriesName, seriesFormat: fields.seriesFormat };
+        const others = seriesMaps(seriesId).filter((x) => x.id !== id && ((x.seriesName || "") !== same.seriesName || x.seriesFormat !== same.seriesFormat));
+        if (link && !others.some((x) => x.id === link)) others.push({ id: link });
+        for (const x of others) await change("matches", x.id, same);
+      }
       // Agenten-Bilder aus dem Auslesen als Beispiele merken (Korrekturen und erste Bestätigungen). Läuft nebenher:
       // Scheitert es (z. B. weil die Firestore-Regel dafür fehlt), ist das Match trotzdem gespeichert.
       learn([...mine.rows, ...mine.foes]).catch((e) => console.warn("Agenten-Beispiele:", e.message || e));
@@ -979,6 +1056,7 @@ export const actions = {
 export const changes = {
   // Art geändert: Bei Premier kommt die Spalte "Trades" dazu, sonst fällt sie weg
   "mf-type": () => { if (ed) { pull(); draw(); } },
+  "mf-series": (el) => { if (!ed) return; pull(); ed.seriesTouched = true; useSeries(el.value); drawSeries(); },
   "mf-scan-file": (el) => {
     const file = el.files && el.files[0];
     if (!ed || ed.scan.busy || !file) return;
