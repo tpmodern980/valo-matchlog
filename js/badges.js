@@ -1,10 +1,10 @@
 // Abzeichen (seit 22.11.2026, Wunsch Tim): pro Spieler, aus allen Matches, mit Stufen zum Aufsteigen wie die Ränge in
-// Valorant (Eisen bis Radiant). Zählt immer alle Matches, die Filter oben gelten nicht. Kein zusätzlicher Lesezugriff.
+// Valorant (Iron bis Radiant). Zählt immer alle Matches, die Filter oben gelten nicht. Kein zusätzlicher Lesezugriff.
 import { S } from "./state.js";
 import { num } from "./util.js";
 import { playerStats, rowKey } from "./stats.js";
 
-export const TIERS = ["Eisen", "Bronze", "Silber", "Gold", "Platin", "Diamant", "Aufgestiegen", "Unsterblich", "Radiant"];
+export const TIERS = ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Ascendant", "Immortal", "Radiant"];
 
 // [id, Name, Symbol, Einheit, Erklärung, Schwellen für die 9 Stufen, Wert aus den Zahlen des Spielers]
 export const BADGES = [
@@ -20,7 +20,7 @@ export const BADGES = [
   ["agents", "Allrounder", "🎭", "Agents", "Verschiedene Agents gespielt", [2, 3, 4, 5, 6, 7, 8, 10, 12], (x) => x.s.agents.length],
 ];
 
-// Stufe zu einem Wert: -1 = noch keine, 0 = Eisen … 8 = Radiant
+// Stufe zu einem Wert: -1 = noch keine, 0 = Iron … 8 = Radiant
 export const tierOf = (value, steps) => steps.reduce((t, need, i) => (value >= need ? i : t), -1);
 
 // Zusatzwerte, die playerStats nicht kennt: MVP-Zahl, längste Siegesserie, meiste Kills in einem Match

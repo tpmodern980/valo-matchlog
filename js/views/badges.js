@@ -22,6 +22,6 @@ export function badgePanel(id) {
   if (!list) return "";
   const got = list.filter((b) => b.tier >= 0).length;
   const sorted = list.slice().sort((a, b) => b.tier - a.tier || (b.next ? b.value / b.next : 1) - (a.next ? a.value / a.next : 1));
-  return `<section class="panel"><div class="panel-head"><h2>Abzeichen</h2><span class="hint">${got} von ${list.length} · Stufen Eisen bis Radiant · aus allen Matches</span></div>
+  return `<section class="panel"><div class="panel-head"><h2>Abzeichen</h2><span class="hint">${got} von ${list.length} · Stufen Iron bis Radiant · aus allen Matches</span></div>
     <div class="badges">${sorted.map(badgeCard).join("")}</div></section>`;
 }
