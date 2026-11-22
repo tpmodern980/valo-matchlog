@@ -2,6 +2,7 @@
 import { S, changed } from "../state.js";
 import { $, esc, toast, copyText } from "../util.js";
 import { loginGoogle, loginEmail, register, resetPassword, confirmVerified, resendVerification, logout, checkAccess, errorText } from "../auth.js";
+import { requestAccess, sentAt } from "../access.js";
 
 // ---------- Bausteine ----------
 
@@ -108,9 +109,11 @@ export function blockedView() {
       <p>Du bist angemeldet, stehst aber noch nicht auf der Team-Liste. Schick dem Admin diese E-Mail-Adresse, damit er dich freischaltet:</p></div>
     <div class="copybox"><code id="my-email">${esc(S.user.email)}</code>
       <button class="btn small" type="button" data-action="copy-email">Kopieren</button></div>
+    ${sentAt() ? `<p class="msg ok">Anfrage gesendet. Sobald ein Admin sie bestätigt, tipp auf „Erneut prüfen“.</p>`
+      : '<div class="auth-btns"><button class="btn primary" type="button" data-action="request-access">Zugang anfragen</button></div><p class="hint">Oder: Die Admins sehen deine Anfrage in der App und schalten dich mit einem Tipp frei.</p>'}
     ${msgBox()}
     <div class="auth-btns">
-      <button class="btn primary" type="button" data-action="recheck">Erneut prüfen</button>
+      <button class="btn${sentAt() ? " primary" : ""}" type="button" data-action="recheck">Erneut prüfen</button>
       <button class="btn" type="button" data-action="logout">Abmelden</button>
     </div>
     <p class="hint">Sobald der Admin dich eingetragen hat, tipp auf „Erneut prüfen“.</p>
@@ -148,6 +151,11 @@ const readEmail = (form) => String(new FormData(form).get("email") || "").trim()
 const readPassword = (form) => String(new FormData(form).get("password") || "");
 
 export const actions = {
+  "request-access": async (el) => {
+    el.disabled = true;
+    try { await requestAccess(); }
+    catch (e) { setMsg("error", e && e.plain ? e.message : (errorText(e) || "Die Anfrage hat nicht geklappt.")); el.disabled = false; }
+  },
   "auth-tab": (el) => {
     S.authTab = el.dataset.tab; S.msg = null; changed();
     // Nur mit Maus/Tastatur gleich ins Feld springen: Am Handy würde sonst sofort die Tastatur aufgehen

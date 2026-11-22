@@ -13,6 +13,7 @@ import { buildCsv, buildJson, download, fileName, readImport, applyImport } from
 import { result } from "../stats.js";
 import { errorText } from "../auth.js";
 import { run, setMsg, msgBox } from "./auth.js";
+import { approve, decline } from "../access.js";
 
 // ---------- Erster Start: Team anlegen ----------
 
@@ -51,6 +52,16 @@ const when = (ms) => {
 };
 
 // ---------- Tab "Team" ----------
+
+// Offene Zugangs-Anfragen (js/access.js): nur Admins
+function requestsHtml() {
+  const list = S.isAdmin ? (S.requests || []) : [];
+  if (!list.length) return "";
+  return `<div class="req-box"><h3 class="group">Zugangs-Anfragen <span class="tag">${list.length}</span></h3>
+    ${list.map((r) => `<div class="member req"><span><b>${esc(r.name || r.email.split("@")[0])}</b> <span class="mail">${esc(r.email)}</span></span>
+      <span class="req-btns"><button class="btn small primary" type="button" data-action="req-ok" data-uid="${esc(r.uid)}">Freischalten</button>
+      <button class="btn small ghost" type="button" data-action="req-no" data-uid="${esc(r.uid)}">Ablehnen</button></span></div>`).join("")}</div>`;
+}
 
 function membersPanel() {
   const t = S.team || { emails: [], admins: [] };
@@ -95,7 +106,7 @@ function membersPanel() {
     : '<p class="hint team-note">Nur Admins können die Liste ändern.</p>';
 
   return `<section class="panel"><div class="panel-head"><h2>Freigeschaltete E-Mails</h2><span class="hint">${plural(all.length, "Adresse", "Adressen")}</span></div>
-    <div class="panel-body"><div class="roster">${rows}</div>${addForm}</div></section>`;
+    <div class="panel-body">${requestsHtml()}<div class="roster">${rows}</div>${addForm}</div></section>`;
 }
 
 
@@ -438,6 +449,17 @@ async function doRestore(coll, id) {
 // ---------- Klicks, Formulare, Datei-Auswahl ----------
 
 export const actions = {
+  "req-ok": async (el) => {
+    if (!S.isAdmin) return;
+    el.disabled = true;
+    try { await approve(el.dataset.uid); toast("Freigeschaltet. Die Person tippt jetzt auf „Erneut prüfen“."); }
+    catch (e) { el.disabled = false; toast(errorText(e) || "Freischalten hat nicht geklappt."); }
+  },
+  "req-no": async (el) => {
+    if (!S.isAdmin) return;
+    if (!el.dataset.sure) { el.dataset.sure = "1"; el.textContent = "Wirklich ablehnen?"; setTimeout(() => { if (el.isConnected) changed(); }, 4000); return; }
+    try { await decline(el.dataset.uid); toast("Anfrage abgelehnt."); } catch (e) { toast(errorText(e) || "Das hat nicht geklappt."); }
+  },
   "season-del": async (el) => {
     if (!S.isAdmin) return;
     if (!el.dataset.sure) { el.dataset.sure = "1"; el.textContent = "Löschen?"; el.style.width = "auto"; setTimeout(() => { if (el.isConnected) changed(); }, 4000); return; }

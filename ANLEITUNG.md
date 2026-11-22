@@ -267,6 +267,30 @@ Ist der Ordner verbunden, gibt es auf jeder Match-Seite und bei jeder Map im Ber
 
 **Notizen pro Strat:** In der Großansicht unter dem Bild **„+ Notiz“**: kurzer Text (z. B. „nur gegen Eco“, „Brix callt“) und auf Wunsch ein Clip aus einem Match auf dieser Map. Die Notiz steht dann unter dem Bild und als Vorschau unter dem Kärtchen (📝). Alle im Team können Notizen schreiben, ändern und löschen. Gespeichert wird in der Sammlung `weeks` (Dokument `stratnotes`), eine neue Firestore-Regel braucht es nicht. Notizen hängen an der Datei in Drive: Wird die Datei in Drive ersetzt (neu hochgeladen statt bearbeitet), ist die Notiz weg. Umbenennen oder Verschieben in einen anderen Ordner schadet nicht.
 
+## Schritt 13: Zugang anfragen einschalten (Regeln ergänzen)
+
+Neue Spieler müssen ihre E-Mail nicht mehr per Hand schicken: Wer angemeldet ist, aber nicht auf der Team-Liste steht, tippt auf **„Zugang anfragen“**. Admins sehen die Anfrage im Tab **„Team“** (oben bei den Mitgliedern, Hinweis auch auf der Startseite) und tippen auf **„Freischalten“** oder **„Ablehnen“**.
+
+Dafür in der Firebase-Konsole unter **Firestore → Regeln** diesen Block einfügen (direkt unter der Zeile `match /config/team …`), dann **Veröffentlichen**:
+
+```
+    match /requests/{uid} {
+      allow read: if isAdmin() || (verified() && request.auth.uid == uid);
+      allow create, update: if verified() && request.auth.uid == uid && request.resource.data.email == email();
+      allow delete: if isAdmin();
+    }
+```
+
+Die komplette Fassung steht in `firestore.rules`. Ohne diesen Block bekommt die Person beim Anfragen eine Meldung und schickt ihre E-Mail wie bisher direkt an einen Admin.
+
+## Match-Review und Baustellen
+
+Im Match-Formular gibt es zwei Felder: **„Lief gut“** und **„Üben wir“** (ein Punkt pro Zeile). Schon genannte „Üben wir“-Punkte stehen als Chips darunter: Antippen übernimmt sie in derselben Schreibweise. Auf der Startseite stehen unter **„Baustellen“** die „Üben wir“-Punkte der letzten 30 Tage, öfter genannte zuerst. Beide Felder gehen auch mit in den Discord-Post zum Ergebnis.
+
+## Gegner bewerten
+
+Auf jeder Gegner-Seite (Analyse → Gegner → Team antippen) gibt jeder Daumen hoch oder runter für **„Wieder scrimmen?“**, **„Pünktlich“** und **„Fair“**. In der Gegner-Liste steht die Spalte **„Wieder?“**. Gespeichert in `weeks/opprating`, keine neue Regel nötig.
+
 ## Wochenrückblick (Tab „Planung“)
 
 Bei jeder Woche mit Matches steht im Tab „Planung“ ein **Wochenrückblick**: Bilanz, Ø Rundendifferenz, Pistols, Vergleich zur Vorwoche, alle Ergebnisse, Spieler der Woche (beste K/D unter allen, die mindestens die Hälfte der Matches gespielt haben), meiste Kills und First Bloods, meistgespielte und beste Map und wie viele geplante Termine gespielt wurden. Bei vergangenen Wochen steht er ganz oben. Ist der Planungs-Kanal eingetragen (Schritt 10), postet ein Admin ihn mit **„Rückblick in Discord posten“**. Das geht auch für Wochen ohne Umfrage.

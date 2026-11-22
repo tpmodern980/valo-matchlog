@@ -13,6 +13,7 @@ import { result, roundInfo, kdOf } from "./stats.js";
 import { appUrl } from "./auth.js";
 import { weekRecap } from "./recap.js";
 import { goalLines, goalsOf, weekStarted } from "./goals.js";
+import { points } from "./review.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
 import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST, mondayOf } from "./views/plan.js";
@@ -101,6 +102,10 @@ export function buildPost(m) {
     if (ri.overtime) parts.push("mit Overtime");
     if (parts.length) fields.push({ name: "Runden", value: parts.join(" · ") });
   }
+  // Review (js/review.js)
+  const good = points(m.good), work = points(m.work);
+  if (good.length) fields.push({ name: "👍 Lief gut", value: cut(good.map((x) => `• ${md(x)}`).join("\n"), 1024) });
+  if (work.length) fields.push({ name: "🛠️ Üben wir", value: cut(work.map((x) => `• ${md(x)}`).join("\n"), 1024) });
   if (m.notes) fields.push({ name: "Notizen", value: cut(md(m.notes), 1024) });
   // Stand der Wochenziele der Woche dieses Matches (js/goals.js), mit diesem Match schon eingerechnet
   if (m.date) {

@@ -29,6 +29,7 @@ export const S = {
   players: [], matches: [], clips: [],
   agentRefs: [],        // KI-Trainingsbilder fürs Screenshot-Auslesen (js/agentrefs.js)
   weeks: [],            // Umfrage und Wochenplan pro Woche (Tab "Planung", js/views/plan.js)
+  requests: [],         // offene Zugangs-Anfragen, nur für Admins (js/access.js)
   loaded: { players: false, matches: false, clips: false, agentRefs: false, weeks: false },
   filters: loadFilters(),
 };

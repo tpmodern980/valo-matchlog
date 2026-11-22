@@ -11,6 +11,7 @@ import { errorText } from "../auth.js";
 import { hasStrats } from "../strats.js";
 import { stratsLink } from "./strats.js";
 import { vetoForMatch, vetoSteps, vetoLabel } from "./veto.js";
+import { points } from "../review.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 
@@ -93,7 +94,12 @@ export function matchView(id) {
       <div class="detail-meta"><span>vs ${esc(m.opponent || "unbekannt")}</span></div></div>
     <div class="detail-score"><div class="score">${esc(m.scoreUs ?? "?")}<span class="sep">:</span>${esc(m.scoreThem ?? "?")}</div><div class="res ${r}">${RES_LABEL[r]}</div></div>
   </div>`;
-  const notes = m.notes ? `<section class="panel"><div class="panel-head"><h2>Notizen</h2></div><div class="panel-body notes-text">${esc(m.notes)}</div></section>` : "";
+  // Review (js/review.js): "Lief gut" und "Üben wir" als Listen, darunter die freien Notizen
+  const list = (text, cls) => { const p = points(text); return p.length ? `<ul class="rv-list ${cls}">${p.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""; };
+  const good = list(m.good, "good"), work = list(m.work, "work");
+  const notes = good || work || m.notes ? `<section class="panel"><div class="panel-head"><h2>Review</h2></div><div class="panel-body">
+      ${good || work ? `<div class="rv-cols">${good ? `<div><h3 class="rv-h good">Lief gut</h3>${good}</div>` : ""}${work ? `<div><h3 class="rv-h work">Üben wir</h3>${work}</div>` : ""}</div>` : ""}
+      ${m.notes ? `<div class="notes-text">${esc(m.notes)}</div>` : ""}</div></section>` : "";
   return top + head + discordPanel(m) + scoreboard(m) + roundsPanel(m) + vetoPanel(m) + notes + clipsPanel(m);
 }
 

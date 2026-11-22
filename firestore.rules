@@ -22,6 +22,13 @@ service cloud.firestore {
     function canUpdate() { return isMember() && stamped() && (!restoring() || isAdmin()); }
 
     match /config/team { allow read: if isMember(); allow write: if isAdmin() && stamped(); }
+    // Zugang anfragen (seit 22.11.2026, ANLEITUNG.md Schritt 13): Jeder Angemeldete legt nur seine eigene Anfrage an
+    // (Dokument-ID = seine uid, mit seiner eigenen E-Mail). Admins sehen alle und löschen sie nach dem Freischalten.
+    match /requests/{uid} {
+      allow read: if isAdmin() || (verified() && request.auth.uid == uid);
+      allow create, update: if verified() && request.auth.uid == uid && request.resource.data.email == email();
+      allow delete: if isAdmin();
+    }
     // Kein "delete": gelöscht wird nur weich (deleted: true)
     match /players/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
     match /matches/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }

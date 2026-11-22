@@ -9,8 +9,10 @@ import { matchesOfWeek } from "../recap.js";
 import { goalsOf, goalTitle, goalStatus } from "../goals.js";
 import { mondayOf, addDays, weekLabel, weekOf, dayLabel, planLink, REST } from "./plan.js";
 import { insights } from "./analysis.js";
+import { workItems } from "../review.js";
 import { tiles, matchRow, record } from "./parts.js";
 
+const fmtShort = (iso) => { const p = String(iso || "").split("-"); return p.length === 3 ? `${p[2]}.${p[1]}.` : "–"; };
 const STATE_CLS = { done: "good", track: "good", miss: "bad", behind: "warn", open: "", nodata: "" };
 
 function nextEntry(today) {
@@ -72,5 +74,13 @@ export function homeView() {
   const formPanel = form.length ? `<section class="panel"><div class="panel-head"><h2>Form der Spieler</h2><span class="hint">KPR der letzten ${FORM_N} Matches gegen den eigenen Schnitt</span></div>
     <div class="hm-form">${form.map(({ s }) => `<a class="hm-player" href="#player-${esc(encodeURIComponent(s.id))}"><b>${esc(s.name)}</b>${formBadge(s)}</a>`).join("")}</div></section>` : "";
 
-  return head + nextPanel + cards + goalPanel + formPanel + results + tipPanel;
+  // Baustellen (js/review.js): was in den letzten 30 Tagen unter "Üben wir" stand, öfter genannte zuerst
+  const work = workItems(daysAgo(30)).slice(0, 6);
+  const workPanel = work.length ? `<section class="panel"><div class="panel-head"><h2>Baustellen</h2><span class="hint">„Üben wir“ aus den letzten 30 Tagen</span></div>
+    <div class="hm-goals">${work.map((x) => `<a class="hm-goal" href="#match-${esc(x.ids[x.ids.length - 1])}"><span class="hm-goal-t">${esc(x.text)}<small>zuletzt ${esc(fmtShort(x.last))}</small></span><span class="gl-state${x.n > 1 ? " warn" : ""}">${x.n}× genannt</span></a>`).join("")}</div></section>` : "";
+
+  // Admins: offene Zugangs-Anfragen (js/access.js)
+  const reqs = S.isAdmin ? (S.requests || []).length : 0;
+  const reqNote = reqs ? `<a class="hm-next hm-req" href="#team"><span>Zugang</span><b>${reqs} ${reqs === 1 ? "offene Anfrage" : "offene Anfragen"}</b><small>Im Tab „Team“ freischalten</small></a>` : "";
+  return head + reqNote + nextPanel + cards + goalPanel + workPanel + formPanel + results + tipPanel;
 }

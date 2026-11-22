@@ -9,6 +9,7 @@ import { create, change, remove, listAdd } from "../data.js";
 import { run, setMsg, msgBox } from "./auth.js";
 import { learn } from "../agentrefs.js";
 import { anyHook, hookFor, postMatch } from "../discord.js";
+import { points, pointKey, workItems } from "../review.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 const MAX_ROWS = 10;
@@ -56,7 +57,7 @@ function lineup() {
   return S.players.filter((p) => p.status !== "sub").sort(byName).slice(0, 5).map((p) => ({ playerId: p.id, name: p.name }));
 }
 
-const snapshot = () => JSON.stringify([ed.date, ed.type, ed.opponent, ed.map, ed.us, ed.them, ed.notes, ed.startSide, ed.rounds,
+const snapshot = () => JSON.stringify([ed.date, ed.type, ed.opponent, ed.map, ed.us, ed.them, ed.notes, ed.good, ed.work, ed.startSide, ed.rounds,
   ...[ed.rows, ed.foes].map((list) => list.map((r) => [r.name, r.agent, ...ALL_STAT_FIELDS.map(([f]) => r[f])]))]);
 
 function open(match) {
@@ -71,6 +72,8 @@ function open(match) {
     us: m.scoreUs === null || m.scoreUs === undefined ? "" : String(m.scoreUs),
     them: m.scoreThem === null || m.scoreThem === undefined ? "" : String(m.scoreThem),
     notes: m.notes || "",
+    // Review: ein Punkt pro Zeile (js/review.js)
+    good: m.good || "", work: m.work || "",
     startSide: m.startSide === "atk" || m.startSide === "def" ? m.startSide : null,
     rounds: cleanRounds(m.rounds),
     rows,
@@ -276,6 +279,21 @@ function roundsInner() {
       ${note}
       <p class="hint">Tipp auf „Sieg“ oder „Niederlage“ für die nächste Runde. Oder tipp direkt auf ein Feld: einmal = Sieg, zweimal = Niederlage, dreimal = wieder offen. So lassen sich bei alten Matches auch nur einzelne Runden nachtragen (z. B. die Pistols 1 und 13 mit ihren Folgerunden), der Rest bleibt offen. Unterstrichen = Pistol-Runde.${len ? ' <button class="linkish" type="button" id="ed-rd-clear" data-action="mf-rounds-clear">Verlauf leeren</button>' : ""}</p>
     </div>`;
+}
+
+// Review: "Lief gut" und "Üben wir", ein Punkt pro Zeile. Unter "Üben wir" die schon genannten Punkte der letzten
+// 60 Tage als Chips: antippen hängt den Punkt an (gleiche Schreibweise = zählt in den Baustellen zusammen).
+function reviewHtml() {
+  const have = new Set(points(ed.work).map(pointKey));
+  const d = new Date(); d.setDate(d.getDate() - 60);
+  const since = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const chips = workItems(since).filter((x) => !have.has(pointKey(x.text))).slice(0, 8);
+  return `<section class="panel"><div class="panel-head"><h2>Review</h2><span class="hint">ein Punkt pro Zeile</span></div>
+    <div class="panel-body rv-edit">
+      <label class="field"><span>Lief gut</span><textarea id="ed-good" data-f="good" maxlength="1000" rows="3" placeholder="z. B. Retakes auf B&#10;Comms in der Overtime">${esc(ed.good)}</textarea></label>
+      <label class="field"><span>Üben wir</span><textarea id="ed-work" data-f="work" maxlength="1000" rows="3" placeholder="z. B. Pistol in der Verteidigung&#10;Nicht einzeln auf A peeken">${esc(ed.work)}</textarea></label>
+      ${chips.length ? `<div class="rv-chips"><span>Schon genannt (antippen = übernehmen):</span>${chips.map((x) => `<button type="button" class="tag rv-chip" data-action="mf-work-add" data-text="${esc(x.text)}">${esc(x.text)}${x.n > 1 ? ` <b>${x.n}×</b>` : ""}</button>`).join("")}</div>` : ""}
+    </div></section>`;
 }
 
 function askHtml() {
@@ -620,7 +638,8 @@ function sheet() {
 
       <section class="panel" id="ed-rounds">${roundsInner()}</section>
 
-      <label class="field"><span>Notizen</span><textarea id="ed-notes" data-f="notes" maxlength="2000" rows="3" placeholder="Was lief gut, was nicht? Strats, Tendenzen der Gegner …">${esc(ed.notes)}</textarea></label>
+      ${reviewHtml()}
+      <label class="field"><span>Weitere Notizen</span><textarea id="ed-notes" data-f="notes" maxlength="2000" rows="3" placeholder="Strats, Tendenzen der Gegner …">${esc(ed.notes)}</textarea></label>
 
       ${askHtml()}
     </div>
@@ -738,6 +757,7 @@ function save() {
     scoreUs: us, scoreThem: them,
     startSide: ed.startSide, rounds: ed.rounds || null,
     notes: String(ed.notes || "").trim(),
+    good: points(ed.good).join("\n"), work: points(ed.work).join("\n"),
     opponents: foes,
   };
   const mine = ed;
@@ -819,6 +839,17 @@ export const actions = {
   },
   "mf-close": wantClose,
   "mf-save": save,
+  // Schon genannten Punkt an "Üben wir" anhängen
+  "mf-work-add": (el) => {
+    const box = $("#ed-work");
+    if (!box) return;
+    const text = el.dataset.text || "";
+    if (!points(box.value).some((p) => pointKey(p) === pointKey(text))) box.value = (box.value.trim() ? box.value.trim() + "\n" : "") + text;
+    ed.work = box.value;
+    const wrap = el.closest(".rv-chips");
+    el.remove();
+    if (wrap && !wrap.querySelector(".rv-chip")) wrap.remove();
+  },
   "mf-post": () => { ed.post = !wantPost(); const b = $("#ed-post"); if (b) { b.setAttribute("aria-pressed", String(ed.post)); b.querySelector(".ed-post-box").textContent = ed.post ? "✓" : ""; } },
 
   "mf-row-add": () => {

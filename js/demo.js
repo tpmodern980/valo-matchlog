@@ -115,6 +115,14 @@ export function loadDemo() {
   const exRow = (m, i) => (i !== GAMES.length - 1 ? m : {
     ...m, players: m.players.map((row, k) => (k === m.players.length - 1 ? { ...row, playerId: null, name: "Vento#EUW", former: true } : row)),
   });
+  // Match-Review (js/review.js) für ein paar Beispiel-Matches, ohne Zufall
+  const REVIEW = {
+    0: ["Retakes auf B\nComms in der Overtime", "Pistol in der Verteidigung\nNicht einzeln auf A peeken"],
+    1: ["Starke Pistol im Angriff", "Pistol in der Verteidigung\nUtility früher nutzen"],
+    3: ["Trades nach First Blood", "Nicht einzeln auf A peeken"],
+    5: ["", "Pistol in der Verteidigung"],
+  };
+  const withReview = (m, i) => (REVIEW[i] ? { ...m, good: REVIEW[i][0], work: REVIEW[i][1] } : m);
   setLocal("matches", [...GAMES.map(([days, type, opponent, map, us, them, withSub], i) => {
     const open = us === null;
     const lineup = PLAYERS.filter((p) => withSub ? p.id !== "pdemo4" : p.status === "stamm");
@@ -135,7 +143,7 @@ export function loadDemo() {
       // Die neuesten Matches haben auch das Scoreboard der Gegner (freiwillig, ältere Matches haben keins)
       opponents: !open && i < 5 ? makeFoes(i, type, rounds, us > them) : [],
     };
-  }).map(exRow), trashedMatch]);
+  }).map(exRow).map(withReview), trashedMatch]);
   // Alle drei Arten von Clips. Das YouTube-Beispiel ist der frei lizenzierte Kurzfilm "Big Buck Bunny"
   // (Blender Foundation, CC BY), er darf eingebettet werden. Die Adresse example.com gehört niemandem.
   const clip = (n, matchId, title, kind, more = {}) => ({

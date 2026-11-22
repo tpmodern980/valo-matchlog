@@ -1143,3 +1143,35 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .gl-tip b { font-size: 14px; font-weight: 600; }
 .gl-tip small { font-size: 12px; color: var(--muted); }
 .season-form { margin-top: 12px; }
+
+/* ---------- Match-Review (js/review.js) ---------- */
+.rv-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rv-edit .rv-chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rv-chips > span { font-size: 12px; color: var(--muted); margin-right: 4px; }
+.rv-chip { cursor: pointer; margin: 0; }
+.rv-chip b { color: var(--draw); }
+@media (max-width: 640px) { .rv-edit { grid-template-columns: 1fr; } }
+.rv-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 10px; }
+.rv-h { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 6px; }
+.rv-h.good { color: var(--win); }
+.rv-h.work { color: var(--draw); }
+.rv-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+
+/* ---------- Gegner bewerten (js/views/opprating.js) ---------- */
+.rt-list { display: flex; flex-direction: column; border: 1px solid var(--line); margin-bottom: 8px; }
+.rt-row { display: grid; grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr); gap: 10px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.rt-row:last-child { border-bottom: 0; }
+.rt-label { font-weight: 600; }
+.rt-btns { display: flex; gap: 6px; }
+.rt-btn { width: 44px; height: 40px; border: 1px solid var(--line); background: var(--surface); border-radius: 4px; cursor: pointer; font-size: 18px; filter: grayscale(1); opacity: .6; }
+.rt-btn[aria-pressed="true"] { filter: none; opacity: 1; }
+.rt-btn.up[aria-pressed="true"] { border-color: var(--win); background: var(--win-soft); }
+.rt-btn.down[aria-pressed="true"] { border-color: var(--loss); background: var(--loss-soft); }
+.rt-sum { font-size: 13px; color: var(--muted); text-align: right; }
+.rt-short { white-space: nowrap; }
+@media (max-width: 640px) { .rt-row { grid-template-columns: 1fr auto; } .rt-sum { grid-column: 1 / -1; text-align: left; } }
+.req-box { margin-bottom: 14px; padding: 10px 12px; background: var(--accent-soft); border-left: 3px solid var(--accent); }
+.req-box .group { margin-top: 0; }
+.member.req { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.req-btns { display: flex; gap: 6px; }
+.hm-req { border-left-color: var(--draw); }

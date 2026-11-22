@@ -13,6 +13,8 @@ import * as analysisPages from "./views/analysis.js";
 import * as goalPages from "./views/goals.js";
 import * as vetoPages from "./views/veto.js";
 import { homeView } from "./views/home.js";
+import * as ratingPages from "./views/opprating.js";
+import { watchRequests, stopRequests } from "./access.js";
 import { hideTip } from "./charts.js";
 import { setupView, errorView } from "./views/setup.js";
 import * as authPages from "./views/auth.js";
@@ -113,6 +115,8 @@ function render() {
   if (!app) matchForm.closeEditor();
   document.body.classList.toggle("no-nav", !app);
   $("#tabs").hidden = !app;
+  // Admins: offene Zugangs-Anfragen beobachten (js/access.js)
+  if (app && S.isAdmin) watchRequests(); else if (!app) stopRequests();
   $("#menu-btn").hidden = !app;
   if (!app) setMenu(false);
   const tab = TAB_OF[r.name] || r.name;
@@ -150,7 +154,7 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions, ...analysisPages.actions, ...goalPages.actions, ...vetoPages.actions };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions, ...analysisPages.actions, ...goalPages.actions, ...vetoPages.actions, ...ratingPages.actions };
 const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms, ...planPages.forms, ...stratPages.forms, ...goalPages.forms };
 // Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt,
 // im Match-Formular: ein Screenshot zum Auslesen)

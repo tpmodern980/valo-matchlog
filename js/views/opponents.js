@@ -4,6 +4,7 @@ import { esc, fmtDate, pct, signed1 } from "../util.js";
 import { filtered, opponentStats, oppKey } from "../stats.js";
 import { filterBar, record, nMatches, tiles, matchRow, noMatches } from "./parts.js";
 import { analysisNav, foePage } from "./analysis.js";
+import { ratingPanel, ratingShort } from "./opprating.js";
 
 // Die Adresse trägt den Namen in der jüngsten Schreibweise; verglichen wird ohne Groß/Klein und Leerzeichen
 const href = (s) => "#opponent-" + encodeURIComponent(s.key === "-" ? "-" : s.name);
@@ -19,7 +20,7 @@ function lastDate(s) {
 function row(s) {
   return `<tr><td class="name"><a class="plink" href="${esc(href(s))}">${esc(s.name)}</a></td>
     ${cell("Bilanz", record(s), "strong")}${cell("Winrate", pct(s.wr))}${cell("Ø Diff.", signed1(s.diff))}${cell("Matches", s.n)}
-    ${cell("Letzte Begegnung", esc(lastDate(s)), "span2")}
+    ${cell("Letzte Begegnung", esc(lastDate(s)), "span2")}${cell("Wieder?", s.key === "-" ? "–" : ratingShort(s.name))}
     ${cell("Maps", mapTags(s), "l wide tags")}</tr>`;
 }
 
@@ -33,7 +34,7 @@ export function opponentsView() {
   const stats = opponentStats(list);
   return head + `<section class="panel"><div class="panel-head"><h2>Alle Gegner</h2><span class="hint">${stats.length} Gegner · ${nMatches(list.length)}</span></div>
     <div class="table-wrap"><table class="rtable ostats">
-      <thead><tr><th>Gegner</th><th>Bilanz</th><th>Winrate</th><th title="Durchschnittliche Rundendifferenz pro Match">Ø Rundendiff.</th><th>Matches</th><th>Letzte Begegnung</th><th class="l">Maps</th></tr></thead>
+      <thead><tr><th>Gegner</th><th>Bilanz</th><th>Winrate</th><th title="Durchschnittliche Rundendifferenz pro Match">Ø Rundendiff.</th><th>Matches</th><th>Letzte Begegnung</th><th title="Wieder scrimmen? (Bewertung des Teams)">Wieder?</th><th class="l">Maps</th></tr></thead>
       <tbody>${stats.map(row).join("")}</tbody></table></div></section>`
     // Agents und Comps der Gegner (vorher Unterreiter in "Analyse", js/views/analysis.js)
     + `<div class="sec-head an-sec"><h2>Agents und Comps der Gegner</h2></div>` + foePage(list);
@@ -64,5 +65,5 @@ export function opponentView(name) {
     <tbody>${s.maps.map((mp) => `<tr><td class="name">${esc(mp.name)}</td><td>${mp.n}</td><td>${record(mp)}</td><td>${pct(mp.wr)}</td></tr>`).join("")}</tbody></table></div></section>`;
   const matches = `<section class="sec"><div class="sec-head"><h2>Matches gegen ${esc(s.name)}</h2><span class="hint">${nMatches(s.n)}</span></div>
     <div class="match-list">${s.matches.map(matchRow).join("")}</div></section>`;
-  return back + head + cards + maps + matches;
+  return back + head + cards + (s.key === "-" ? "" : ratingPanel(s.name)) + maps + matches;
 }
