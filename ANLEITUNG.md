@@ -402,6 +402,10 @@ Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch 
 
 **Pings:** Angepingt wird nur bei der Umfrage-Erinnerung (wer noch nicht abgestimmt hat) und bei einer Absage (wer nachrückt). Der Wochenplan-Post pingt niemanden.
 
+## Wochenplan-Post aktualisiert sich selbst
+
+Nach dem ersten **„Wochenplan in Discord posten“** merkt sich die App die Discord-Nachricht. Danach wird **dieselbe Nachricht bearbeitet**, statt eine neue zu schicken: von selbst, sobald ein Match eingetragen oder gelöscht wird, ein Gegner dazukommt, jemand absagt, abstimmt oder ein Termin bzw. die Aufstellung geändert wird (nach ein paar Sekunden). Unten im Post zeigt Discord die Uhrzeit des letzten Stands. Der Knopf heißt dann **„Wochenplan in Discord aktualisieren“**; **„Als neue Nachricht posten“** schickt bei Bedarf einen frischen Post (die App bearbeitet ab dann den neuen). Wurde die Nachricht in Discord gelöscht, postet der Knopf einfach neu.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

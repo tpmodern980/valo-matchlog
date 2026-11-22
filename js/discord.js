@@ -178,14 +178,15 @@ export const scheduleHookOn = () => validWebhook(scheduleUrl());
 export async function sendPlanHook(payload, url = S.team && S.team.discordPlan) {
   const say = (text) => Object.assign(new Error(text), { plain: true });
   if (!validWebhook(url)) throw say("Für die Planung ist kein Discord-Kanal eingetragen (Tab „Team“ → Discord).");
-  if (S.demo) { console.info("Vorschau: Diese Nachricht ginge an Discord:", payload); return; }
+  if (S.demo) { console.info("Vorschau: Diese Nachricht ginge an Discord:", payload); return null; }
   let res;
   try {
     res = await fetch(url.trim() + "?wait=true", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
   } catch (e) {
     throw say("Discord war nicht erreichbar. Prüf die Verbindung (ein Werbeblocker kann discord.com sperren) und versuch es noch einmal.");
   }
-  if (res.ok) return;
+  // Mit ?wait=true schickt Discord die neue Nachricht zurück (ihre ID braucht der Wochenplan zum späteren Bearbeiten)
+  if (res.ok) { try { return await res.json(); } catch (e) { return null; } }
   let code = 0;
   try { code = Number((await res.json()).code) || 0; } catch (e) { /* ohne Einzelheiten */ }
   if (code === 220001) throw say("Der Planungs-Webhook gehört zu einem Forum-Kanal. Nimm für die Planung einen normalen Text-Kanal.");
@@ -281,12 +282,48 @@ export function buildPlanPost(w) {
     username: "ScrimStar",
     embeds: [{
       title: cut(`🗓️ Wochenplan ${weekLabel(w.start)}`, 256), url: link, color: 0x0B7480,
+      timestamp: new Date().toISOString(),   // Discord zeigt daneben, wann der Stand ist
       description: cut(lines.length ? lines.join("\n") : "Noch keine Termine.", 4000),
       footer: FOOT,
     }],
   };
 }
-export const postPlan = (w) => sendPlanHook(buildPlanPost(w), scheduleUrl());
+// ---------- Wochenplan-Post, der sich selbst aktualisiert (Wunsch Tim, 22.11.2026) ----------
+// Beim ersten Posten merkt sich die Woche die Nachricht (weeks.planMsg = { id, hook }: Nachrichten-ID und die ID des
+// Webhooks, nicht seine geheime Adresse). Danach wird dieselbe Nachricht bearbeitet statt eine neue geschickt:
+// beim Knopf "aktualisieren" und von selbst, wenn sich Plan, Stimmen oder Matches der Woche ändern.
+const hookId = (url) => (String(url || "").match(/webhooks\/(\d+)\//) || [])[1] || "";
+async function editPlanMsg(url, id, payload) {
+  const say = (text, gone = false) => Object.assign(new Error(text), { plain: true, gone });
+  if (S.demo) { console.info("Vorschau: Der Wochenplan-Post würde jetzt aktualisiert:", payload); return; }
+  let res;
+  try {
+    res = await fetch(`${url.trim().replace(/\?.*$/, "").replace(/\/$/, "")}/messages/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  } catch (e) { throw say("Discord war nicht erreichbar."); }
+  if (res.ok) return;
+  if (res.status === 404) throw say("Die alte Wochenplan-Nachricht gibt es nicht mehr.", true);
+  if (res.status === 429) throw say("Discord bremst gerade. Gleich nochmal versuchen.");
+  throw say(`Discord hat die Änderung nicht angenommen (Fehler ${res.status}).`);
+}
+// Posten oder (wenn schon gepostet und derselbe Kanal) die alte Nachricht bearbeiten. fresh = immer neu posten.
+// Liefert { edited, msg }: msg = { id, hook } der neuen Nachricht (zum Merken in der Woche), sonst null
+export async function postPlan(w, { fresh = false } = {}) {
+  const url = scheduleUrl(), payload = buildPlanPost(w), pm = w.planMsg;
+  if (!fresh && pm && pm.id && pm.hook === hookId(url)) {
+    try { await editPlanMsg(url, pm.id, payload); return { edited: true, msg: null }; }
+    catch (e) { if (!e.gone) throw e; }   // gelöscht: neu posten
+  }
+  const msg = await sendPlanHook(payload, url);
+  return { edited: false, msg: msg && msg.id ? { id: String(msg.id), hook: hookId(url) } : S.demo ? { id: "demo", hook: hookId(url) } : null };
+}
+// Still im Hintergrund: den gemerkten Post der Woche auf den neuesten Stand bringen. Fehler nur in der Konsole.
+export async function refreshPlanPost(w) {
+  if (!w || !w.planMsg || !w.planMsg.id || !scheduleHookOn()) return false;
+  const url = scheduleUrl();
+  if (w.planMsg.hook !== hookId(url)) return false;   // Kanal gewechselt: nicht in einen anderen Kanal schreiben
+  try { await editPlanMsg(url, w.planMsg.id, buildPlanPost(w)); return true; }
+  catch (e) { console.warn("Wochenplan-Post aktualisieren:", e.message || e); return false; }
+}
 
 // Wochenrückblick (js/recap.js): Bilanz, Ergebnisse, Spieler der Woche, Maps, Plan. Geht in den Planungs-Kanal.
 const de1 = (n) => n.toFixed(1).replace(".", ","), de2 = (n) => n.toFixed(2).replace(".", ",");

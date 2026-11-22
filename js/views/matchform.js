@@ -2,7 +2,7 @@
 // damit Eingaben erhalten bleiben, wenn die Seite darunter neu gezeichnet wird.
 // Alle Eingaben stehen als Text in "ed" (dem Modell). Vor jedem Neuzeichnen holt pull() die Felder dorthin.
 import { sideTag } from "./match.js";
-import { plannedLineup } from "./plan.js";
+import { plannedLineup, refreshPlanFor } from "./plan.js";
 import { S } from "../state.js";
 import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL, AGENT_LOOKALIKE } from "../constants.js";
 import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
@@ -905,6 +905,9 @@ function save() {
       const saved = (mine.id ? "Match gespeichert." : "Match eingetragen.") + (off ? " Hinweis: Der Rundenverlauf passt nicht zum Score." : "");
       toast(saved);
       location.hash = "match-" + id;
+      // Wochenplan-Post in Discord aktuell halten (Ergebnis beim Termin), auch für das alte Datum, falls es sich geändert hat
+      refreshPlanFor(fields.date);
+      if (mine.date0 && mine.date0 !== fields.date) refreshPlanFor(mine.date0);
       if (send) autoSend(id, saved);
     } finally {
       mine.busy = false;
@@ -1047,6 +1050,7 @@ export const actions = {
     run(async () => {
       try {
         await remove("matches", mine.id);
+        refreshPlanFor(mine.date);
         closeEditor();
         toast("Match gelöscht.");
         location.hash = "matches";

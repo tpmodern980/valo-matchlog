@@ -17,7 +17,7 @@ import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../ut
 import { weekRecap } from "../recap.js";
 import { create, change, remove, setPath, upsertPath } from "../data.js";
 import { result, oppKey } from "../stats.js";
-import { postPoll, postPlan, postRecap, postRemind, postAbsence, planHookOn, scheduleHookOn } from "../discord.js";
+import { postPoll, postPlan, postRecap, postRemind, postAbsence, refreshPlanPost, planHookOn, scheduleHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
@@ -519,14 +519,36 @@ function adminPanel(w) {
   return `<section class="panel"><div class="panel-head"><h2>Discord und Umfrage</h2><span class="hint">nur Admins</span></div>
     <div class="panel-body">
       ${hook ? `<div class="actions">
-          <button class="btn primary" type="button" data-action="plan-post-plan" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Wochenplan in Discord posten</button>
+          <button class="btn primary" type="button" data-action="plan-post-plan" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>${w.planMsg ? "Wochenplan in Discord aktualisieren" : "Wochenplan in Discord posten"}</button>
+          ${w.planMsg ? `<button class="btn ghost" type="button" data-action="plan-post-plan-new" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Als neue Nachricht posten</button>` : ""}
           <button class="btn" type="button" data-action="plan-post-poll" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Umfrage nochmal ankündigen</button>
           ${miss.length ? `<button class="btn" type="button" data-action="plan-post-remind" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Erinnerung posten (${miss.length})</button>` : ""}</div>
         ${miss.length ? `<p class="hint">Noch nicht abgestimmt: ${miss.map((x) => esc(x.name) + (x.all ? "" : ` (${x.open} ${x.open === 1 ? "Tag" : "Tage"} offen)`)).join(", ")}${w.remindPostedAt ? ` · Erinnerung zuletzt am ${esc(when(w.remindPostedAt))}` : ""}</p>` : '<p class="hint">Alle haben abgestimmt.</p>'}
-        <p class="hint">${w.planPostedAt ? `Plan zuletzt gepostet am ${esc(when(w.planPostedAt))}. ` : ""}${w.pollPostedAt ? `Umfrage angekündigt am ${esc(when(w.pollPostedAt))}.` : ""}</p>`
+        <p class="hint">${w.planMsg ? "Der Wochenplan-Post in Discord aktualisiert sich von selbst, wenn sich Termine, Aufstellung, Stimmen oder Matches ändern. " : ""}${w.planPostedAt ? `Plan zuletzt gepostet am ${esc(when(w.planPostedAt))}. ` : ""}${w.pollPostedAt ? `Umfrage angekündigt am ${esc(when(w.pollPostedAt))}.` : ""}</p>`
       : '<p class="hint">Für Discord-Posts im Tab „Team“ unter „Discord“ einen Planungs-Kanal eintragen.</p>'}
       <div class="actions"><button class="btn danger" type="button" data-action="plan-delete" data-week="${esc(w.id)}">Umfrage und Plan dieser Woche löschen</button></div>
     </div></section>`;
+}
+
+// ---------- Wochenplan-Post aktuell halten ----------
+// Nach jeder Änderung an Plan, Stimmen oder Matches einer Woche: kurz warten (mehrere Änderungen gehen zusammen raus),
+// dann den gemerkten Discord-Post der Woche bearbeiten (js/discord.js, refreshPlanPost)
+const refreshTimers = new Map();
+export function refreshSoon(weekId) {
+  if (!weekId) return;
+  clearTimeout(refreshTimers.get(weekId));
+  refreshTimers.set(weekId, setTimeout(() => {
+    refreshTimers.delete(weekId);
+    const w = S.weeks.find((x) => x.id === weekId && !x.deleted);
+    if (w && w.planMsg) refreshPlanPost(w);
+  }, 2500));
+}
+const refreshAfter = (w) => refreshSoon(w && w.id);
+// Für das Match-Formular: Ein Match an diesem Tag wurde gespeichert oder gelöscht
+export function refreshPlanFor(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return;
+  const w = weekOf(mondayOf(date));
+  if (w) refreshSoon(w.id);
 }
 
 // ---------- Aktionen ----------
@@ -538,6 +560,7 @@ async function savePicks(w, date, picks) {
   const old = (w.votes || {})[uid()] || {};
   const next = { email: S.user ? S.user.email : "", playerId: me && me !== "none" ? me : null, name: playerName(me) || (S.user && S.user.name) || "", picks: { ...(old.picks || {}), [date]: picks }, at: Date.now() };
   await setPath("weeks", w.id, ["votes", uid()], next);
+  refreshSoon(w.id);
 }
 
 export const actions = {
@@ -562,7 +585,7 @@ export const actions = {
     const w = wk(el);
     if (!w || !S.isAdmin) return;
     const plan = (w.plan || []).map((e) => (e.id === el.dataset.id ? { ...e, lineup: null } : e));
-    try { await change("weeks", w.id, { plan }); lineupId = null; changed(); toast("Aufstellung kommt wieder aus der Umfrage."); }
+    try { refreshAfter(w); await change("weeks", w.id, { plan }); lineupId = null; changed(); toast("Aufstellung kommt wieder aus der Umfrage."); }
     catch (e) { fail(e); }
   },
   "plan-rest-new": () => { editId = "rest"; changed(); },
@@ -571,11 +594,12 @@ export const actions = {
   "plan-entry-delete": async (el) => {
     const w = wk(el);
     if (!w || !S.isAdmin) return;
-    try { await change("weeks", w.id, { plan: (w.plan || []).filter((e) => e.id !== el.dataset.id) }); editId = null; changed(); toast("Termin gelöscht."); }
+    try { refreshAfter(w); await change("weeks", w.id, { plan: (w.plan || []).filter((e) => e.id !== el.dataset.id) }); editId = null; changed(); toast("Termin gelöscht."); }
     catch (e) { fail(e); }
   },
   "plan-post-poll": async (el) => postNow(wk(el), "poll"),
   "plan-post-plan": async (el) => postNow(wk(el), "plan"),
+  "plan-post-plan-new": async (el) => { if (confirmTwice(el, "Neue Nachricht? Nochmal tippen")) postNow(wk(el), "plan-new"); },
   "plan-post-remind": async (el) => postNow(wk(el), "remind"),
   // Absage für einen Termin: Aufstellung vorher und nachher vergleichen, wer nachrückt, und das in Discord melden
   "plan-out": async (el) => {
@@ -592,6 +616,7 @@ export const actions = {
     busy = true; changed();
     try {
       await change("weeks", w.id, { plan });
+      refreshSoon(w.id);
       let posted = false;
       if (scheduleHookOn()) { try { await postAbsence(w, next, me, sub, after); posted = true; } catch (err) { toast("Abgesagt, aber Discord: " + (err.plain ? err.message : "Posten hat nicht geklappt.")); } }
       if (posted || !scheduleHookOn()) toast(`Abgesagt.${sub ? ` Ersatz: ${playerName(sub)}.` : before.ids.includes(me) ? " Kein Ersatz in der Umfrage." : ""}${posted ? " In Discord gemeldet." : ""}`);
@@ -602,7 +627,7 @@ export const actions = {
     const w = wk(el), me = w ? myPlayer(w) : "";
     if (!w || !me || busy) return;
     const plan = (w.plan || []).map((x) => (x.id === el.dataset.id ? { ...x, out: (x.out || []).filter((id) => id !== me) } : x));
-    try { await change("weeks", w.id, { plan }); toast("Absage zurückgenommen."); } catch (err) { fail(err); }
+    try { refreshAfter(w); await change("weeks", w.id, { plan }); toast("Absage zurückgenommen."); } catch (err) { fail(err); }
   },
   // Rückblick geht auch für Wochen ohne Umfrage (dann wird nicht vermerkt, wann gepostet wurde)
   "plan-post-recap": async (el) => {
@@ -641,7 +666,11 @@ async function postNow(w, what) {
   try {
     if (what === "remind") { await postRemind(w, missingVoters(w)); await change("weeks", w.id, { remindPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Erinnerung würde jetzt in Discord gepostet." : "Erinnerung in Discord gepostet."); }
     else if (what === "poll") { await postPoll(w); await change("weeks", w.id, { pollPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Umfrage würde jetzt in Discord angekündigt." : "Umfrage in Discord angekündigt."); }
-    else { await postPlan(w); await change("weeks", w.id, { planPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Wochenplan würde jetzt in Discord gepostet." : "Wochenplan in Discord gepostet."); }
+    else {
+      const r = await postPlan(w, { fresh: what === "plan-new" });
+      await change("weeks", w.id, { planPostedAt: Date.now(), ...(r.msg ? { planMsg: r.msg } : {}) });
+      toast(S.demo ? `Vorschau: Wochenplan würde jetzt in Discord ${r.edited ? "aktualisiert" : "gepostet"}.` : r.edited ? "Wochenplan in Discord aktualisiert." : "Wochenplan in Discord gepostet. Er aktualisiert sich ab jetzt von selbst.");
+    }
   } catch (e) { fail(e); }
   finally { busy = false; changed(); }
 }
@@ -655,7 +684,7 @@ export const forms = {
     if (!ids.length) return toast("Bitte mindestens einen Spieler anhaken.");
     if (ids.length > TEAM_SIZE) return toast(`Das sind ${ids.length}. Bitte genau ${TEAM_SIZE} anhaken.`);
     const plan = (w.plan || []).map((e) => (e.id === form.dataset.id ? { ...e, lineup: ids } : e));
-    try { await change("weeks", w.id, { plan }); lineupId = null; changed(); toast(ids.length < TEAM_SIZE ? `Gespeichert (${ids.length} von ${TEAM_SIZE}).` : "Aufstellung gespeichert."); }
+    try { refreshAfter(w); await change("weeks", w.id, { plan }); lineupId = null; changed(); toast(ids.length < TEAM_SIZE ? `Gespeichert (${ids.length} von ${TEAM_SIZE}).` : "Aufstellung gespeichert."); }
     catch (e) { fail(e); }
   },
   // Gegner am Spieltag nachtragen: darf jeder im Team (nur dieses Feld ändert sich)
@@ -664,7 +693,7 @@ export const forms = {
     if (!w) return;
     const opponent = String(new FormData(form).get("opponent") || "").trim().slice(0, 40);
     const plan = (w.plan || []).map((e) => (e.id === form.dataset.id ? { ...e, opponent } : e));
-    try { await change("weeks", w.id, { plan }); oppId = null; changed(); toast(opponent ? `Gegner eingetragen: ${opponent}.` : "Gegner entfernt."); }
+    try { refreshAfter(w); await change("weeks", w.id, { plan }); oppId = null; changed(); toast(opponent ? `Gegner eingetragen: ${opponent}.` : "Gegner entfernt."); }
     catch (e) { fail(e); }
   },
   "plan-create": async (form) => {
@@ -701,7 +730,7 @@ export const forms = {
         if (i < 0) return;
         plan[i] = { ...plan[i], ...rest };
       }
-      try { await change("weeks", w.id, { plan }); editId = null; changed(); toast(isNew ? "Ruhetag eingetragen." : "Ruhetag gespeichert."); }
+      try { refreshAfter(w); await change("weeks", w.id, { plan }); editId = null; changed(); toast(isNew ? "Ruhetag eingetragen." : "Ruhetag gespeichert."); }
       catch (e) { fail(e); }
       return;
     }
@@ -731,7 +760,7 @@ export const forms = {
       plan[i] = { ...plan[i], ...fields, status: data.get("status") === "cancelled" ? "cancelled" : "planned", match: match || null };
       extra(1);
     }
-    try { await change("weeks", w.id, { plan }); editId = null; changed(); toast(times.length > 1 ? `${times.length} Termine ${isNew ? "eingetragen" : "gespeichert"}.` : isNew ? "Termin eingetragen." : "Termin gespeichert."); }
+    try { refreshAfter(w); await change("weeks", w.id, { plan }); editId = null; changed(); toast(times.length > 1 ? `${times.length} Termine ${isNew ? "eingetragen" : "gespeichert"}.` : isNew ? "Termin eingetragen." : "Termin gespeichert."); }
     catch (e) { fail(e); }
   },
 };
@@ -756,6 +785,7 @@ export const changes = {
       // Die Stimmen bleiben erhalten (auch bei "spiele nicht mit"): Wer sich nur verklickt hat, verliert nichts.
       // Gezählt werden sie nur mit Spieler (dayStats).
       await setPath("weeks", w.id, ["votes", uid()], { email: S.user ? S.user.email : "", playerId: val === "none" ? null : val, name: playerName(val) || (S.user && S.user.name) || "", picks: old.picks || {}, at: Date.now() });
+      refreshSoon(w.id);
     } catch (e) { fail(e); }
   },
 };
