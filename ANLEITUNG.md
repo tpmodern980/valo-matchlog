@@ -238,7 +238,7 @@ Ohne diese Zeile zeigt der Tab nur „Lade Planung …“, alles andere läuft w
 **Einmal vorher: Konten zuordnen.** Tab **„Team“** → „Freigeschaltete E-Mails“: Bei jeder Adresse unter **„Ist im Team“** den passenden Spieler wählen, bei der Managerin **„Managerin“**. Dann stimmt jeder automatisch als er selbst ab und kann sich nicht verklicken; die Managerin stimmt nicht mit ab. Jeder Spieler lässt sich nur einem Konto zuordnen. Wer noch nicht zugeordnet ist, wählt in der Planung selbst unter „Ich bin“ (dort lassen sich vergebene Spieler nicht wählen).
 
 **So läuft eine Woche:**
-1. **Managerin (oder ein anderer Admin):** Tab „Planung“, mit den Pfeilen die Woche wählen → **„Umfrage erstellen“** → Tage anhaken, pro Tag Scrim (18 / 19 / 20 Uhr) oder Premier (18:00 / 18:30) → **„Umfrage starten“**. Ist der Planungs-Kanal eingetragen, steht die Umfrage sofort mit Link in Discord.
+1. **Managerin (oder ein anderer Admin):** Tab „Planung“, mit den Pfeilen die Woche wählen → **„Umfrage erstellen“** → Tage anhaken, pro Tag Scrim (18 / 19 / 20 / 21 Uhr) oder Premier (18:00 / 18:30) → **„Umfrage starten“**. Ist der Planungs-Kanal eingetragen, steht die Umfrage sofort mit Link in Discord.
 2. **Spieler:** Link antippen oder Tab „Planung“ öffnen (oben steht „Du stimmst ab als …“). Dann pro Tag alle Uhrzeiten antippen, zu denen man kann, oder „kann nicht“. Gespeichert wird sofort.
 3. **Alle sehen** unter „Wer kann wann?“ pro Tag und Uhrzeit, wer kann. Grün = mindestens 5. Darunter steht, wer noch nicht abgestimmt hat.
 4. **Managerin:** Unter „Wochenplan“ mit **„+ Termin“** die Termine eintragen (Tag, Uhrzeit, Art, Gegner, Notiz). Die App schlägt die Uhrzeit vor, zu der die meisten können. Freie Tage mit **„+ Ruhetag“** eintragen (Tag und auf Wunsch eine Notiz). Dann **„Wochenplan in Discord posten“**.
@@ -374,7 +374,7 @@ Im Tab **Spieler** gibt es neben Stamm und Sub die Gruppe **Staff (spielt nicht 
 
 ## VOD-Review im Wochenplan
 
-In der Umfrage lässt sich ein Tag als **VOD-Review** anlegen (18 / 19 / 20 Uhr), und im Wochenplan gibt es die Art **VOD-Review**. Wie Training wird dafür kein Match erwartet.
+In der Umfrage lässt sich ein Tag als **VOD-Review** anlegen (18 / 19 / 20 / 21 Uhr), und im Wochenplan gibt es die Art **VOD-Review**. Wie Training wird dafür kein Match erwartet.
 
 ## Mehrere Scrims an einem Tag
 
@@ -390,7 +390,7 @@ Beim Anlegen eines Termins darf der Gegner leer bleiben. Sobald er feststeht, im
 
 ## Aufstellung im Wochenplan (wer spielt)
 
-Unter jedem Termin steht **👥 wer spielt**. Das kommt automatisch aus der Umfrage: alle, die zur Uhrzeit des Termins können (passt die Uhrzeit zu keinem Umfrage-Zeitpunkt, zählt der letzte davor). Können **mehr als 5**, steht dort „6 können · Aufstellung noch wählen“: Ein Admin tippt **„Jetzt wählen“** und hakt die 5 an. Mit **„Ändern“** lässt sich jede Aufstellung von Hand setzen, „Wieder aus der Umfrage“ macht das rückgängig. Die Spieler stehen auch im **Discord-Post** vom Wochenplan unter dem Termin, und beim Match eintragen schlägt die App die geplante Aufstellung des Tages vor.
+Unter jedem Termin steht **👥 wer spielt**. Das kommt automatisch aus der Umfrage: alle, die genau zur Uhrzeit des Termins können. Jeder Termin zählt für sich: 20 Uhr und 21 Uhr am selben Tag haben ihre eigenen Leute. Steht die Uhrzeit nicht in der Umfrage (z. B. 20:30), wählt ein Admin die Aufstellung von Hand. Können **mehr als 5**, steht dort „6 können · Aufstellung noch wählen“: Ein Admin tippt **„Jetzt wählen“** und hakt die 5 an. Mit **„Ändern“** lässt sich jede Aufstellung von Hand setzen, „Wieder aus der Umfrage“ macht das rückgängig. Die Spieler stehen auch im **Discord-Post** vom Wochenplan unter dem Termin, und beim Match eintragen schlägt die App die geplante Aufstellung des Tages vor.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 

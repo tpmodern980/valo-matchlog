@@ -22,7 +22,8 @@ import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
 // Uhrzeiten, die zur Wahl stehen: Scrim-Tage "ab 18/19/20 Uhr", Premier-Samstag Treffen 18:00 oder 18:30
-export const SLOTS = { scrim: ["18", "19", "20"], premier: ["18:00", "18:30"], vod: ["18", "19", "20"] };
+// 21 Uhr seit 22.11.2026 (Wunsch Tim: Scrims auch um 21 Uhr, die Aufstellung braucht dafür eigene Stimmen)
+export const SLOTS = { scrim: ["18", "19", "20", "21"], premier: ["18:00", "18:30"], vod: ["18", "19", "20", "21"] };
 export const slotLabel = (s) => (s.includes(":") ? s : s + " Uhr");
 export const KIND_LABEL = { scrim: "Scrim", premier: "Premier", vod: "VOD-Review" };
 // VOD-Review (Wunsch Tim, 22.11.2026): Termin ohne Match, wie Training
@@ -120,39 +121,47 @@ function dayStats(w, day) {
   return { slots, no, open };
 }
 // ---------- Aufstellung pro Termin (Wunsch Tim, 22.11.2026) ----------
-// Wer spielt? Von Hand gewählt (entry.lineup = [playerId, …]), sonst aus der Umfrage: alle, die zur Uhrzeit des Termins
-// können. Passt die Uhrzeit zu keinem Umfrage-Zeitpunkt, gilt der letzte Zeitpunkt davor (sonst der erste des Tages).
-// Mehr als 5 verfügbar: ein Admin wählt die 5 von Hand.
+// Wer spielt? Von Hand gewählt (entry.lineup = [playerId, …]), sonst aus der Umfrage: alle, die genau zur Uhrzeit des
+// Termins können. Jeder Termin zählt für sich (20 Uhr und 21 Uhr am selben Tag können verschieden sein). Steht die Uhrzeit
+// nicht in der Umfrage (z. B. 20:30), wählt ein Admin von Hand. Mehr als 5 verfügbar: ebenfalls von Hand.
 export const TEAM_SIZE = 5;
 const hasLineup = (e) => !isRest(e) && !noMatchType(e.type) && e.status !== "cancelled";
 function slotFor(day, time) {
   const slots = SLOTS[day.kind] || SLOTS.scrim;
   const t = (x) => (x.includes(":") ? x : x + ":00").padStart(5, "0");
-  const at = String(time || "");
-  return slots.find((x) => t(x) === at) || slots.filter((x) => t(x) <= at).pop() || slots[0];
+  return slots.find((x) => t(x) === String(time || "")) || null;   // nur ein genauer Treffer zählt
 }
 // Spieler-IDs, die laut Umfrage zum Termin können (in Reihenfolge des Rosters: Stamm vor Subs)
 export function availableFor(w, e) {
   const day = (w.days || []).find((d) => d.date === e.date);
   if (!day) return [];
   const slot = slotFor(day, e.time), ids = new Set();
-  for (const v of Object.values(w.votes || {})) {
+  if (!slot) return [];
+  // Wie in der Übersicht: pro Spieler zählt nur eine Stimme (die des fest zugeordneten Kontos zuerst, nur mit Angabe
+  // für diesen Tag). Sonst würde eine alte, verklickte Stimme den Spieler zusätzlich zu einer anderen Uhrzeit eintragen.
+  const fixed = (v) => (v && v.email && links()[v.email] ? 1 : 0), seen = new Set();
+  for (const v of Object.values(w.votes || {}).sort((a, b) => fixed(b) - fixed(a))) {
     const pid = votePid(v), picks = (v.picks || {})[e.date] || [];
-    if (pid && picks.includes(slot) && S.players.some((p) => p.id === pid && p.status !== "staff")) ids.add(pid);
+    if (!pid || !picks.length || seen.has(pid)) continue;
+    seen.add(pid);
+    if (picks.includes(slot) && S.players.some((p) => p.id === pid && p.status !== "staff")) ids.add(pid);
   }
   const rank = (id) => ((S.players.find((p) => p.id === id) || {}).status === "sub" ? 1 : 0);
   return [...ids].sort((a, b) => rank(a) - rank(b) || playerName(a).localeCompare(playerName(b), "de"));
 }
-// { ids, manual, need }: need = true, wenn mehr als 5 können und noch keiner gewählt hat
+// { ids, manual, need, avail, noSlot }: need = true, wenn mehr als 5 können und noch keiner gewählt hat;
+// noSlot = die Uhrzeit steht nicht in der Umfrage (dann gibt es keine Aufstellung aus der Umfrage)
 export function lineupOf(w, e) {
-  if (!hasLineup(e)) return { ids: [], manual: false, need: false, avail: [] };
+  if (!hasLineup(e)) return { ids: [], manual: false, need: false, avail: [], noSlot: false };
+  const day = (w.days || []).find((d) => d.date === e.date);
+  const noSlot = Boolean(day) && !slotFor(day, e.time);
   const avail = availableFor(w, e);
   const manual = Array.isArray(e.lineup) && e.lineup.length ? e.lineup.filter((id) => S.players.some((p) => p.id === id)) : null;
-  if (manual) return { ids: manual, manual: true, need: false, avail };
-  if (avail.length > TEAM_SIZE) return { ids: [], manual: false, need: true, avail };
-  return { ids: avail, manual: false, need: false, avail };
+  if (manual) return { ids: manual, manual: true, need: false, avail, noSlot };
+  if (avail.length > TEAM_SIZE) return { ids: [], manual: false, need: true, avail, noSlot };
+  return { ids: avail, manual: false, need: false, avail, noSlot };
 }
-export const lineupNames = (ids) => ids.map(playerName).filter(Boolean);
+export const lineupNames = (ids) => ids.map(playerName).filter(Boolean).sort((a, b) => a.localeCompare(b, "de"));
 // Für das Match-Formular: geplante Aufstellung eines Tages (erster Termin mit Spielern)
 export function plannedLineup(date) {
   const w = weekOf(mondayOf(date));
@@ -270,9 +279,9 @@ function createPanel(start) {
     const date = addDays(start, i), sat = i === 5;
     return `<div class="pc-day"><label class="check"><input type="checkbox" name="day" value="${date}" checked> <b>${esc(dayLabel(date))}</b></label>
       <select name="kind-${date}" aria-label="Art am ${esc(dayLabel(date))}">
-        <option value="scrim"${sat ? "" : " selected"}>Scrim (18 / 19 / 20 Uhr)</option>
+        <option value="scrim"${sat ? "" : " selected"}>Scrim (18 / 19 / 20 / 21 Uhr)</option>
         <option value="premier"${sat ? " selected" : ""}>Premier (18:00 / 18:30)</option>
-        <option value="vod">VOD-Review (18 / 19 / 20 Uhr)</option></select></div>`;
+        <option value="vod">VOD-Review (18 / 19 / 20 / 21 Uhr)</option></select></div>`;
   }).join("");
   return `<section class="panel"><div class="panel-head"><h2>Umfrage erstellen</h2><span class="hint">${esc(weekLabel(start))}</span></div>
     <div class="panel-body">
@@ -423,7 +432,7 @@ function planPanel(w) {
       const pool = [...lu.avail, ...S.players.filter((p) => p.status !== "staff" && !lu.avail.includes(p.id)).sort(byName).map((p) => p.id)];
       const chosen = new Set(lu.manual ? lu.ids : lu.ids.length ? lu.ids : lu.avail.slice(0, TEAM_SIZE));
       lineupHtml = `<form class="pl-lineup-form" data-form="plan-lineup" data-week="${esc(w.id)}" data-id="${esc(e.id)}" novalidate>
-          <p class="hint">Wähl die ${TEAM_SIZE} Spieler. Oben die, die laut Umfrage können.</p>
+          <p class="hint">Wähl die ${TEAM_SIZE} Spieler.${lu.avail.length ? ` Oben die ${lu.avail.length}, die laut Umfrage um ${esc(e.time)} können.` : ""}</p>
           <div class="pl-pick">${pool.map((id) => `<label class="check${lu.avail.includes(id) ? "" : " muted"}"><input type="checkbox" name="p" value="${esc(id)}"${chosen.has(id) ? " checked" : ""}> ${esc(playerName(id))}${lu.avail.includes(id) ? "" : " <small>(nicht abgestimmt)</small>"}</label>`).join("")}</div>
           <div class="actions"><button class="btn small primary" type="submit">Speichern</button>
             <button class="btn small ghost" type="button" data-action="plan-lineup-cancel">Abbrechen</button>
@@ -431,6 +440,7 @@ function planPanel(w) {
     } else if (hasLineup(e) && (lu.ids.length || lu.need || S.isAdmin)) {
       const names = lineupNames(lu.ids);
       const text = lu.need ? `<b>${lu.avail.length} können</b> · Aufstellung noch wählen`
+        : !lu.ids.length && lu.noSlot ? `<span class="muted">${esc(e.time || "Diese Uhrzeit")} stand nicht in der Umfrage · Aufstellung von Hand wählen</span>`
         : names.length ? `👥 ${names.map(esc).join(", ")}${names.length < TEAM_SIZE ? ` <span class="muted">(noch ${TEAM_SIZE - names.length} offen)</span>` : ""}${lu.manual ? "" : ' <span class="muted">· aus der Umfrage</span>'}`
         : '<span class="muted">Noch niemand eingetragen</span>';
       const btn = S.isAdmin ? `<button class="linkish" type="button" data-action="plan-lineup" data-id="${esc(e.id)}">${lu.need ? "Jetzt wählen" : "Ändern"}</button>` : "";
