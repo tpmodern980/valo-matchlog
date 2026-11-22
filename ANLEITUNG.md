@@ -384,6 +384,10 @@ Uhrzeiten gehen mit Doppelpunkt (19:30) oder einfach als Ziffern (1930 wird beim
 
 Im Tab **Team → Discord** gibt es unter dem Planungs-Kanal das Feld **„Webhook für Umfrage und Wochenplan“**. Steht dort ein Webhook (z. B. von #scrim-zeiten), gehen Umfrage-Ankündigung und Wochenplan dorthin. Wochenziele, Wochenrückblick und Gegner-Steckbrief bleiben im Planungs-Kanal. Leer = alles geht in den Planungs-Kanal.
 
+## Gegner erst am Spieltag
+
+Beim Anlegen eines Termins darf der Gegner leer bleiben. Sobald er feststeht, im Wochenplan beim Termin auf **„+ Gegner“** tippen, Namen eintragen, **OK**. Das darf jeder im Team, nicht nur Admins. Kennt die App den Gegner schon aus früheren Matches, steht dort **„🔎 Steckbrief“** und führt direkt zu Bilanz, Maps, Agents und Veto-Vorschlag.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

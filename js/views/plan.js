@@ -16,7 +16,7 @@ import { TYPES, RES_LABEL } from "../constants.js";
 import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../util.js";
 import { weekRecap } from "../recap.js";
 import { create, change, remove, setPath, upsertPath } from "../data.js";
-import { result } from "../stats.js";
+import { result, oppKey } from "../stats.js";
 import { postPoll, postPlan, postRecap, planHookOn, scheduleHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
@@ -54,6 +54,7 @@ export const planLink = (start) => "#plan-" + compact(start);
 let creating = false;   // Formular "Umfrage erstellen" offen
 let editId = null;      // Plan-Eintrag, der gerade bearbeitet wird ("new" = neuer)
 let busy = false;
+let oppId = null;       // Plan-Eintrag, bei dem gerade "+ Gegner" offen ist (Gegner erst am Spieltag bekannt)
 window.addEventListener("hashchange", () => { creating = false; editId = null; });
 
 // Wann wurde der Rückblick einer Woche gepostet? Steht am Wochenplan (recapPostedAt) und, seit 22.11.2026, auch in
@@ -357,11 +358,22 @@ function planPanel(w) {
     else if (noMatchType(e.type)) status = "";
     else if (e.date < todayIso) status = '<span class="pl-st muted">noch kein Match eingetragen</span>';
     else status = '<span class="pl-st muted">geplant</span>';
+    // Gegner steht oft erst am Spieltag fest (Wunsch Tim, 22.11.2026): schnell nachtragen, ohne den ganzen Termin zu öffnen.
+    // Kennt die App den Gegner schon aus Matches, führt "Steckbrief" zu seiner Seite.
+    const open = e.status !== "cancelled" && !m && !noMatchType(e.type) && e.date >= todayIso;
+    const known = e.opponent && S.matches.some((x) => oppKey(x.opponent) === oppKey(e.opponent));
+    const oppTools = oppId === e.id
+      ? `<form class="pl-opp" data-form="plan-opp" data-week="${esc(w.id)}" data-id="${esc(e.id)}" novalidate>
+          <input type="text" id="pl-opp-${esc(e.id)}" name="opponent" list="dl-plan-opp2" maxlength="40" value="${esc(e.opponent || "")}" placeholder="Gegner" autocomplete="off" aria-label="Gegner">
+          <datalist id="dl-plan-opp2">${[...new Set(S.matches.map((x) => String(x.opponent || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de")).map((o) => `<option value="${esc(o)}"></option>`).join("")}</datalist>
+          <button class="btn small primary" type="submit">OK</button><button class="btn small ghost" type="button" data-action="plan-opp-cancel">✕</button></form>`
+      : open ? `<button class="btn small ghost" type="button" data-action="plan-opp" data-id="${esc(e.id)}">${e.opponent ? "Gegner ändern" : "+ Gegner"}</button>` : "";
+    const scoutLink = known && !m && e.status !== "cancelled" ? `<a class="linkish pl-scout" href="#opponent-${esc(encodeURIComponent(e.opponent))}">🔎 Steckbrief</a>` : "";
     const main = `<div class="pl-when"><b>${esc(e.time || "–")}</b></div>
       <div class="pl-what"><span class="tag">${esc(e.type)}</span>${e.opponent ? ` vs ${esc(e.opponent)}` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</div>`;
     return `<div class="pl-row${e.status === "cancelled" ? " cancelled" : ""}">
       ${m ? `<a class="pl-main" href="#match-${esc(m.id)}">${main}</a>` : `<div class="pl-main">${main}</div>`}
-      ${status}
+      ${status}${scoutLink}${oppTools}
       ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}</div>`;
   };
   const days = [];
@@ -422,6 +434,8 @@ export const actions = {
     try { await savePicks(w, date, next); } catch (e) { fail(e); }
   },
   "plan-entry-new": () => { editId = "new"; changed(); },
+  "plan-opp": (el) => { oppId = el.dataset.id; changed(); const f = document.getElementById("pl-opp-" + oppId); if (f) f.focus(); },
+  "plan-opp-cancel": () => { oppId = null; changed(); },
   "plan-rest-new": () => { editId = "rest"; changed(); },
   "plan-entry-edit": (el) => { editId = el.dataset.id; changed(); },
   "plan-entry-cancel": () => { editId = null; changed(); },
@@ -475,6 +489,15 @@ async function postNow(w, what) {
 }
 
 export const forms = {
+  // Gegner am Spieltag nachtragen: darf jeder im Team (nur dieses Feld ändert sich)
+  "plan-opp": async (form) => {
+    const w = S.weeks.find((x) => x.id === form.dataset.week);
+    if (!w) return;
+    const opponent = String(new FormData(form).get("opponent") || "").trim().slice(0, 40);
+    const plan = (w.plan || []).map((e) => (e.id === form.dataset.id ? { ...e, opponent } : e));
+    try { await change("weeks", w.id, { plan }); oppId = null; changed(); toast(opponent ? `Gegner eingetragen: ${opponent}.` : "Gegner entfernt."); }
+    catch (e) { fail(e); }
+  },
   "plan-create": async (form) => {
     if (!S.isAdmin || busy) return;
     const data = new FormData(form);

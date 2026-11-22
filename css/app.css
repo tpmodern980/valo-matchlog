@@ -1294,3 +1294,6 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
   .pl-day { grid-template-columns: 1fr; }
   .pl-day-label { border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; align-items: baseline; justify-content: space-between; padding: 8px 10px; }
 }
+.pl-opp { display: flex; gap: 6px; align-items: center; flex: 1 1 220px; }
+.pl-opp input { flex: 1; min-width: 0; }
+.pl-scout { font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
