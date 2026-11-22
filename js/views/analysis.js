@@ -7,13 +7,14 @@ import { S, changed } from "../state.js";
 import { esc, pct } from "../util.js";
 import { filtered } from "../stats.js";
 import { pistolStats, compStats, foeStats, roleLabel } from "../analysis.js";
+import { AGENT_ROLE_LIST } from "../constants.js";
 import { barChart, chartTable } from "../charts.js";
 import { filterBar, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
 
 const SUBS = [["", "Überblick"], ["pistols", "Pistols"], ["comps", "Comps"], ["foes", "Gegner"]];
 const TOP = 3;              // so viele Comps pro Map, bevor "Alle anzeigen" kommt
 const SURE = 3;             // ab so vielen Matches gilt ein Wert als einigermaßen aussagekräftig
-const view = { allComps: false, singles: false };
+const view = { allComps: false, singles: false, allFoeComps: false };
 
 const cell = (label, value, cls = "") => `<td data-label="${esc(label)}"${cls ? ` class="${cls}"` : ""}>${value}</td>`;
 // "58 % (7 von 12)", ohne Werte "–"
@@ -171,19 +172,33 @@ function compPage(list) {
 
 // ---------- Gegner ----------
 
+// Farbe nach eurer Winrate: grün ab 50 %, rot darunter, grau bei weniger als SURE Matches
+const tone = (t) => (t.wr === null || t.n < SURE ? "few" : t.wr >= 0.5 ? "good" : "bad");
+
 function foePage(list) {
   const f = foeStats(list);
   if (!f.withFoes) return section("Gegner", "", empty("Noch kein Match mit Scoreboard der Gegner. Das kommt automatisch dazu, wenn ihr das Scoreboard auslest."));
-  const note = `<p class="hint">Aus ${f.withFoes} von ${nMatches(list.length)} mit Scoreboard der Gegner. „Ergebnis“ und „Winrate“ sind immer eure Ergebnisse in diesen Matches.</p>`;
-  const agents = section("Agents der Gegner", "am häufigsten gesehen zuerst",
-    table("an-foes", [["Agent", "", true], "Rolle", ["Gesehen", "In so vielen Matches hatte der Gegner diesen Agent"], "Ergebnis", "Winrate"],
-      f.agents.map((a) => `<tr><td class="name">${esc(a.name)}</td>
-        ${cell("Rolle", esc(a.role || "–"))}${cell("Gesehen", nMatches(a.n))}${cell("Ergebnis", esc(wins(a)), "an-wrap")}${wrCell(a)}</tr>`)));
+  const note = `<p class="hint">Aus ${f.withFoes} von ${nMatches(list.length)} mit Scoreboard der Gegner. Die Prozente sind immer eure Winrate in den Matches, in denen der Gegner das hatte.</p>`;
+
+  // Agents: kompakte Kacheln, nach Rolle gruppiert. "4× · 75 %" = in 4 Matches gesehen, davon 75 % gewonnen.
+  const chip = (a) => `<span class="an-chip ${tone(a)}" title="${esc(wins(a))}"><b>${esc(a.name)}</b><small>${a.n}× · ${pct(a.wr)}</small></span>`;
+  const groups = [...AGENT_ROLE_LIST, null].map((role) => {
+    const list2 = f.agents.filter((a) => (a.role || null) === role);
+    return list2.length ? `<div class="an-group"><h4>${esc(role || "Ohne Rolle")}</h4><div class="an-chips">${list2.map(chip).join("")}</div></div>` : "";
+  }).join("");
+  const hard = f.agents.filter((a) => a.n >= SURE && a.wr !== null && a.wr < 0.5).sort((a, b) => a.wr - b.wr || b.n - a.n);
+  const hardLine = hard.length ? `<p class="an-warn">Schwer für euch: ${hard.slice(0, 3).map((a) => `<b>${esc(a.name)}</b> ${pct(a.wr)}`).join(" · ")}</p>` : "";
+  const agents = section("Agents der Gegner", "Rot = ihr verliert meistens, Grau = erst wenige Matches",
+    `<div class="panel-body">${hardLine}<div class="an-groups">${groups}</div></div>`);
+
+  // Comps: dieselbe Comp auf mehreren Maps nur einmal, die häufigsten zuerst
+  const rows = view.allFoeComps ? f.comps : f.comps.slice(0, 5);
   const comps = f.comps.length
-    ? section("Comps der Gegner", "",
-      table("an-fcomp", [["Komposition", "", true], "Map", ["Gegner", "", true], "Ergebnis"],
-        f.comps.map((x) => `<tr><td class="name tags">${agentTags(x.agents)}</td>
-          ${cell("Map", esc(x.map))}${cell("Gegner", esc(x.teams.join(", ") || "–"), "l an-wrap")}${cell("Ergebnis", esc(wins(x)), "span2 an-wrap")}</tr>`)))
+    ? section("Comps der Gegner", f.comps.length === 1 ? "1 Comp" : `${f.comps.length} verschiedene · häufigste zuerst`,
+      `<div class="an-list">${rows.map((x) => `<div class="an-item"><div class="an-item-main">${agentTags(x.agents)}</div>
+        <div class="an-item-sub">${esc(x.maps.join(", "))}${x.teams.length ? ` · ${esc(x.teams.join(", "))}` : ""}</div>
+        <div class="an-item-res ${tone(x)}"><b>${pct(x.wr)}</b><small>${esc(wins(x))}</small></div></div>`).join("")}</div>`
+      + (f.comps.length > 5 ? `<div class="an-more"><button type="button" class="btn small ghost" data-action="an-toggle" data-key="allFoeComps">${view.allFoeComps ? "Nur die 5 häufigsten" : `Alle ${f.comps.length} anzeigen`}</button></div>` : ""))
     : "";
   return note + agents + comps;
 }

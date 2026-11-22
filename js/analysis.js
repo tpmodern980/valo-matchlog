@@ -193,10 +193,12 @@ export function foeStats(list) {
       count(agents.get(k), res);
     }
     if (picked.length >= 5) {
-      const mk = norm(m.map) || "-", key = mk + "#" + compKey(picked);
-      if (!comps.has(key)) comps.set(key, { map: mapName(m.map) || "Map?", agents: picked, roles: roleCounts(picked), ...tally(), teams: new Set() });
+      // Dieselbe Comp auf verschiedenen Maps zählt zusammen (die Maps stehen dabei)
+      const key = compKey(picked);
+      if (!comps.has(key)) comps.set(key, { agents: picked, roles: roleCounts(picked), ...tally(), teams: new Set(), maps: new Set() });
       const c = comps.get(key);
       count(c, res);
+      c.maps.add(mapName(m.map) || "Map?");
       const team = String(m.opponent || "").trim();
       if (team) c.teams.add(team);
     }
@@ -204,6 +206,6 @@ export function foeStats(list) {
   return {
     withFoes,
     agents: [...agents.values()].map((a) => ({ ...a, wr: winrate(a) })).sort(byCount),
-    comps: [...comps.values()].map((c) => ({ ...c, teams: [...c.teams], wr: winrate(c) })).sort(byCount),
+    comps: [...comps.values()].map((c) => ({ ...c, teams: [...c.teams], maps: [...c.maps], wr: winrate(c) })).sort(byCount),
   };
 }
