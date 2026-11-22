@@ -281,6 +281,8 @@ Dafür in der Firebase-Konsole unter **Firestore → Regeln** diesen Block einf�
     }
 ```
 
+Nach dem Anfragen erscheint beim Neuen **„Admin Bescheid geben“**: Das öffnet das Teilen-Menü des Handys (WhatsApp, Discord, SMS …) mit einer fertigen Nachricht samt Link, am PC wird sie kopiert. Eine automatische Benachrichtigung an die Admins gibt es nicht (dafür bräuchte es einen eigenen Server).
+
 Die komplette Fassung steht in `firestore.rules`. Ohne diesen Block bekommt die Person beim Anfragen eine Meldung und schickt ihre E-Mail wie bisher direkt an einen Admin.
 
 ## Match-Review und Baustellen

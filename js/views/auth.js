@@ -1,7 +1,7 @@
 // Seiten rund um die Anmeldung: Login, "Bitte E-Mail bestätigen", Sperrseite, keine Verbindung.
 import { S, changed } from "../state.js";
 import { $, esc, toast, copyText } from "../util.js";
-import { loginGoogle, loginEmail, register, resetPassword, confirmVerified, resendVerification, logout, checkAccess, errorText } from "../auth.js";
+import { loginGoogle, loginEmail, register, resetPassword, confirmVerified, resendVerification, logout, checkAccess, errorText, appUrl } from "../auth.js";
 import { requestAccess, sentAt } from "../access.js";
 
 // ---------- Bausteine ----------
@@ -109,11 +109,12 @@ export function blockedView() {
       <p>Du bist angemeldet, stehst aber noch nicht auf der Team-Liste. Schick dem Admin diese E-Mail-Adresse, damit er dich freischaltet:</p></div>
     <div class="copybox"><code id="my-email">${esc(S.user.email)}</code>
       <button class="btn small" type="button" data-action="copy-email">Kopieren</button></div>
-    ${sentAt() ? `<p class="msg ok">Anfrage gesendet. Sobald ein Admin sie bestätigt, tipp auf „Erneut prüfen“.</p>`
+    ${sentAt() ? `<p class="msg ok">Anfrage gesendet. Sag einem Admin kurz Bescheid, die App meldet sich nicht von selbst bei ihm. Sobald er dich freischaltet, tipp auf „Erneut prüfen“.</p>
+      <div class="auth-btns"><button class="btn primary" type="button" data-action="notify-admin">Admin Bescheid geben</button></div>`
       : '<div class="auth-btns"><button class="btn primary" type="button" data-action="request-access">Zugang anfragen</button></div><p class="hint">Oder: Die Admins sehen deine Anfrage in der App und schalten dich mit einem Tipp frei.</p>'}
     ${msgBox()}
     <div class="auth-btns">
-      <button class="btn${sentAt() ? " primary" : ""}" type="button" data-action="recheck">Erneut prüfen</button>
+      <button class="btn" type="button" data-action="recheck">Erneut prüfen</button>
       <button class="btn" type="button" data-action="logout">Abmelden</button>
     </div>
     <p class="hint">Sobald der Admin dich eingetragen hat, tipp auf „Erneut prüfen“.</p>
@@ -151,6 +152,15 @@ const readEmail = (form) => String(new FormData(form).get("email") || "").trim()
 const readPassword = (form) => String(new FormData(form).get("password") || "");
 
 export const actions = {
+  // Fertige Nachricht an einen Admin: übers Teilen-Menü des Handys (WhatsApp, Discord, SMS …), sonst kopieren
+  "notify-admin": async () => {
+    const text = `Hey, ich hab Zugang zu ScrimStar angefragt (${S.user ? S.user.email : ""}). Kannst du mich im Tab „Team“ freischalten? ${appUrl()}#team`;
+    if (navigator.share) {
+      try { await navigator.share({ text }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    if (await copyText(text)) toast("Nachricht kopiert. Schick sie einem Admin, z. B. per Discord oder WhatsApp.");
+    else toast("Kopieren ging nicht. Schick einem Admin einfach deine E-Mail-Adresse.");
+  },
   "request-access": async (el) => {
     el.disabled = true;
     try { await requestAccess(); }
