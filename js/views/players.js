@@ -52,13 +52,15 @@ function editor(p) {
   const id = esc(p.id);
   const aliases = (p.aliases || []).map((a) => `<li class="alias"><span>${esc(a)}</span>
       <button class="alias-x" type="button" data-action="roster-alias-remove" data-id="${id}" data-alias="${esc(a)}" aria-label="${esc(a)} entfernen" title="Entfernen">×</button></li>`).join("");
-  const toSub = p.status !== "sub";
+  // Verschieben: in jede der beiden anderen Gruppen
+  const MOVE = { stamm: "Zum Stamm verschieben", sub: "Zu den Subs verschieben", staff: "Zum Staff (spielt nicht mit)" };
+  const cur = p.status === "sub" || p.status === "staff" ? p.status : "stamm";
   const tools = asking
     ? `<div class="confirm"><span>${esc(p.name)} aus dem Roster nehmen? Alte Matches behalten den Namen.</span>
         <button class="btn small danger solid" type="button" data-action="roster-remove" data-id="${id}">Entfernen</button>
         <button class="btn small" type="button" data-action="roster-cancel">Abbrechen</button></div>`
     : `<div class="actions">
-        <button class="btn small" type="button" data-action="roster-status" data-id="${id}" data-status="${toSub ? "sub" : "stamm"}">${toSub ? "Zu den Subs verschieben" : "Zum Stamm verschieben"}</button>
+        ${Object.keys(MOVE).filter((k) => k !== cur).map((k) => `<button class="btn small" type="button" data-action="roster-status" data-id="${id}" data-status="${k}">${MOVE[k]}</button>`).join("")}
         <button class="btn small danger" type="button" data-action="roster-ask-remove">Aus dem Roster entfernen</button>
       </div>`;
   return `<div class="prow-edit">
@@ -89,7 +91,7 @@ function row(p) {
   const open = p.id === openId;
   const names = (p.aliases || []).length ? p.aliases.map(esc).join(" · ") : "Keine Ingame-Namen eingetragen";
   return `<div class="roster-row prow${open ? " open" : ""}">
-    <div class="member"><a class="plink pl-av" href="#player-${esc(encodeURIComponent(p.id))}">${avatar(p, 28)}<b>${esc(p.name)}</b></a>${roleTags(p)}</div>
+    <div class="member"><a class="plink pl-av" href="#player-${esc(encodeURIComponent(p.id))}">${avatar(p, 28)}<b>${esc(p.name)}</b></a>${p.status === "staff" ? '<span class="tag">Staff</span>' : roleTags(p)}</div>
     <button class="btn small" type="button" data-action="roster-open" data-id="${esc(p.id)}" aria-expanded="${open}">${open ? "Schließen" : "Bearbeiten"}</button>
     ${open ? editor(p) : `<div class="prow-names">${names}</div>`}
   </div>`;
@@ -110,10 +112,11 @@ export function playersView() {
   if (openId && !find(openId)) { openId = null; asking = false; msgAt = "add"; }
 
   const sorted = S.players.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), "de"));
-  const stamm = sorted.filter((p) => p.status !== "sub"), subs = sorted.filter((p) => p.status === "sub");
-  const count = `${stamm.length} Stamm · ${subs.length} ${subs.length === 1 ? "Sub" : "Subs"}`;
+  const stamm = sorted.filter((p) => p.status !== "sub" && p.status !== "staff"), subs = sorted.filter((p) => p.status === "sub");
+  const staff = sorted.filter((p) => p.status === "staff");   // z. B. die Managerin: Profil ja, Statistik nein
+  const count = `${stamm.length} Stamm · ${subs.length} ${subs.length === 1 ? "Sub" : "Subs"}${staff.length ? ` · ${staff.length} Staff` : ""}`;
   const body = sorted.length
-    ? block("Stammspieler", stamm, "Noch keine Stammspieler.") + (subs.length ? block("Subs", subs, "") : "")
+    ? block("Stammspieler", stamm, "Noch keine Stammspieler.") + (subs.length ? block("Subs", subs, "") : "") + (staff.length ? block("Staff (spielt nicht mit)", staff, "") : "")
     : '<p class="hint">Noch kein Roster. Trag unten eure Spieler mit ihren Ingame-Namen ein.</p>';
 
   const o = (v, label) => option(v, label);
@@ -124,7 +127,7 @@ export function playersView() {
         <input type="text" id="np-aliases" name="aliases" data-keep maxlength="200" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="z. B. Tim#EUW, TimAlt#1234"></label>
       <label class="field"><span>Rolle</span><select id="np-role" name="role" data-keep>${ROLES.map((r) => o(r, r)).join("")}</select></label>
       <label class="field"><span>Zweite Rolle</span><select id="np-role2" name="role2" data-keep>${o("", "keine")}${ROLES.map((r) => o(r, r)).join("")}</select></label>
-      <label class="field"><span>Stamm oder Sub</span><select id="np-status" name="status" data-keep>${o("stamm", "Stamm")}${o("sub", "Sub")}</select></label>
+      <label class="field"><span>Stamm, Sub oder Staff</span><select id="np-status" name="status" data-keep>${o("stamm", "Stamm")}${o("sub", "Sub")}${o("staff", "Staff (z. B. Managerin, spielt nicht mit)")}</select></label>
       <button class="btn primary" type="submit">Spieler hinzufügen</button>
     </form>
     ${msgAt === "add" ? msgBox() : ""}
@@ -154,12 +157,12 @@ export const actions = {
     run(() => listRemove("players", el.dataset.id, "aliases", el.dataset.alias), opt);
   },
   "roster-status": (el) => {
-    const p = find(el.dataset.id), status = el.dataset.status === "sub" ? "sub" : "stamm";
+    const p = find(el.dataset.id), status = ["sub", "staff"].includes(el.dataset.status) ? el.dataset.status : "stamm";
     if (!p) return;
     spot("row");
     run(async () => {
       await change("players", p.id, { status });
-      toast(p.name + (status === "sub" ? " ist jetzt Sub." : " ist jetzt Stammspieler."));
+      toast(p.name + (status === "sub" ? " ist jetzt Sub." : status === "staff" ? " ist jetzt Staff (spielt nicht mit)." : " ist jetzt Stammspieler."));
     }, opt);
   },
   "roster-ask-remove": () => { asking = true; S.msg = null; changed(); },
@@ -202,7 +205,7 @@ export const forms = {
     const aliases = splitNames(data.get("aliases"));
     const role = ROLES.includes(data.get("role")) ? data.get("role") : "Flex";
     const role2 = ROLES.includes(data.get("role2")) ? data.get("role2") : null;
-    const status = data.get("status") === "sub" ? "sub" : "stamm";
+    const status = ["sub", "staff"].includes(data.get("status")) ? data.get("status") : "stamm";
     spot("add");
     if (!norm(name)) return setMsg("error", "Bitte gib einen Anzeigenamen ein.");
     if (role2 === role) return setMsg("error", "Die zweite Rolle muss eine andere sein als die erste. Wähl „keine“, wenn es nur eine gibt.");

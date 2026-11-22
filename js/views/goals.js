@@ -44,7 +44,7 @@ function goalRow(g, start, today) {
 function statFields(g, maps) {
   const groups = [...new Set(Object.values(METRICS).map((m) => m.group))];
   const metric = g ? g.metric : "pistol";
-  const players = S.players.filter((p) => p.status !== "ex").slice().sort((a, b) => (a.status === "sub") - (b.status === "sub") || a.name.localeCompare(b.name, "de"));
+  const players = S.players.filter((p) => p.status !== "ex" && p.status !== "staff").slice().sort((a, b) => (a.status === "sub") - (b.status === "sub") || a.name.localeCompare(b.name, "de"));
   return `<label class="field"><span>Wer</span><select name="player">${opt("", "Ganzes Team", g ? g.player : "")}${players.map((p) => opt(p.id, p.name + (p.status === "sub" ? " (Sub)" : ""), g ? g.player : "")).join("")}</select></label>
     <label class="field wide2"><span>Was</span><select name="metric">${groups.map((gr) => `<optgroup label="${esc(gr)}">${Object.entries(METRICS).filter(([, m]) => m.group === gr).map(([k, m]) => opt(k, m.label, metric)).join("")}</optgroup>`).join("")}</select></label>
     <label class="field"><span>Vergleich</span><select name="op">${Object.entries(OPS).map(([k, t]) => opt(k, t, g ? g.op || ">=" : ">=")).join("")}</select></label>

@@ -22,10 +22,13 @@ import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
 // Uhrzeiten, die zur Wahl stehen: Scrim-Tage "ab 18/19/20 Uhr", Premier-Samstag Treffen 18:00 oder 18:30
-export const SLOTS = { scrim: ["18", "19", "20"], premier: ["18:00", "18:30"] };
+export const SLOTS = { scrim: ["18", "19", "20"], premier: ["18:00", "18:30"], vod: ["18", "19", "20"] };
 export const slotLabel = (s) => (s.includes(":") ? s : s + " Uhr");
-const KIND_LABEL = { scrim: "Scrim", premier: "Premier" };
-const PLAN_TYPES = [...TYPES, "Training"];
+export const KIND_LABEL = { scrim: "Scrim", premier: "Premier", vod: "VOD-Review" };
+// VOD-Review (Wunsch Tim, 22.11.2026): Termin ohne Match, wie Training
+export const VOD = "VOD-Review";
+const PLAN_TYPES = [...TYPES, "Training", VOD];
+export const noMatchType = (type) => type === "Training" || type === VOD;
 // Ruhetag (Wunsch Tim, 22.11.2026): eigener Eintrag im Wochenplan ohne Uhrzeit, Gegner und Match
 export const REST = "Ruhetag";
 const isRest = (e) => e && e.type === REST;
@@ -70,7 +73,7 @@ const byTime = (a, b) => String(a.date).localeCompare(String(b.date)) || String(
 // "none" = spielt nicht mit (z. B. die Managerin).
 function myPlayer(w) {
   const l = myLink();
-  if (l) return l === "manager" ? "none" : l;
+  if (l) return staff(l) ? "none" : l;
   const mine = w && w.votes && w.votes[uid()];
   if (mine && "playerId" in mine) return mine.playerId || "none";
   for (const x of S.weeks) { const v = x.votes && x.votes[uid()]; if (v && "playerId" in v) return v.playerId || "none"; }
@@ -80,11 +83,13 @@ const playerName = (id) => { const p = S.players.find((x) => x.id === id); retur
 // Feste Zuordnung Konto -> Spieler aus dem Tab "Team" (config/team.links): Spieler-ID oder "manager"
 const links = () => (S.team && S.team.links) || {};
 const myLink = () => (S.user ? links()[S.user.email] || "" : "");
+// Managerin: als "manager" zugeordnet oder einem Staff-Eintrag im Roster (spielt nicht mit, hat aber ein Profil)
+const staff = (l) => l === "manager" || S.players.some((p) => p.id === l && p.status === "staff");
 // Für wen zählt eine Stimme? Ist das Konto fest zugeordnet, gilt das (auch rückwirkend für alte Stimmen),
 // sonst das, was bei "Ich bin" gewählt war. null = zählt nicht (Managerin, "spiele nicht mit").
 const votePid = (v) => {
   const l = v && v.email ? links()[v.email] : "";
-  if (l) return l === "manager" ? null : l;
+  if (l) return staff(l) ? null : l;
   return (v && v.playerId) || null;
 };
 const voteName = (v) => (votePid(v) && playerName(votePid(v))) || v.name || "?";
@@ -108,7 +113,7 @@ function dayStats(w, day) {
     for (const s of picks) if (slots[s]) slots[s].push(voteName(v));
   }
   // Noch offen: Spieler im Roster (Stamm und Subs), die für diesen Tag nichts angegeben haben
-  const open = S.players.filter((p) => !answered.has(p.id)).map((p) => p.name);
+  const open = S.players.filter((p) => p.status !== "staff" && !answered.has(p.id)).map((p) => p.name);
   return { slots, no, open };
 }
 // Bester Zeitpunkt eines Tages (für den Vorschlag beim Planen)
@@ -122,7 +127,7 @@ function bestSlot(w, day) {
 // Welches Match gehört zu einem Plan-Eintrag? Von Hand gewählt (match = ID), keins (match = "none"), sonst automatisch:
 // Match am selben Tag mit derselben Art; gleicher Gegner zuerst; bei mehreren Terminen derselben Art der Reihe nach.
 export function linkedMatch(entry, w) {
-  if (entry.status === "cancelled" || entry.match === "none" || entry.type === "Training" || isRest(entry)) return null;
+  if (entry.status === "cancelled" || entry.match === "none" || noMatchType(entry.type) || isRest(entry)) return null;
   if (entry.match) return S.matches.find((m) => m.id === entry.match) || null;
   const plan = (w.plan || []).filter((e) => e.status !== "cancelled");
   // Matches, die schon von Hand einem Termin zugeordnet sind, fallen weg
@@ -218,12 +223,13 @@ function createPanel(start) {
     return `<div class="pc-day"><label class="check"><input type="checkbox" name="day" value="${date}" checked> <b>${esc(dayLabel(date))}</b></label>
       <select name="kind-${date}" aria-label="Art am ${esc(dayLabel(date))}">
         <option value="scrim"${sat ? "" : " selected"}>Scrim (18 / 19 / 20 Uhr)</option>
-        <option value="premier"${sat ? " selected" : ""}>Premier (18:00 / 18:30)</option></select></div>`;
+        <option value="premier"${sat ? " selected" : ""}>Premier (18:00 / 18:30)</option>
+        <option value="vod">VOD-Review (18 / 19 / 20 Uhr)</option></select></div>`;
   }).join("");
   return `<section class="panel"><div class="panel-head"><h2>Umfrage erstellen</h2><span class="hint">${esc(weekLabel(start))}</span></div>
     <div class="panel-body">
       <form class="pc-form" data-form="plan-create" data-start="${start}" novalidate>
-        <p class="hint">Welche Tage sollen in die Umfrage? Bei jedem Tag: Scrim oder Premier (bestimmt die Uhrzeiten zur Auswahl).</p>
+        <p class="hint">Welche Tage sollen in die Umfrage? Bei jedem Tag: Scrim, Premier oder VOD-Review (bestimmt die Uhrzeiten zur Auswahl).</p>
         ${rows}
         <div class="actions"><button class="btn primary" type="submit"${busy ? " disabled" : ""}>Umfrage starten</button>
           <button class="btn" type="button" data-action="plan-create-cancel">Abbrechen</button></div>
@@ -234,12 +240,12 @@ function createPanel(start) {
 
 function votePanel(w) {
   const me = myPlayer(w), linked = myLink();
-  const players = S.players.slice().sort((a, b) => a.name.localeCompare(b.name, "de"));
+  const players = S.players.filter((p) => p.status !== "staff").sort((a, b) => a.name.localeCompare(b.name, "de"));
   // Ist das Konto im Tab "Team" fest zugeordnet, gibt es nichts zu wählen. Sonst "Ich bin" als Notlösung:
   // Spieler, die schon einem anderen Konto gehören, lassen sich dort nicht wählen.
   const taken = new Set(Object.values(links()).filter((id) => id !== "manager"));
   const who = linked
-    ? `<p class="pv-me-fixed">${linked === "manager" ? "Du bist als <b>Managerin</b> eingetragen." : `Du stimmst ab als <b>${esc(playerName(linked) || "?")}</b>.`}</p>`
+    ? `<p class="pv-me-fixed">${staff(linked) ? "Du bist als <b>Managerin</b> eingetragen." : `Du stimmst ab als <b>${esc(playerName(linked) || "?")}</b>.`}</p>`
     : `<label class="field pv-me"><span>Ich bin</span>
       <select data-change="plan-me" data-week="${esc(w.id)}">
         <option value=""${me ? "" : " selected"}>Bitte wählen …</option>
@@ -248,7 +254,7 @@ function votePanel(w) {
       </select></label>`;
   let body;
   if (!me) body = '<p class="hint">Wähl zuerst aus, wer du im Roster bist. Das merkt sich die App. (Ein Admin kann dein Konto im Tab „Team“ auch fest zuordnen.)</p>';
-  else if (me === "none") body = `<p class="hint">${linked === "manager" ? "Als Managerin stimmst du nicht mit ab." : "Du spielst nicht mit, deshalb gibt es für dich nichts abzustimmen."} Unten siehst du, wer wann kann.</p>`;
+  else if (me === "none") body = `<p class="hint">${staff(linked) ? "Als Managerin stimmst du nicht mit ab." : "Du spielst nicht mit, deshalb gibt es für dich nichts abzustimmen."} Unten siehst du, wer wann kann.</p>`;
   else {
     const picks = ((w.votes || {})[uid()] || {}).picks || {};
     body = `<div class="pv-days">${(w.days || []).map((day) => {
@@ -303,7 +309,7 @@ function entryForm(w, e) {
   const day = (w.days || []).find((d) => d.date === date);
   const best = day ? bestSlot(w, day) : null;
   const time = e ? e.time : best ? (best.slot.includes(":") ? best.slot : best.slot + ":00") : "19:00";
-  const type = e ? e.type : day && day.kind === "premier" ? "Premier" : "Scrim";
+  const type = e ? e.type : day && day.kind === "premier" ? "Premier" : day && day.kind === "vod" ? VOD : "Scrim";
   const matchesThatDay = S.matches.filter((m) => m.date === date);
   const opts = (list, cur) => list.map((x) => `<option value="${esc(x)}"${x === cur ? " selected" : ""}>${esc(x)}</option>`).join("");
   const oppList = [...new Set(S.matches.map((m) => String(m.opponent || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "de"));
@@ -346,7 +352,7 @@ function planPanel(w) {
       const r = result(m);
       status = `<a class="pl-st st-ok" href="#match-${esc(m.id)}" title="Zum Match">✓ ${r === "Q" ? "eingetragen" : `${esc(m.scoreUs)}:${esc(m.scoreThem)} ${esc(RES_LABEL[r])}`}</a>`;
     }
-    else if (e.type === "Training") status = "";
+    else if (noMatchType(e.type)) status = "";
     else if (e.date < todayIso) status = '<span class="pl-st muted">noch kein Match eingetragen</span>';
     else status = '<span class="pl-st muted">geplant</span>';
     const main = `<div class="pl-when"><b>${esc(dayLabel(e.date))}</b><span>${esc(e.time || "")}</span></div>
@@ -467,7 +473,7 @@ export const forms = {
     if (!S.isAdmin || busy) return;
     const data = new FormData(form);
     const start = form.dataset.start;
-    const days = data.getAll("day").map(String).sort().map((date) => ({ date, kind: data.get("kind-" + date) === "premier" ? "premier" : "scrim" }));
+    const days = data.getAll("day").map(String).sort().map((date) => ({ date, kind: ["premier", "vod"].includes(data.get("kind-" + date)) ? data.get("kind-" + date) : "scrim" }));
     if (!days.length) return toast("Bitte mindestens einen Tag anhaken.");
     if (weekOf(start)) return toast("Für diese Woche gibt es schon eine Umfrage.");
     busy = true; changed();

@@ -100,6 +100,8 @@ export function loadDemo() {
   const gone = (days) => ({ deleted: true, updatedAt: now - days * 86400000 });
   setLocal("players", [
     ...PLAYERS.map(({ skill, agents, ...p }) => ({ ...p, active: true, deleted: false })),
+    // Staff (seit 22.11.2026): die Managerin mit Profil, spielt nicht mit
+    { id: "pdemo8", name: "Mira", aliases: ["Mira#mgr"], role: "Flex", role2: null, status: "staff", riotId: "Mira#mgr", active: true, createdAt: now - 60 * 86400000, createdBy: null, deleted: false },
     { id: "pdemo7", name: "Nox", aliases: ["nox#old"], role: "Duelist", role2: null, status: "sub", active: true, createdAt: now - 90 * 86400000, createdBy: null, ...gone(20) },
   ]);
   const trashedMatch = {
@@ -280,7 +282,7 @@ export function loadDemo() {
     // Wer welches Konto ist (Tab "Team"): die Spieler und die Managerin
     links: {
       "kairo@example.com": "pdemo1", "mats@example.com": "pdemo2", "lumo@example.com": "pdemo3",
-      "feli@example.com": "pdemo4", "brix@example.com": "pdemo5", "zeno@example.com": "pdemo6", "managerin@example.com": "manager",
+      "feli@example.com": "pdemo4", "brix@example.com": "pdemo5", "zeno@example.com": "pdemo6", "managerin@example.com": "pdemo8",
     },
     // Tab "Strats": erfundener Drive-Ordner mit gezeichneten Beispielbildern (js/strats.js, demoFiles)
     stratsFolder: "demo-root", stratsKey: "demo",

@@ -28,10 +28,12 @@ const playerName = (id) => { const p = S.players.find((x) => x.id === id); retur
 // Wer ist eine Stimme? Zugeordnetes Konto -> Spielername; "manager" zählt nicht; sonst der Name aus der Stimme
 const voterOf = (v) => {
   const l = v && v.email ? links()[v.email] : "";
-  if (l === "manager") return null;
+  if (staff(l)) return null;
   return (l && playerName(l)) || v.name || (v.email ? v.email.split("@")[0] : "?");
 };
-const iAmManager = () => Boolean(S.user && links()[S.user.email] === "manager");
+// Managerin: als "manager" zugeordnet oder einem Staff-Eintrag im Roster (spielt nicht mit, hat aber ein Profil)
+const staff = (l) => l === "manager" || S.players.some((p) => p.id === l && p.status === "staff");
+const iAmManager = () => Boolean(S.user && staff(links()[S.user.email]));
 
 // Aktueller Pool: Map-Ordner aus Drive ohne "(inactiv)" (also mit "Lotus (perma bann)"), sonst alle bekannten Maps.
 // notes: Zusatz aus dem Ordnernamen pro Map, z. B. { Lotus: "perma bann" }

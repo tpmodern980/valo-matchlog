@@ -368,6 +368,14 @@ Ascendant liegt zwischen Diamond und Immortal (9 Stufen). Jede Kachel zeigt, wie
 
 Admins sehen auf der Startseite einen Hinweis, solange der Rückblick der Vorwoche (mit Matches) noch nicht in Discord ist, mit **„Jetzt posten“**. Nach dem Posten verschwindet er.
 
+## Managerin mit Profil (Staff)
+
+Im Tab **Spieler** gibt es neben Stamm und Sub die Gruppe **Staff (spielt nicht mit)**. So bekommt die Managerin ein eigenes Profil mit Bild, Riot-ID und tracker.gg-Link, taucht aber in keiner Statistik, keiner Aufstellung, keiner Abstimmung und bei keinen Abzeichen auf. Einrichten (Admin): 1. Spieler → „Spieler hinzufügen“, Name und Riot-ID eintragen, bei „Stamm, Sub oder Staff“ **Staff** wählen. 2. Tab **Team** → bei ihrer E-Mail unter „Ist im Team“ ihren Namen wählen (statt „Managerin“). Danach kann sie unter Spieler → „Mein Profil“ ihr Profil selbst bearbeiten.
+
+## VOD-Review im Wochenplan
+
+In der Umfrage lässt sich ein Tag als **VOD-Review** anlegen (18 / 19 / 20 Uhr), und im Wochenplan gibt es die Art **VOD-Review**. Wie Training wird dafür kein Match erwartet.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

@@ -56,7 +56,7 @@ function lineup() {
   const last = sortMatches(S.matches).find((m) => (m.players || []).length);
   const known = last ? last.players.filter((r) => r.name && S.players.some((p) => p.id === r.playerId)) : [];
   if (known.length) return known.slice(0, 5).map((r) => ({ playerId: r.playerId, name: r.name }));
-  return S.players.filter((p) => p.status !== "sub").sort(byName).slice(0, 5).map((p) => ({ playerId: p.id, name: p.name }));
+  return S.players.filter((p) => p.status !== "sub" && p.status !== "staff").sort(byName).slice(0, 5).map((p) => ({ playerId: p.id, name: p.name }));
 }
 
 const snapshot = () => JSON.stringify([ed.date, ed.type, ed.opponent, ed.map, ed.us, ed.them, ed.notes, ed.good, ed.work, ed.startSide, ed.rounds,
@@ -144,7 +144,7 @@ function fillLists() {
   $("#dl-maps").innerHTML = opts(uniq([...MAPS, ...recent.map((m) => clean(m.map))]).sort((a, b) => a.localeCompare(b, "de")));
   $("#dl-agents").innerHTML = opts(uniq([...AGENTS, ...recent.flatMap((m) => (m.players || []).map((r) => clean(r.agent)))]).sort((a, b) => a.localeCompare(b, "de")));
   const names = [];
-  for (const p of S.players.slice().sort(byName)) names.push(p.name, ...(p.aliases || []));
+  for (const p of S.players.filter((x) => x.status !== "staff").sort(byName)) names.push(p.name, ...(p.aliases || []));
   $("#dl-players").innerHTML = opts([...new Set(names.filter(Boolean))]);
 }
 

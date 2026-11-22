@@ -18,7 +18,7 @@ import { goalLines, goalsOf, weekStarted } from "./goals.js";
 import { points } from "./review.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
-import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST, mondayOf } from "./views/plan.js";
+import { KIND_LABEL, SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST, mondayOf } from "./views/plan.js";
 
 // Webhook-Adressen von Discord (auch die Test-Versionen ptb/canary und die alte discordapp.com)
 const WEBHOOK = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
@@ -198,7 +198,7 @@ const FOOT = { text: "ScrimStar · Fan-Projekt, nicht mit Riot Games verbunden" 
 // Umfrage ankündigen: welche Tage, welche Uhrzeiten, Link zum Abstimmen
 export function buildPollPost(w) {
   const link = appUrl() + planLink(w.start);
-  const lines = (w.days || []).map((d) => `**${dayLabel(d.date)}** · ${d.kind === "premier" ? "Premier" : "Scrim"} · ${(SLOTS[d.kind] || SLOTS.scrim).map(slotLabel).join(" / ")}`);
+  const lines = (w.days || []).map((d) => `**${dayLabel(d.date)}** · ${KIND_LABEL[d.kind] || "Scrim"} · ${(SLOTS[d.kind] || SLOTS.scrim).map(slotLabel).join(" / ")}`);
   return {
     username: "ScrimStar",
     embeds: [{

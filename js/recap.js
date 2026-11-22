@@ -44,7 +44,7 @@ export function weekRecap(start, w = null) {
     const rest = w.plan.filter((e) => e.type === "Ruhetag").length;
     const dates = w.plan.filter((e) => e.type !== "Ruhetag");
     const cancelled = dates.filter((e) => e.status === "cancelled").length;
-    const games = dates.filter((e) => e.status !== "cancelled" && e.type !== "Training");
+    const games = dates.filter((e) => e.status !== "cancelled" && e.type !== "Training" && e.type !== "VOD-Review");
     const played = games.filter((e) => linkedMatch(e, w)).length;   // dieselbe Verknüpfung wie der grüne Haken im Plan
     plan = { total: games.length, played, cancelled, rest };
   }

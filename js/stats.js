@@ -133,7 +133,8 @@ export function playerStats(list, roster = S.players) {
     }
     return by.get(id);
   };
-  for (const p of roster) { const s = get(p.id); s.player = p; s.name = p.name; }
+  // Staff (z. B. die Managerin, spielt nicht mit) steht nicht in der Statistik
+  for (const p of roster) { if (p.status === "staff") continue; const s = get(p.id); s.player = p; s.name = p.name; }
   for (const m of oldestFirst(list)) {
     const res = result(m), rounds = roundsOf(m), seen = new Set();
     for (const row of m.players || []) {

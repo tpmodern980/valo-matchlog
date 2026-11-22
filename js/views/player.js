@@ -10,7 +10,7 @@ import { lineChart, barChart, chartTable } from "../charts.js";
 import { filterBar, record, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
 
 const BLOCKS = [["stamm", "Stammspieler"], ["sub", "Subs"], ["ex", "Nicht mehr im Roster"]];
-const STATUS = { stamm: "Stammspieler", sub: "Sub", ex: "Nicht mehr im Roster" };
+const STATUS = { stamm: "Stammspieler", sub: "Sub", staff: "Staff", ex: "Nicht mehr im Roster" };
 
 // Beste KPR zuerst, Spieler ohne Wert unten
 const byKpr = (a, b) => (b.kpr ?? -1) - (a.kpr ?? -1) || b.n - a.n || a.name.localeCompare(b.name, "de");
@@ -94,6 +94,11 @@ export function playerView(id) {
   const inMatches = S.matches.some((m) => (m.players || []).some((row) => rowKey(row) === id));
   if (!p && !inMatches) return back + '<div class="empty"><h2>Spieler nicht gefunden</h2><p>Diesen Spieler gibt es nicht (mehr), und er steht in keinem Match.</p></div>';
 
+  // Staff (z. B. die Managerin): nur Profil mit Bild, Riot-ID und Tracker, keine Statistik
+  if (p && p.status === "staff") {
+    return back + `<div class="view-head"><div><div class="eyebrow">Team · Staff</div><h1>${esc(p.name)}</h1>
+        <p>Spielt nicht mit, deshalb ohne Statistik und Abzeichen.</p></div></div>` + profileHead(p);
+  }
   const bar = filterBar(true);   // vor filtered(): räumt veraltete Filter weg
   const s = playerStats(filtered()).find((x) => x.id === id)
     // Nicht mehr im Roster und kein Match für diese Filter: leere Zeile mit dem Namen aus den alten Matches
