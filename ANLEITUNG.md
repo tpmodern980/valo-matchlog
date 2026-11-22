@@ -386,7 +386,7 @@ Im Tab **Team → Discord** gibt es unter dem Planungs-Kanal das Feld **„Webho
 
 ## Gegner erst am Spieltag
 
-Beim Anlegen eines Termins darf der Gegner leer bleiben. Sobald er feststeht, im Wochenplan beim Termin auf **„+ Gegner“** tippen, Namen eintragen, **OK**. Das darf jeder im Team, nicht nur Admins. Kennt die App den Gegner schon aus früheren Matches, steht dort **„🔎 Steckbrief“** und führt direkt zu Bilanz, Maps, Agents und Veto-Vorschlag.
+Beim Anlegen eines Termins darf der Gegner leer bleiben. Wird später das Match eingetragen, steht dessen Gegner automatisch beim Termin (im Plan und im Discord-Post). Bei zwei Scrims am selben Tag ohne Gegner ordnet die App die Matches in der Reihenfolge zu, in der sie eingetragen werden: erst das 1. Scrim eintragen, dann das 2. Sobald er feststeht, im Wochenplan beim Termin auf **„+ Gegner“** tippen, Namen eintragen, **OK**. Das darf jeder im Team, nicht nur Admins. Kennt die App den Gegner schon aus früheren Matches, steht dort **„🔎 Steckbrief“** und führt direkt zu Bilanz, Maps, Agents und Veto-Vorschlag.
 
 ## Aufstellung im Wochenplan (wer spielt)
 

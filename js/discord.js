@@ -267,7 +267,8 @@ export function buildPlanPost(w) {
   }
   function line(e) {
     if (e.type === REST) return `💤 Ruhetag${e.note ? ` – ${md(e.note)}` : ""}`;
-    const text = `${e.time ? `**${e.time}** · ` : ""}${md(e.type)}${e.opponent ? ` vs ${md(e.opponent)}` : ""}${e.note ? ` – ${md(e.note)}` : ""}`;
+    const mm = e.status === "cancelled" ? null : linkedMatch(e, w), opp = e.opponent || (mm && String(mm.opponent || "").trim()) || "";
+    const text = `${e.time ? `**${e.time}** · ` : ""}${md(e.type)}${opp ? ` vs ${md(opp)}` : ""}${e.note ? ` – ${md(e.note)}` : ""}`;
     if (e.status === "cancelled") return `❌ ~~${text}~~ (abgesagt)`;
     const m = linkedMatch(e, w);
     if (m) return result(m) === "Q" ? `✅ ${text} (gespielt)` : `✅ ${text} → ${num(m.scoreUs)}:${num(m.scoreThem)} ${HEAD[result(m)].word}`;
