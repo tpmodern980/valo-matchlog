@@ -15,7 +15,7 @@ import { weekRecap } from "./recap.js";
 import { goalLines, goalsOf, weekStarted } from "./goals.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
-import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST } from "./views/plan.js";
+import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST, mondayOf } from "./views/plan.js";
 
 // Webhook-Adressen von Discord (auch die Test-Versionen ptb/canary und die alte discordapp.com)
 const WEBHOOK = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
@@ -77,8 +77,8 @@ function boardLines(m) {
     const k = num(r.kills), d = num(r.deaths), a = num(r.assists);
     const kda = [k, d, a].map((v) => (v === null ? "–" : v)).join("/");
     const kd = kdOf(k, d);
-    const bits = [`\`${kda}\` **${md(name)}**`];
-    if (r.agent) bits.push(md(r.agent));
+    // Agent direkt am Namen (Wunsch Tim, 22.11.2026: Agents im Scoreboard gut sichtbar)
+    const bits = [`\`${kda}\` **${md(name)}**${r.agent ? ` (${md(r.agent)})` : ""}`];
     if (kd !== null) bits.push(`K/D ${fmt2(kd)}`);
     if (r.former) bits.push("(ehemalig)");
     return bits.join(" · ") + (r === top ? " ⭐ MVP" : "");
@@ -102,6 +102,11 @@ export function buildPost(m) {
     if (parts.length) fields.push({ name: "Runden", value: parts.join(" · ") });
   }
   if (m.notes) fields.push({ name: "Notizen", value: cut(md(m.notes), 1024) });
+  // Stand der Wochenziele der Woche dieses Matches (js/goals.js), mit diesem Match schon eingerechnet
+  if (m.date) {
+    const goals = goalLines(mondayOf(m.date), true, isoToday());
+    if (goals.length) fields.push({ name: "Wochenziele", value: cut(goals.join("\n"), 1024) });
+  }
   return {
     username: "ScrimStar",
     embeds: [{

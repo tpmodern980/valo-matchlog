@@ -3,7 +3,8 @@
 // der Woche und die wichtigsten Erkenntnisse aus dem Tab "Analyse". Rechnet nur mit dem, was schon geladen ist.
 import { S } from "../state.js";
 import { esc, isoDate, pct, signed1, daysAgo } from "../util.js";
-import { teamSummary, sortMatches } from "../stats.js";
+import { teamSummary, sortMatches, playerStats, formOf, FORM_N } from "../stats.js";
+import { formBadge } from "./player.js";
 import { matchesOfWeek } from "../recap.js";
 import { goalsOf, goalTitle, goalStatus } from "../goals.js";
 import { mondayOf, addDays, weekLabel, weekOf, dayLabel, planLink, REST } from "./plan.js";
@@ -65,5 +66,11 @@ export function homeView() {
     <p class="hint">Aus den letzten 30 Tagen.</p>
     <div class="an-cards">${tips.map((x) => `<a class="an-card ${x.tone}" href="#analysis${x.sub ? "-" + x.sub : ""}"><b>${esc(x.title)}</b><span>${esc(x.text)}</span><small>Details →</small></a>`).join("")}</div></section>` : "";
 
-  return head + nextPanel + cards + goalPanel + results + tipPanel;
+  // Form der Spieler (Wunsch Tim, 22.11.2026): wer gerade heiß ↑ oder kalt ↓ läuft, aus allen Matches
+  const form = playerStats(S.matches).filter((s) => s.status !== "ex").map((s) => ({ s, f: formOf(s) })).filter((x) => x.f)
+    .sort((a, b) => b.f.delta - a.f.delta);
+  const formPanel = form.length ? `<section class="panel"><div class="panel-head"><h2>Form der Spieler</h2><span class="hint">KPR der letzten ${FORM_N} Matches gegen den eigenen Schnitt</span></div>
+    <div class="hm-form">${form.map(({ s }) => `<a class="hm-player" href="#player-${esc(encodeURIComponent(s.id))}"><b>${esc(s.name)}</b>${formBadge(s)}</a>`).join("")}</div></section>` : "";
+
+  return head + nextPanel + cards + goalPanel + formPanel + results + tipPanel;
 }

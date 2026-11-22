@@ -2,10 +2,10 @@
 // ändern, abhaken und löschen (Entscheidung Tim, 22.11.2026).
 import { S, changed } from "../state.js";
 import { TYPES, MAPS } from "../constants.js";
-import { esc, isoDate, toast } from "../util.js";
+import { esc, isoDate, toast, pct, daysAgo } from "../util.js";
 import { upsertPath } from "../data.js";
 import { errorText } from "../auth.js";
-import { METRICS, OPS, goalsOf, goalsDoc, goalsDocId, goalTitle, goalStatus, cleanMap } from "../goals.js";
+import { METRICS, OPS, goalsOf, goalsDoc, goalsDocId, goalTitle, goalStatus, cleanMap, suggestGoals } from "../goals.js";
 import { postGoals, planHookOn } from "../discord.js";
 
 let formFor = null;     // Woche (Montag), für die das Formular "Ziel hinzufügen" offen ist
@@ -66,8 +66,14 @@ function goalForm(start, g = null) {
   const fields = kind === "free"
     ? `<label class="field wide"><span>Ziel</span><input type="text" name="text" maxlength="100" required value="${esc(g ? g.text : "")}" placeholder="z. B. Retakes auf B üben" autocomplete="off"></label>`
     : statFields(g, maps);
+  // Vorschläge aus den Schwächen der letzten 30 Tage: antippen = Ziel sofort anlegen
+  const tips = !g && kind === "stat" ? suggestGoals(start, daysAgo(30)) : [];
+  const tipBox = !g && kind === "stat"
+    ? `<div class="gl-tips"><span>Vorschläge aus den letzten 30 Tagen (antippen = Ziel anlegen)</span>${tips.length
+      ? `<div class="gl-tip-list">${tips.map((t) => `<button type="button" class="gl-tip" data-action="goal-suggest" data-start="${start}" data-metric="${t.metric}" data-target="${t.target}"><b>${esc(METRICS[t.metric].label)} mindestens ${t.target} %</b><small>jetzt ${pct(t.now)}</small></button>`).join("")}</div>`
+      : '<small class="hint">Gerade keine klare Schwäche (oder noch zu wenige Matches mit Rundenverlauf).</small>'}</div>` : "";
   return `<form class="gl-form" data-form="goal-save" data-start="${start}" data-id="${esc(g ? g.id : "")}" data-kind="${kind}">
-    ${seg}<div class="gl-fields">${fields}</div>
+    ${seg}${tipBox}<div class="gl-fields">${fields}</div>
     <div class="actions"><button class="btn primary" type="submit"${busy ? " disabled" : ""}>${g ? "Speichern" : "Ziel hinzufügen"}</button>
       <button class="btn" type="button" data-action="goal-cancel">Abbrechen</button></div></form>`;
 }
@@ -114,6 +120,19 @@ export const actions = {
       return;
     }
     try { await save(start, { ...g, deleted: true }); toast("Ziel gelöscht."); } catch (e) { fail(e); }
+  },
+  // Vorschlag antippen: Team-Ziel "mindestens" sofort anlegen
+  "goal-suggest": async (el) => {
+    const start = el.dataset.start, metric = el.dataset.metric, target = Number(el.dataset.target);
+    if (busy || !METRICS[metric] || !isFinite(target)) return;
+    busy = true;
+    try {
+      const id = "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await save(start, { id, kind: "stat", metric, op: ">=", target, player: "", map: "", type: "", text: "", done: false, doneBy: null, by: who(), at: Date.now(), deleted: false });
+      formFor = null;
+      toast("Ziel hinzugefügt.");
+    } catch (e) { fail(e); }
+    finally { busy = false; changed(); }
   },
   // Ziele einzeln in den Discord-Planungs-Kanal posten (alle dürfen, wie beim Anlegen der Ziele)
   "goal-post": async (el) => {

@@ -284,6 +284,8 @@ Oben im Bereich **„Analyse“ → „Maps“** gibt jeder pro Map 1–5 Sterne
 
 Übersicht · Matches · Spieler · Analyse · Strats · Planung · Team. **Maps** und **Gegner** stehen jetzt als Unterreiter in **Analyse** (zusammen mit Überblick, Pistols, Comps). Auf der Gegner-Seite stehen unten auch die Agents und Comps der Gegner. Im Filter „Zeitraum“ gibt es zusätzlich **Letzte 7 Tage** und **Letzte 10 Matches**.
 
+**Startseite:** zeigt zusätzlich die **Form der Spieler** (Pfeile). **Discord-Ergebnis:** Agent steht am Spielernamen, darunter der Stand der Wochenziele.
+
 **Form-Trend:** In der Spieler-Tabelle und auf jeder Spieler-Seite zeigt ein Pfeil, wie die letzten 5 Matches im Vergleich zum Schnitt laufen (KPR, ab ±10 % ↑ bzw. ↓; die K/D steht im Tooltip). Braucht mindestens 6 Matches mit Kills und Score.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
@@ -306,6 +308,7 @@ Seit 22.11.2026 merkt sich die App bei den Agents, die leicht verwechselt werden
 Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Alle im Team dürfen Ziele anlegen, ändern, abhaken und löschen.
 
 - **Statistik-Ziele** prüft die App selbst aus den Matches der Woche. Ihr baut sie euch zusammen: **Wer** (ganzes Team oder ein Spieler), **Was** (Winrate, Siege, gespielte Matches, Rundendifferenz, Angriff/Verteidigung, Pistols und Folgerunden, K/D, KPR, Kills/Deaths/Assists/First Bloods/Plants/Defuses/Trades pro Match), **mindestens** oder **höchstens**, der Wert und wahlweise Map und Art. Beispiele: „Kairo: K/D mindestens 1,1“, „Deaths pro Match höchstens 70“, „Pistol-Quote mindestens 60 % · nur Premier“. Mit einem Spieler zählen nur Matches, in denen er dabei war. Während der Woche steht dort „auf Kurs“ oder „noch drunter/drüber“, danach „erreicht“ oder „verfehlt“.
+- **Vorschläge:** Beim Anlegen zeigt die App bis zu drei Ziele aus euren Schwächen der letzten 30 Tage (z. B. „Pistol in der Verteidigung mindestens 50 % · jetzt 40 %“). Antippen legt das Ziel direkt an.
 - Was die App nicht messen kann (alles, was nicht in den Matches steht, z. B. Lineups, Comms, VODs), legt ihr als freies Ziel an.
 - **Freie Ziele** (z. B. „Retakes auf B üben“) werden von Hand abgehakt.
 - **„Ziele der Vorwoche übernehmen“** kopiert die Ziele der letzten Woche in eine leere Woche.

@@ -80,7 +80,7 @@ export function goalTitle(g) {
 function measure(metric, all, player) {
   const mine = (m) => (m.players || []).filter((r) => { const k = rowKey(r); return k && (!player || k === player); });
   const list = player ? all.filter((m) => mine(m).length) : all;
-  const share = (w, n) => (n ? { value: w / n, text: `${pct(w / n)} (${w} von ${n})` } : null);
+  const share = (w, n) => (n ? { value: w / n, n, text: `${pct(w / n)} (${w} von ${n})` } : null);
   const nMatch = (n) => `${n} ${n === 1 ? "Match" : "Matches"}`;
   switch (metric) {
     case "winrate": { let w = 0, n = 0; for (const m of list) { const r = result(m); if (r === "Q") continue; n++; if (r === "W") w++; } return share(w, n); }
@@ -178,3 +178,23 @@ function addDaysIso(iso, n) {
 }
 
 export const cleanMap = (text) => (text ? mapName(text) : "");
+
+// Ziel-Vorschläge aus euren Schwächen (Wunsch Tim, 22.11.2026): Team-Werte der letzten 30 Tage gegen einen
+// üblichen Richtwert. Vorschlag = etwa 10 Prozentpunkte besser als jetzt (auf 5 gerundet), höchstens der Richtwert.
+// Nur Werte mit mindestens 4 Fällen, ohne Kennzahlen, für die es in der Woche schon ein Team-Ziel gibt.
+const BENCH = { pistolDef: 0.5, pistolAtk: 0.5, conv: 0.75, eco: 0.3, def: 0.5, atk: 0.5, pistol: 0.5, winrate: 0.5, roundsWon: 0.5 };
+export function suggestGoals(start, since) {
+  const list = S.matches.filter((m) => (m.date || "") >= since);
+  const taken = new Set(goalsOf(start).filter((g) => g.kind === "stat" && !g.player && !g.map && !g.type).map((g) => g.metric));
+  const out = [];
+  for (const [metric, bench] of Object.entries(BENCH)) {
+    if (taken.has(metric)) continue;
+    const v = measure(metric, list, "");
+    if (!v || (v.n ?? 0) < 4 || v.value >= bench) continue;
+    const target = Math.min(bench, Math.ceil((v.value + 0.1) * 20) / 20);
+    out.push({ metric, now: v.value, target: Math.round(target * 100), gap: (bench - v.value) / bench });
+  }
+  // Pistol gesamt nur, wenn nicht schon eine Seite vorgeschlagen ist (sonst doppelt)
+  const sides = out.some((x) => x.metric === "pistolAtk" || x.metric === "pistolDef");
+  return out.filter((x) => !(sides && x.metric === "pistol")).sort((a, b) => b.gap - a.gap).slice(0, 3);
+}
