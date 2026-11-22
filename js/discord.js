@@ -12,7 +12,7 @@ import { num, fmt2, fmtDate, norm } from "./util.js";
 import { result, roundInfo, kdOf } from "./stats.js";
 import { appUrl } from "./auth.js";
 import { weekRecap } from "./recap.js";
-import { goalLines } from "./goals.js";
+import { goalLines, goalsOf, weekStarted } from "./goals.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
 import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST } from "./views/plan.js";
@@ -250,3 +250,18 @@ export function buildRecapPost(start, w = null) {
   };
 }
 export const postRecap = (start, w) => sendPlanHook(buildRecapPost(start, w));
+
+// Wochenziele einzeln posten (Wunsch Tim, 22.11.2026: Der Wochenplan läuft vorerst nicht über die App).
+// Vor der Woche nur die Ziele, ab Wochenbeginn mit dem aktuellen Stand. Geht in den Planungs-Kanal.
+export function buildGoalsPost(start) {
+  const goals = goalsOf(start);
+  if (!goals.length) throw Object.assign(new Error("Für diese Woche gibt es noch keine Ziele."), { plain: true });
+  const today = isoToday(), link = appUrl() + planLink(start);
+  const started = weekStarted(start, today);
+  const lines = [...goalLines(start, started, today), "", `[In ScrimStar ansehen](${link})`];
+  return {
+    username: "ScrimStar",
+    embeds: [{ title: cut(`🎯 Wochenziele ${weekLabel(start)}`, 256), url: link, color: 0x0B7480, description: cut(lines.join("\n"), 4000), footer: FOOT }],
+  };
+}
+export const postGoals = (start) => sendPlanHook(buildGoalsPost(start));

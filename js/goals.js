@@ -92,15 +92,20 @@ export function goalStatus(g, start, today) {
   return { state: ok ? "track" : "behind", label: ok ? "auf Kurs" : "noch drunter", value: v, progress, mark };
 }
 
-// Für Discord: eine Zeile pro Ziel. withState = mit ✅/❌ (Rückblick), sonst 🎯 (Wochenplan).
+// Für Discord: eine Zeile pro Ziel. withState = mit Stand (✅ erreicht/auf Kurs, ❌ verfehlt/noch drunter),
+// sonst nur die Ziele (🎯), z. B. zu Beginn der Woche.
 export function goalLines(start, withState, today) {
   return goalsOf(start).map((g) => {
     if (!withState) return `🎯 ${goalTitle(g)}`;
     const s = goalStatus(g, start, today);
-    const icon = s.state === "done" || s.state === "track" ? "✅" : s.state === "miss" || s.state === "behind" ? "❌" : "▫️";
-    return `${icon} ${goalTitle(g)}${s.value ? ` → ${s.value.text}` : g.kind === "free" ? "" : " → keine Daten"}`;
+    const icon = s.state === "done" || s.state === "track" ? "✅" : s.state === "miss" || s.state === "behind" ? "❌" : g.kind === "free" ? "⬜" : "🎯";
+    const now = s.value ? ` → ${s.value.text}` : "";
+    return `${icon} ${goalTitle(g)}${now} *(${s.label})*`;
   });
 }
+
+// Hat die Woche schon angefangen? (Dann geht der Discord-Post mit Stand raus.)
+export const weekStarted = (start, today) => start <= today;
 
 // Wie plan.js addDays, hier ohne Import aus einer Ansicht (vermeidet einen Kreis-Import beim Laden)
 function addDaysIso(iso, n) {

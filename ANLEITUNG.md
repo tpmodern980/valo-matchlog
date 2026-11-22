@@ -287,7 +287,7 @@ Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Al
 - **Statistik-Ziele** prüft die App selbst aus den Matches der Woche, z. B. „Pistol-Quote mindestens 60 %“, „Runde nach Pistol-Sieg mindestens 75 %“ oder „Winrate mindestens 50 %“. Wahlweise nur für eine Map oder eine Art (Scrim, Premier, Turnier). Während der Woche steht dort „auf Kurs“ oder „noch drunter“, danach „erreicht“ oder „verfehlt“.
 - **Freie Ziele** (z. B. „Retakes auf B üben“) werden von Hand abgehakt.
 - **„Ziele der Vorwoche übernehmen“** kopiert die Ziele der letzten Woche in eine leere Woche.
-- In Discord stehen die Ziele beim **Wochenplan** und mit ✅/❌ im **Wochenrückblick**.
+- **„Ziele in Discord posten“** schickt die Ziele einzeln in den Planungs-Kanal (Schritt 10), ab Wochenbeginn mit dem aktuellen Stand. Das darf jeder. Außerdem stehen sie beim Wochenplan-Post und mit ✅/❌ im Wochenrückblick.
 - Gespeichert in `weeks` (Dokument `goals-JJJJMMTT`). Es braucht **keine neue Firestore-Regel**, nur die Zeile aus Schritt 11.
 
 ## Map-Veto-Helfer (Tab „Maps“ → „Map-Veto-Helfer“)

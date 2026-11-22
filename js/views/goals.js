@@ -5,7 +5,8 @@ import { TYPES, MAPS } from "../constants.js";
 import { esc, isoDate, toast } from "../util.js";
 import { upsertPath } from "../data.js";
 import { errorText } from "../auth.js";
-import { METRICS, goalsOf, goalsDocId, goalTitle, goalStatus, cleanMap } from "../goals.js";
+import { METRICS, goalsOf, goalsDoc, goalsDocId, goalTitle, goalStatus, cleanMap } from "../goals.js";
+import { postGoals, planHookOn } from "../discord.js";
 
 let formFor = null;     // Woche (Montag), für die das Formular "Ziel hinzufügen" offen ist
 let formKind = "stat";  // "stat" | "free"
@@ -71,12 +72,15 @@ export function goalsPanel(start) {
   const over = isoDate(new Date(y, m - 1, d + 6)) < today;   // Woche liegt komplett zurück
   const add = formFor === start && !editGoal
     ? goalForm(start)
-    : `<div class="actions"><button class="btn small" type="button" data-action="goal-new" data-start="${start}">+ Ziel</button>${!goals.length && prev.length ? `<button class="btn small ghost" type="button" data-action="goal-copy" data-start="${start}"${busy ? " disabled" : ""}>Ziele der Vorwoche übernehmen (${prev.length})</button>` : ""}</div>`;
+    : `<div class="actions"><button class="btn small" type="button" data-action="goal-new" data-start="${start}">+ Ziel</button>${!goals.length && prev.length ? `<button class="btn small ghost" type="button" data-action="goal-copy" data-start="${start}"${busy ? " disabled" : ""}>Ziele der Vorwoche übernehmen (${prev.length})</button>` : ""}${goals.length && planHookOn() ? `<button class="btn small" type="button" data-action="goal-post" data-start="${start}"${busy ? " disabled" : ""}>Ziele in Discord posten</button>` : ""}</div>`;
+  const doc = goalsDoc(start);
+  const posted = doc && doc.postedAt ? `<p class="hint">Zuletzt in Discord gepostet: ${esc(new Date(doc.postedAt).toLocaleString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }))}${doc.postedBy ? ` von ${esc(doc.postedBy)}` : ""}.</p>` : "";
   const reached = goals.filter((g) => ["done", "track"].includes(goalStatus(g, start, today).state)).length;
   return `<section class="panel gl"><div class="panel-head"><h2>Wochenziele</h2><span class="hint">${goals.length ? `${reached} von ${goals.length} ${over ? "erreicht" : "erreicht oder auf Kurs"}` : "alle können Ziele anlegen"}</span></div>
     <div class="panel-body">
       ${rows ? `<div class="gl-list">${rows}</div>` : '<p class="hint">Noch keine Ziele für diese Woche. Statistik-Ziele (z. B. „Pistol-Quote mindestens 60 %“) prüft die App selbst aus den Matches der Woche, freie Ziele hakt ihr ab.</p>'}
-      ${add}
+      ${add}${formFor === start || editGoal ? "" : posted}
+      ${goals.length && !planHookOn() && !formFor && !editGoal ? '<p class="hint">Zum Posten in Discord trägt ein Admin im Tab „Team“ den Planungs-Kanal ein.</p>' : ""}
     </div></section>`;
 }
 
@@ -99,6 +103,19 @@ export const actions = {
       return;
     }
     try { await save(start, { ...g, deleted: true }); toast("Ziel gelöscht."); } catch (e) { fail(e); }
+  },
+  // Ziele einzeln in den Discord-Planungs-Kanal posten (alle dürfen, wie beim Anlegen der Ziele)
+  "goal-post": async (el) => {
+    const start = el.dataset.start;
+    if (busy || !goalsOf(start).length) return;
+    busy = true; changed();
+    try {
+      await postGoals(start);
+      await upsertPath("weeks", goalsDocId(start), ["postedAt"], Date.now(), { kind: "goals", week: start });
+      await upsertPath("weeks", goalsDocId(start), ["postedBy"], who(), { kind: "goals", week: start });
+      toast(S.demo ? "Vorschau: Die Ziele würden jetzt in Discord gepostet." : "Wochenziele in Discord gepostet.");
+    } catch (e) { fail(e); }
+    finally { busy = false; changed(); }
   },
   "goal-copy": async (el) => {
     const start = el.dataset.start, prev = goalsOf(prevMonday(start));
