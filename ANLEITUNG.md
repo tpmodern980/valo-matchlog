@@ -265,6 +265,12 @@ Ist der Ordner verbunden, gibt es auf jeder Match-Seite und bei jeder Map im Tab
 
 **Hinweise:** Beim ersten Öffnen dauert das Laden ein paar Sekunden (eine Abfrage pro Ordner). Danach zeigt die App sofort den letzten Stand und holt Neues im Hintergrund. Mit **„Aktualisieren“** holt sie es sofort. Ein Bild antippen öffnet es groß. Blättern geht mit den Pfeilen, mit Wischen oder mit den Pfeiltasten. **„In Drive“** öffnet das Original.
 
+**Notizen pro Strat:** In der Großansicht unter dem Bild **„+ Notiz“**: kurzer Text (z. B. „nur gegen Eco“, „Brix callt“) und auf Wunsch ein Clip aus einem Match auf dieser Map. Die Notiz steht dann unter dem Bild und als Vorschau unter dem Kärtchen (📝). Alle im Team können Notizen schreiben, ändern und löschen. Gespeichert wird in der Sammlung `weeks` (Dokument `stratnotes`), eine neue Firestore-Regel braucht es nicht. Notizen hängen an der Datei in Drive: Wird die Datei in Drive ersetzt (neu hochgeladen statt bearbeitet), ist die Notiz weg. Umbenennen oder Verschieben in einen anderen Ordner schadet nicht.
+
+## Wochenrückblick (Tab „Planung“)
+
+Bei jeder Woche mit Matches steht im Tab „Planung“ ein **Wochenrückblick**: Bilanz, Ø Rundendifferenz, Pistols, Vergleich zur Vorwoche, alle Ergebnisse, Spieler der Woche (beste K/D unter allen, die mindestens die Hälfte der Matches gespielt haben), meiste Kills und First Bloods, meistgespielte und beste Map und wie viele geplante Termine gespielt wurden. Bei vergangenen Wochen steht er ganz oben. Ist der Planungs-Kanal eingetragen (Schritt 10), postet ein Admin ihn mit **„Rückblick in Discord posten“**. Das geht auch für Wochen ohne Umfrage.
+
 ## Map-Pool-Umfrage (Tab „Maps“)
 
 Oben im Tab **„Maps“** gibt jeder pro Map 1–5 Sterne („wie gern und wie gut spiele ich sie“) und kann Maps zum **Bannen** vorschlagen. Darunter steht die Rangliste: Ø Sterne, wer bannen will und eure echte Bilanz auf der Map. So seht ihr, welche Maps ihr im Turnier spielen und welche ihr bannen wollt, und wo „mögen wir“ und „gewinnen wir“ auseinandergehen. Unter „Wer hat was gewählt?“ steht jede einzelne Stimme.

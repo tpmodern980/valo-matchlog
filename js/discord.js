@@ -11,6 +11,7 @@ import { S } from "./state.js";
 import { num, fmt2, fmtDate, norm } from "./util.js";
 import { result, roundInfo, kdOf } from "./stats.js";
 import { appUrl } from "./auth.js";
+import { weekRecap } from "./recap.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
 import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST } from "./views/plan.js";
@@ -207,3 +208,38 @@ export function buildPlanPost(w) {
   };
 }
 export const postPlan = (w) => sendPlanHook(buildPlanPost(w));
+
+// Wochenrückblick (js/recap.js): Bilanz, Ergebnisse, Spieler der Woche, Maps, Plan. Geht in den Planungs-Kanal.
+const de1 = (n) => n.toFixed(1).replace(".", ","), de2 = (n) => n.toFixed(2).replace(".", ",");
+const rec = (t) => `${t.w}–${t.l}${t.d ? "–" + t.d : ""}`;
+const pc = (n) => (n === null ? "" : ` (${Math.round(n * 100)} %)`);
+export function buildRecapPost(start, w = null) {
+  const r = weekRecap(start, w);
+  const link = appUrl() + planLink(start);
+  if (!r) throw Object.assign(new Error("In dieser Woche ist noch kein Match eingetragen."), { plain: true });
+  const s = r.sum;
+  const lines = [];
+  lines.push(`**Bilanz ${rec(s)}**${pc(s.wr)}${s.diff !== null ? ` · Ø Rundendiff. ${s.diff > 0 ? "+" : ""}${de1(s.diff)}` : ""}${s.pistolN ? ` · Pistols ${s.pistolW}/${s.pistolN}` : ""}`);
+  if (r.byType.length > 1) lines.push(r.byType.map((t) => `${md(t.type)} ${rec(t)}`).join(" · "));
+  if (r.prev) lines.push(`Vorwoche: ${rec(r.prev)}${pc(r.prev.wr)}`);
+  lines.push("", "**Ergebnisse**");
+  for (const { m, r: res } of r.results) {
+    const score = res === "Q" ? "offen" : `${num(m.scoreUs)}:${num(m.scoreThem)}`;
+    lines.push(`${HEAD[res].icon} ${dayLabel(m.date)} · ${md(m.type || "Match")} · ${md(m.map || "Map?")} vs ${md(m.opponent || "?")} · ${score}`);
+  }
+  const people = [];
+  if (r.mvp) people.push(`🏆 **Spieler der Woche: ${md(r.mvp.name)}** · K/D ${de2(r.mvp.kd)} · ${r.mvp.kills} Kills in ${r.mvp.n} ${r.mvp.n === 1 ? "Match" : "Matches"}`);
+  const more = [r.topKills ? `Meiste Kills: ${md(r.topKills.name)} (${r.topKills.kills})` : "", r.topFb ? `Meiste First Bloods: ${md(r.topFb.name)} (${r.topFb.fb})` : ""].filter(Boolean);
+  if (more.length) people.push(more.join(" · "));
+  if (people.length) lines.push("", ...people);
+  const mapBits = [r.most ? `meistgespielt ${md(r.most.name)} (${r.most.n}×, ${rec(r.most)})` : "", r.best && (!r.most || r.best.key !== r.most.key) ? `beste ${md(r.best.name)} (${rec(r.best)})` : ""].filter(Boolean);
+  if (mapBits.length) lines.push("", `🗺️ Maps: ${mapBits.join(" · ")}`);
+  if (r.plan) lines.push(`🗓️ Plan: ${r.plan.played} von ${r.plan.total} ${r.plan.total === 1 ? "Termin" : "Terminen"} gespielt${r.plan.cancelled ? ` · ${r.plan.cancelled} abgesagt` : ""}${r.plan.rest ? ` · ${r.plan.rest} ${r.plan.rest === 1 ? "Ruhetag" : "Ruhetage"}` : ""}`);
+  lines.push("", `[In ScrimStar ansehen](${link})`);
+  const color = s.wr === null ? 0x0B7480 : s.wr > 0.5 ? HEAD.W.color : s.wr < 0.5 ? HEAD.L.color : HEAD.D.color;
+  return {
+    username: "ScrimStar",
+    embeds: [{ title: cut(`📊 Wochenrückblick ${weekLabel(start)}`, 256), url: link, color, description: cut(lines.join("\n"), 4000), footer: FOOT }],
+  };
+}
+export const postRecap = (start, w) => sendPlanHook(buildRecapPost(start, w));

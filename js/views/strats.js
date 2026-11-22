@@ -2,7 +2,9 @@
 // Attack/Defense, gruppiert nach den Unterordnern (Pistol, Defaults …). Antippen öffnet das Bild groß, mit Blättern.
 // Daten: js/strats.js (liest Drive, nichts in Firestore). Adressen: #strats und #strats-<Map>.
 import { S, changed } from "../state.js";
-import { esc, norm, pct } from "../util.js";
+import { esc, norm, pct, toast, fmtDate, isoDate } from "../util.js";
+import { upsertPath } from "../data.js";
+import { errorText } from "../auth.js";
 import { mapStats } from "../stats.js";
 import { record } from "./parts.js";
 import { poolAverage } from "./mappool.js";
@@ -14,7 +16,71 @@ const recall = (k) => { try { return localStorage.getItem(k) || ""; } catch (e) 
 
 let side = recall(SIDE_KEY) || "Attack";
 let open = null;   // { scope: "root" | "side", id } = Bild groß offen
-window.addEventListener("hashchange", () => { setOpen(null); });
+let editing = null;   // ID der Strat, deren Notiz gerade bearbeitet wird
+window.addEventListener("hashchange", () => { setOpen(null); editing = null; });
+
+// ---------- Notizen pro Strat (Wunsch Tim, 22.11.2026) ----------
+// Ein Dokument mit fester ID in der Sammlung "weeks" (wie die Map-Pool-Umfrage, keine neue Firestore-Regel):
+//   weeks/stratnotes = { kind: "stratnotes", notes: { <Drive-Datei-ID>: { text, clip: <clipId> | null, by, at } | null } }
+// Jede Notiz ist ein eigener Feldpfad (upsertPath): Zwei, die gleichzeitig verschiedene Strats kommentieren, stören sich nicht.
+// Alle im Team dürfen Notizen schreiben. Gelöscht wird, indem die Notiz auf null gesetzt wird.
+const NOTES_ID = "stratnotes";
+const noteOf = (fileId) => {
+  const d = S.weeks.find((w) => w.id === NOTES_ID);
+  const n = d && d.notes && d.notes[fileId];
+  return n && (String(n.text || "").trim() || n.clip) ? n : null;
+};
+// Clips zum Verknüpfen: Clips aus Matches auf dieser Map, neueste zuerst
+function clipsForMap(mapName) {
+  const matches = new Map(S.matches.map((m) => [m.id, m]));
+  return S.clips.filter((c) => { const m = matches.get(c.matchId); return m && norm(m.map) === norm(mapName); })
+    .map((c) => ({ c, m: matches.get(c.matchId) }))
+    .sort((a, b) => String(b.m.date || "").localeCompare(String(a.m.date || "")) || (b.c.createdAt || 0) - (a.c.createdAt || 0));
+}
+const clipLabel = ({ c, m }) => `${c.title || "Clip"} · ${fmtDate(m.date).day} vs ${m.opponent || "?"}`;
+function clipLink(id) {
+  const c = S.clips.find((x) => x.id === id), m = c && S.matches.find((x) => x.id === c.matchId);
+  return c && m ? `<a class="lb-clip" href="#match-${esc(m.id)}">🎬 ${esc(clipLabel({ c, m }))}</a>` : "";
+}
+
+function noteArea(f, mapName) {
+  const n = noteOf(f.id);
+  if (editing === f.id) {
+    const clips = mapName ? clipsForMap(mapName) : [];
+    return `<form class="lb-note editing" data-form="strat-note" data-id="${esc(f.id)}" novalidate>
+      <label class="field"><span>Notiz zu „${esc(stratTitle(f))}“</span>
+        <textarea id="sn-text" name="text" data-keep rows="3" maxlength="500" placeholder="z. B. nur gegen Eco, Sova-Lineup im Clip, wer callt …">${esc(n ? n.text || "" : "")}</textarea></label>
+      ${clips.length ? `<label class="field"><span>Clip verknüpfen (freiwillig)</span><select id="sn-clip" name="clip" data-keep>
+        <option value="">kein Clip</option>
+        ${clips.map((x) => `<option value="${esc(x.c.id)}"${n && n.clip === x.c.id ? " selected" : ""}>${esc(clipLabel(x))}</option>`).join("")}</select></label>` : ""}
+      <div class="actions"><button class="btn primary small" type="submit">Speichern</button>
+        <button class="btn small" type="button" data-action="strat-note-cancel">Abbrechen</button>
+        ${n ? '<button class="btn small danger" type="button" data-action="strat-note-delete" data-id="' + esc(f.id) + '">Notiz löschen</button>' : ""}</div>
+    </form>`;
+  }
+  if (!n) return `<div class="lb-note"><button class="btn small ghost" type="button" data-action="strat-note-edit" data-id="${esc(f.id)}">+ Notiz</button></div>`;
+  return `<div class="lb-note"><div class="lb-note-text">${n.text ? esc(n.text).replace(/\n/g, "<br>") : ""}${n.clip ? clipLink(n.clip) : ""}
+      <small class="muted">${esc(n.by || "")}${n.at ? ` · ${esc(fmtDate(isoDate(new Date(n.at))).day)}` : ""}</small></div>
+    <button class="btn small ghost" type="button" data-action="strat-note-edit" data-id="${esc(f.id)}">Bearbeiten</button></div>`;
+}
+
+async function saveNote(fileId, value) {
+  if (!S.loaded.weeks) return toast("Die Notizen laden noch.");
+  try {
+    await upsertPath("weeks", NOTES_ID, ["notes", fileId], value, { kind: "stratnotes" });
+    editing = null; changed();
+    toast(value ? "Notiz gespeichert." : "Notiz gelöscht.");
+  } catch (e) { toast(e && e.plain ? e.message : (errorText(e) || "Speichern hat nicht geklappt.")); }
+}
+
+export const forms = {
+  "strat-note": (form) => {
+    const data = new FormData(form);
+    const text = String(data.get("text") || "").trim().slice(0, 500), clip = String(data.get("clip") || "") || null;
+    const who = (S.user && (S.user.name || (S.user.email || "").split("@")[0])) || "";
+    saveNote(form.dataset.id, text || clip ? { text, clip, by: who, at: Date.now() } : null);
+  },
+};
 
 export const stratsLink = (base) => "#strats-" + encodeURIComponent(base);
 
@@ -70,7 +136,7 @@ export function stratsView(id) {
   const body = groups.length ? groups.map((g) => `<section class="st-group">${g.name ? `<h3 class="group">${esc(g.name)}</h3>` : ""}
       <div class="st-grid">${g.files.map((f) => `<button class="st-tile" type="button" data-action="strat-open" data-scope="side" data-id="${esc(f.id)}">
         <img src="${esc(thumbUrl(f, 480))}" alt="" loading="lazy" decoding="async"${f.w && f.h ? ` width="${f.w}" height="${f.h}"` : ""}>
-        <span>${esc(stratTitle(f))}</span></button>`).join("")}</div></section>`).join("")
+        <span>${esc(stratTitle(f))}${noteOf(f.id) ? `<small class="st-note">📝 ${esc(noteOf(f.id).text || "Clip verknüpft")}</small>` : ""}</span></button>`).join("")}</div></section>`).join("")
     : `<p class="hint">Für ${esc(map.base)}${cur ? ` (${esc(cur.name)})` : ""} liegen noch keine Strats im Ordner.</p>`;
 
   // Bilanz aus den Matches und Ergebnis der Map-Pool-Umfrage für diese Map (Link in den Tab "Maps")
@@ -98,6 +164,7 @@ function lightbox(tree, map, cur) {
       <a class="btn small ghost" href="${esc(driveUrl(f))}" target="_blank" rel="noopener">In Drive ↗</a>
       <button class="btn small" type="button" data-action="strat-close" aria-label="Schließen">✕</button></div>
     <div class="lb-img" data-action="strat-close"><img data-action="strat-stay" src="${esc(thumbUrl(f, 2000))}" alt="${esc(stratTitle(f))}"></div>
+    ${noteArea(f, open.scope === "root" ? "" : map.base)}
     ${nav ? `<button class="lb-nav prev" type="button" data-action="strat-step" data-step="-1" aria-label="Vorherige Strat">‹</button>
       <button class="lb-nav next" type="button" data-action="strat-step" data-step="1" aria-label="Nächste Strat">›</button>` : ""}
   </div>`;
@@ -118,6 +185,7 @@ function step(n) {
   const i = list.findIndex((f) => f.id === open.id);
   if (i < 0 || list.length < 2) return;
   setOpen({ ...open, id: list[(i + n + list.length) % list.length].id });
+  editing = null;
   changed();
 }
 
@@ -126,9 +194,12 @@ export const actions = {
   "strats-side": (el) => { side = el.dataset.side; remember(SIDE_KEY, side); changed(); },
   "strat-open": (el) => { setOpen({ scope: el.dataset.scope, id: el.dataset.id }); changed(); },
   // Klick auf den dunklen Rand um das Bild schließt, Klick aufs Bild selbst nicht
-  "strat-close": () => { setOpen(null); changed(); },
+  "strat-close": () => { setOpen(null); editing = null; changed(); },
   "strat-stay": () => {},
   "strat-step": (el) => step(Number(el.dataset.step) || 1),
+  "strat-note-edit": (el) => { editing = el.dataset.id; changed(); setTimeout(() => { const t = document.getElementById("sn-text"); if (t) t.focus(); }, 0); },
+  "strat-note-cancel": () => { editing = null; changed(); },
+  "strat-note-delete": (el) => saveNote(el.dataset.id, null),
 };
 
 // Gewählte Map merken (über die Adresse #strats-<Map>)
@@ -140,12 +211,17 @@ window.addEventListener("hashchange", () => {
 // Tastatur und Wischen in der Großansicht
 document.addEventListener("keydown", (e) => {
   if (!open) return;
-  if (e.key === "Escape") { setOpen(null); changed(); }
+  // Beim Schreiben einer Notiz: Pfeiltasten gehören dem Textfeld, Escape bricht nur das Bearbeiten ab
+  if (e.target && e.target.closest && e.target.closest("input, textarea, select")) {
+    if (e.key === "Escape" && editing) { editing = null; changed(); }
+    return;
+  }
+  if (e.key === "Escape") { setOpen(null); editing = null; changed(); }
   else if (e.key === "ArrowRight") step(1);
   else if (e.key === "ArrowLeft") step(-1);
 });
 let touchX = null;
-document.addEventListener("touchstart", (e) => { touchX = open && e.target.closest && e.target.closest(".lb") ? e.touches[0].clientX : null; }, { passive: true });
+document.addEventListener("touchstart", (e) => { touchX = open && e.target.closest && e.target.closest(".lb") && !e.target.closest(".lb-note") ? e.touches[0].clientX : null; }, { passive: true });
 document.addEventListener("touchend", (e) => {
   if (touchX === null || !open) return;
   const dx = e.changedTouches[0].clientX - touchX;

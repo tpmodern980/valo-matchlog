@@ -303,6 +303,22 @@ a.chip-btn { display: inline-flex; align-items: center; gap: 6px; text-decoratio
 .st-facts a:hover { color: var(--accent); }
 .st-facts b { color: var(--ink); }
 
+/* Wochenrückblick (Tab "Planung") */
+.rc-facts { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 8px; }
+.rc-kv { display: flex; flex-direction: column; }
+.rc-kv span { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rc-kv b { font-family: var(--font-display); font-size: 22px; font-variant-numeric: tabular-nums; }
+.rc-list { display: flex; flex-direction: column; margin: 10px 0 12px; border-top: 1px solid var(--line); }
+.rc-row { display: grid; grid-template-columns: 8px auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 2px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; }
+.rc-row:hover .rc-what { color: var(--accent); }
+.rc-row > b { white-space: nowrap; }
+.rc-what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rc-score.W { color: var(--win); } .rc-score.L { color: var(--loss); } .rc-score.D { color: var(--draw); } .rc-score.Q { color: var(--muted); }
+.res-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.res-dot.W { background: var(--win); } .res-dot.L { background: var(--loss); } .res-dot.D { background: var(--draw); }
+.rc-mvp { margin: 0 0 4px; }
+
 /* Map-Pool-Umfrage (Tab "Maps") */
 .pool-panel .group { margin-top: 6px; }
 .pool-panel .group + * { margin-top: 6px; }
@@ -341,7 +357,7 @@ a.chip-btn { display: inline-flex; align-items: center; gap: 6px; text-decoratio
 
 /* Großansicht */
 body.lb-open { overflow: hidden; }
-.lb { position: fixed; inset: 0; z-index: 40; background: rgba(5, 8, 12, .97); display: flex; flex-direction: column; color: #e8edf2; }
+.lb { position: fixed; inset: 0; z-index: 40; background: #05080c; display: flex; flex-direction: column; color: #e8edf2; }
 .lb-bar { display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; }
 .lb-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .lb-title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -350,6 +366,14 @@ body.lb-open { overflow: hidden; }
    abgeschnitten, weil max-height: 100% in der Grid-Zelle nicht griff) */
 .lb-img { flex: 1; min-height: 0; position: relative; }
 .lb-img img { position: absolute; top: 0; left: 12px; width: calc(100% - 24px); height: calc(100% - 12px - env(safe-area-inset-bottom, 0px)); object-fit: contain; }
+/* Notiz zur Strat unter dem Bild */
+.lb-note { flex: none; display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255, 255, 255, .1); max-height: 40vh; overflow-y: auto; }
+.lb-note-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.4; }
+.lb-note-text small { color: #9aa7b4; }
+.lb-note.editing { display: block; background: var(--surface); color: var(--ink); }
+.lb-note.editing .field { margin-bottom: 8px; }
+.lb-clip { color: #6fd6dd; font-weight: 600; }
+.st-note { display: block; margin-top: 3px; font-weight: 500; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border: 0; background: rgba(255, 255, 255, .08); color: #fff; font-size: 34px; line-height: 1; cursor: pointer; }
 .lb-nav:hover { background: rgba(255, 255, 255, .18); }
 .lb-nav.prev { left: 6px; }

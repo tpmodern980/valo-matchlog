@@ -13,10 +13,11 @@
 // Jede Stimme wird als eigenes Feld votes.<uid> geschrieben (setPath): Gleichzeitiges Abstimmen überschreibt nichts.
 import { S, changed } from "../state.js";
 import { TYPES, RES_LABEL } from "../constants.js";
-import { $, esc, norm, toast, isoDate, fmtDate } from "../util.js";
+import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../util.js";
+import { weekRecap } from "../recap.js";
 import { create, change, remove, setPath } from "../data.js";
 import { result } from "../stats.js";
-import { postPoll, postPlan, planHookOn } from "../discord.js";
+import { postPoll, postPlan, postRecap, planHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
 
 // Uhrzeiten, die zur Wahl stehen: Scrim-Tage "ab 18/19/20 Uhr", Premier-Samstag Treffen 18:00 oder 18:30
@@ -145,8 +146,51 @@ export function planView(id) {
   const head = `<div class="view-head"><div><div class="eyebrow">Team</div><h1>Planung</h1>
     <p>Umfrage „Wann könnt ihr?“ für die Woche, darunter der Wochenplan. Abstimmen können alle, Umfrage und Plan erstellt ein Admin.</p></div></div>`;
   if (!S.loaded.weeks) return head + nav + '<p class="loading">Lade Planung …</p>';
-  if (!w) return head + nav + (S.isAdmin ? createPanel(start) : '<div class="empty"><h2>Noch keine Umfrage</h2><p>Für diese Woche hat noch niemand eine Umfrage erstellt.</p></div>');
-  return head + nav + votePanel(w) + overviewPanel(w) + planPanel(w) + (S.isAdmin ? adminPanel(w) : "");
+  // Wochenrückblick: bei vergangenen Wochen ganz oben, sonst unter dem Plan (nur wenn es Matches in der Woche gibt)
+  const recap = S.loaded.matches ? recapPanel(start, w) : "";
+  const over = addDays(start, 6) < isoDate(new Date());
+  if (!w) return head + nav + (over ? recap : "") + (S.isAdmin ? createPanel(start) : '<div class="empty"><h2>Noch keine Umfrage</h2><p>Für diese Woche hat noch niemand eine Umfrage erstellt.</p></div>') + (over ? "" : recap);
+  if (over) return head + nav + recap + planPanel(w) + overviewPanel(w) + votePanel(w) + (S.isAdmin ? adminPanel(w) : "");
+  return head + nav + votePanel(w) + overviewPanel(w) + planPanel(w) + recap + (S.isAdmin ? adminPanel(w) : "");
+}
+
+// ---------- Wochenrückblick (js/recap.js) ----------
+const rec = (t) => `${t.w}–${t.l}${t.d ? "–" + t.d : ""}`;
+function recapPanel(start, w) {
+  const r = weekRecap(start, w);
+  if (!r) return "";
+  const s = r.sum;
+  const res = r.results.map(({ m, r: x }) => `<a class="rc-row" href="#match-${esc(m.id)}">
+      <span class="res-dot ${x}" aria-hidden="true"></span><b>${esc(dayLabel(m.date))}</b>
+      <span class="rc-what"><span class="tag">${esc(m.type || "Match")}</span> ${esc(m.map || "Map?")} <span class="muted">vs ${esc(m.opponent || "?")}</span></span>
+      <span class="rc-score ${x}">${x === "Q" ? "offen" : `${esc(m.scoreUs)}:${esc(m.scoreThem)}`}</span></a>`).join("");
+  const kv = (label, value) => `<div class="rc-kv"><span>${label}</span><b>${value}</b></div>`;
+  const facts = [
+    kv("Bilanz", `${rec(s)}${s.wr === null ? "" : ` <small class="muted">${pct(s.wr)}</small>`}`),
+    s.diff !== null ? kv("Ø Rundendiff.", signed1(s.diff)) : "",
+    s.pistolN ? kv("Pistols", `${s.pistolW}/${s.pistolN}`) : "",
+    r.prev ? kv("Vorwoche", rec(r.prev)) : "",
+  ].join("");
+  const types = r.byType.length > 1 ? `<p class="hint">${r.byType.map((t) => `${esc(t.type)} ${rec(t)}`).join(" · ")}</p>` : "";
+  const people = [
+    r.mvp ? `<p class="rc-mvp">🏆 <b>Spieler der Woche: ${esc(r.mvp.name)}</b> · K/D ${fmt2(r.mvp.kd)} · ${r.mvp.kills} Kills in ${r.mvp.n} ${r.mvp.n === 1 ? "Match" : "Matches"}</p>` : "",
+    [r.topKills ? `Meiste Kills: <b>${esc(r.topKills.name)}</b> (${r.topKills.kills})` : "", r.topFb ? `Meiste First Bloods: <b>${esc(r.topFb.name)}</b> (${r.topFb.fb})` : ""].filter(Boolean).join(" · "),
+  ].filter(Boolean).map((x) => (x.startsWith("<p") ? x : `<p class="hint">${x}</p>`)).join("");
+  const mapBits = [r.most ? `meistgespielt <b>${esc(r.most.name)}</b> (${r.most.n}×, ${rec(r.most)})` : "", r.best && (!r.most || r.best.key !== r.most.key) ? `beste <b>${esc(r.best.name)}</b> (${rec(r.best)})` : ""].filter(Boolean).join(" · ");
+  const planLine = r.plan ? `Plan: ${r.plan.played} von ${r.plan.total} ${r.plan.total === 1 ? "Termin" : "Terminen"} gespielt${r.plan.cancelled ? ` · ${r.plan.cancelled} abgesagt` : ""}${r.plan.rest ? ` · ${r.plan.rest} ${r.plan.rest === 1 ? "Ruhetag" : "Ruhetage"}` : ""}` : "";
+  const when = (t) => (t ? fmtDate(isoDate(new Date(t))).full : "");
+  const btn = S.isAdmin && planHookOn()
+    ? `<div class="actions"><button class="btn" type="button" data-action="plan-post-recap" data-start="${start}"${busy ? " disabled" : ""}>Rückblick in Discord posten</button></div>
+      ${w && w.recapPostedAt ? `<p class="hint">Zuletzt gepostet am ${esc(when(w.recapPostedAt))}.</p>` : ""}` : "";
+  return `<section class="panel rc"><div class="panel-head"><h2>Wochenrückblick</h2><span class="hint">${r.list.length} ${r.list.length === 1 ? "Match" : "Matches"}</span></div>
+    <div class="panel-body">
+      <div class="rc-facts">${facts}</div>${types}
+      <div class="rc-list">${res}</div>
+      ${people}
+      ${mapBits ? `<p class="hint">Maps: ${mapBits}</p>` : ""}
+      ${planLine ? `<p class="hint">${planLine}</p>` : ""}
+      ${btn}
+    </div></section>`;
 }
 
 function createPanel(start) {
@@ -362,6 +406,18 @@ export const actions = {
   },
   "plan-post-poll": async (el) => postNow(wk(el), "poll"),
   "plan-post-plan": async (el) => postNow(wk(el), "plan"),
+  // Rückblick geht auch für Wochen ohne Umfrage (dann wird nicht vermerkt, wann gepostet wurde)
+  "plan-post-recap": async (el) => {
+    if (!S.isAdmin || busy) return;
+    const start = el.dataset.start, w = weekOf(start);
+    busy = true; changed();
+    try {
+      await postRecap(start, w);
+      if (w) await change("weeks", w.id, { recapPostedAt: Date.now() });
+      toast(S.demo ? "Vorschau: Rückblick würde jetzt in Discord gepostet." : "Wochenrückblick in Discord gepostet.");
+    } catch (e) { fail(e); }
+    finally { busy = false; changed(); }
+  },
   "plan-delete": async (el) => {
     const w = wk(el);
     if (!w || !S.isAdmin) return;

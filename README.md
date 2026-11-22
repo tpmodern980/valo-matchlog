@@ -39,6 +39,7 @@ Die Seite direkt als Datei zu öffnen (`file://`) funktioniert nicht, weil ES-Mo
 | `js/views/` | Die einzelnen Ansichten (u. a. `plan.js`: Tab „Planung“ mit Wochenumfrage und Wochenplan) |
 | `js/discord.js` | Posts in Discord über Webhooks (Ergebnisse, Umfrage, Wochenplan) |
 | `js/views/mappool.js` | Map-Pool-Umfrage im Tab „Maps“ (Sterne und Bann-Wünsche pro Map) |
+| `js/recap.js` | Wochenrückblick (Bilanz, Ergebnisse, Spieler der Woche) für den Tab „Planung“ und Discord |
 | `js/strats.js` | Tab „Strats“: liest den Google-Drive-Ordner mit den Taktik-Screenshots (Ansicht in `js/views/strats.js`) |
 | `js/agentrefs.js` | KI-Trainingsbilder fürs Screenshot-Auslesen |
 | `js/stats.js` | Berechnungen |

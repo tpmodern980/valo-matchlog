@@ -11,7 +11,7 @@
 // Die Google-Anmeldung kommt mit dem Ausweis hinter dem # zurück: Der Teil hinter dem # erreicht den Service Worker nie,
 // die Seite liest ihn selbst (js/auth.js).
 
-const VERSION = "2026-11-22.5";
+const VERSION = "2026-11-22.6";
 const FIREBASE_VERSION = "13.2.0";   // muss zu FIREBASE_VERSION in js/config.js passen
 
 const APP_FILES = [
@@ -20,7 +20,7 @@ const APP_FILES = [
   "firebase-config.js",
   "css/app.css",
   "js/agentrefs.js", "js/auth.js", "js/backup.js", "js/charts.js", "js/config.js", "js/constants.js", "js/data.js", "js/demo.js", "js/discord.js",
-  "js/firebase.js", "js/main.js", "js/pwa.js", "js/router.js", "js/scan.js", "js/state.js", "js/stats.js", "js/strats.js",
+  "js/firebase.js", "js/main.js", "js/pwa.js", "js/recap.js", "js/router.js", "js/scan.js", "js/state.js", "js/stats.js", "js/strats.js",
   "js/team.js", "js/util.js",
   "js/views/auth.js", "js/views/clips.js", "js/views/mappool.js", "js/views/maps.js", "js/views/match.js", "js/views/matches.js",
   "js/views/matchform.js", "js/views/opponents.js", "js/views/parts.js", "js/views/plan.js", "js/views/player.js", "js/views/players.js",

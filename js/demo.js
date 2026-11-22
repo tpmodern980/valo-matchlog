@@ -226,6 +226,11 @@ export function loadDemo() {
   setLocal("weeks", [
     { id: "wdemo1", start: monday, days, votes, plan, pollPostedAt: now - 5 * 86400000, planPostedAt: null, createdAt: now - 6 * 86400000, createdBy: null, deleted: false },
     { id: "mappool", kind: "mappool", ratings, createdAt: now - 3 * 86400000, createdBy: null, deleted: false },
+    // Notizen pro Strat (Tab "Strats"): IDs wie die Beispiel-Bilder in js/strats.js (demoFiles)
+    { id: "stratnotes", kind: "stratnotes", createdAt: now - 2 * 86400000, createdBy: null, deleted: false, notes: {
+      "d-bind-attack-a-push": { text: "Nur gegen Eco oder wenn sie A stacken. Brix callt den Push.", clip: null, by: "Kairo", at: now - 2 * 86400000 },
+      "d-bind-attack-fake-hookah": { text: "Fake muss laut sein: zwei Utility in Hookah, dann rotieren.", clip: "cdemo5", by: "Mats", at: now - 86400000 },
+    } },
   ]);
   S.demo = true;
   S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };

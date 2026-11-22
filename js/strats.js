@@ -200,12 +200,12 @@ function demoPic(title, hue) {
 }
 function demoFiles() {
   const out = [];
-  let n = 0;
-  const id = () => "demo" + (++n);
-  const folder = (name, parent) => { const f = { id: id(), name, mimeType: FOLDER, parents: [parent] }; out.push(f); return f.id; };
-  const pic = (name, parent, hue) => out.push({ id: id(), name: name + ".png", mimeType: "image/png", parents: [parent], imageMediaMetadata: { width: 1400, height: 1050 }, demo: demoPic(name, hue) });
+  // Feste IDs aus dem Pfad (z. B. "d-bind-attack-a-push"), damit die Beispiel-Notizen (js/demo.js) dazu passen
+  const id = (parent, name) => (parent === "demo-root" ? "d" : parent) + "-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const folder = (name, parent) => { const f = { id: id(parent, name), name, mimeType: FOLDER, parents: [parent] }; out.push(f); return f.id; };
+  const pic = (name, parent, hue) => out.push({ id: id(parent, name), name: name + ".png", mimeType: "image/png", parents: [parent], imageMediaMetadata: { width: 1400, height: 1050 }, demo: demoPic(name, hue) });
   const root = "demo-root";
-  out.push({ id: id(), name: "Teambook", mimeType: "application/vnd.google-apps.spreadsheet", parents: [root] });
+  out.push({ id: "d-teambook", name: "Teambook", mimeType: "application/vnd.google-apps.spreadsheet", parents: [root] });
   pic("Premier Plan", root, 200);
   const layout = {
     Bind: [210, { Attack: ["A Push", "B Push", "Default", "Fake Hookah", { Pistol: ["Pistol", "Hookah Contact"] }], Defense: ["A Retake", "B Retake", "Default", { Pistol: ["A Push"] }, { "Short Push": ["Short Push 1", "Short Push 2"] }] }],
