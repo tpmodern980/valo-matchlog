@@ -261,7 +261,18 @@ Der Tab **„Strats“** zeigt eure Taktik-Screenshots direkt aus einem Google-D
 
 Link und Schlüssel liegen in Firestore (`config/team`), nicht im öffentlichen Code. Eine neue Firestore-Regel braucht es nicht.
 
+Ist der Ordner verbunden, gibt es auf jeder Match-Seite und bei jeder Map im Tab „Maps“ einen Knopf **„Strats“**. Im Tab „Strats“ steht bei jeder Map eure Bilanz und das Ergebnis der Map-Pool-Umfrage. Die **Map-Pool-Umfrage** (oben im Tab „Maps“) nimmt die aktiven Map-Ordner als Pool.
+
 **Hinweise:** Beim ersten Öffnen dauert das Laden ein paar Sekunden (eine Abfrage pro Ordner). Danach zeigt die App sofort den letzten Stand und holt Neues im Hintergrund. Mit **„Aktualisieren“** holt sie es sofort. Ein Bild antippen öffnet es groß. Blättern geht mit den Pfeilen, mit Wischen oder mit den Pfeiltasten. **„In Drive“** öffnet das Original.
+
+## Map-Pool-Umfrage (Tab „Maps“)
+
+Oben im Tab **„Maps“** gibt jeder pro Map 1–5 Sterne („wie gern und wie gut spiele ich sie“) und kann Maps zum **Bannen** vorschlagen. Darunter steht die Rangliste: Ø Sterne, wer bannen will und eure echte Bilanz auf der Map. So seht ihr, welche Maps ihr im Turnier spielen und welche ihr bannen wollt, und wo „mögen wir“ und „gewinnen wir“ auseinandergehen. Unter „Wer hat was gewählt?“ steht jede einzelne Stimme.
+
+- Der Pool sind die aktiven Maps aus dem Strats-Ordner (Schritt 12, Ordner ohne „(inactiv)“). Ohne verbundenen Ordner stehen alle Maps zur Wahl.
+- Ändern geht jederzeit. Admins können die Umfrage zurücksetzen (z. B. wenn sich der Map-Pool ändert).
+- Die Stimmen liegen in derselben Sammlung wie die Planung (`weeks`, Dokument `mappool`). Es braucht **keine neue Firestore-Regel**, nur die Zeile aus Schritt 11.
+- Stimmen von Konten, die im Tab „Team“ als Managerin zugeordnet sind, zählen nicht.
 
 ## Wenn etwas nicht klappt
 

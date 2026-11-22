@@ -28,7 +28,8 @@ service cloud.firestore {
     match /clips/{id}   { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
     // Agenten-Beispiele fürs Screenshot-Auslesen (seit 16.11.2026, ANLEITUNG.md „Agenten-Beispiele“)
     match /agentRefs/{id} { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
-    // Umfrage und Wochenplan pro Woche (Tab "Planung", seit 19.11.2026, ANLEITUNG.md Schritt 11)
+    // Umfrage und Wochenplan pro Woche (Tab "Planung", seit 19.11.2026, ANLEITUNG.md Schritt 11),
+    // dazu das Dokument "mappool" mit der Map-Pool-Umfrage (Tab "Maps", seit 22.11.2026)
     match /weeks/{id}     { allow read: if isMember(); allow create: if canCreate(); allow update: if canUpdate(); }
   }
 }

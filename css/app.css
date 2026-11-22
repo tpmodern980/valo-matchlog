@@ -298,6 +298,47 @@ a.chip-btn { display: inline-flex; align-items: center; gap: 6px; text-decoratio
   .st-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .st-tile span { font-size: 13px; padding: 6px 7px; }
 }
+.st-facts { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+.st-facts a { color: inherit; text-decoration: none; }
+.st-facts a:hover { color: var(--accent); }
+.st-facts b { color: var(--ink); }
+
+/* Map-Pool-Umfrage (Tab "Maps") */
+.pool-panel .group { margin-top: 6px; }
+.pool-panel .group + * { margin-top: 6px; }
+.pool-vote { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 6px 18px; }
+.pool-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.pool-map { flex: 1 1 auto; min-width: 70px; font-family: var(--font-display); letter-spacing: .04em; text-transform: uppercase; }
+.pool-stars { display: inline-flex; }
+.pool-star { border: 0; background: transparent; color: var(--line); font-size: 24px; line-height: 1; width: 34px; height: 40px; padding: 0; cursor: pointer; }
+.pool-star.on { color: var(--draw); }
+.pool-star:hover { color: var(--draw); opacity: .8; }
+.pool-ban { min-height: 34px; padding: 4px 8px; font-size: 13px; }
+.pool-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.pool-table th, .pool-table td { text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.pool-table thead th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.pool-table tbody th { font-family: var(--font-display); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.pool-table td small { display: block; }
+.pool-rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 1.5em; }
+.pool-avg { font-weight: 700; color: var(--draw); white-space: nowrap; }
+.pool-bar { display: block; height: 4px; background: var(--surface-2); margin: 3px 0 2px; max-width: 120px; }
+.pool-bar i { display: block; height: 100%; background: var(--draw); }
+.pool-strats { margin-left: 6px; font-family: var(--font-body, inherit); font-size: 12px; letter-spacing: 0; text-transform: none; font-weight: 600; color: var(--accent); }
+.pool-who { margin-top: 12px; }
+.pool-who summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 14px; }
+.pool-matrix { border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.pool-matrix th, .pool-matrix td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.pool-matrix tbody th { text-align: left; }
+.pool-panel .actions { margin-top: 12px; }
+@media (max-width: 640px) {
+  .pool-vote { grid-template-columns: 1fr; }
+  .pool-star { width: 30px; font-size: 22px; }
+  .pool-table th, .pool-table td { padding: 7px 4px; }
+  .pool-strats { display: block; margin: 2px 0 0; }
+  .pool-table td small { font-size: 12px; }
+}
+.map-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
 /* Großansicht */
 body.lb-open { overflow: hidden; }
 .lb { position: fixed; inset: 0; z-index: 40; background: rgba(5, 8, 12, .97); display: flex; flex-direction: column; color: #e8edf2; }

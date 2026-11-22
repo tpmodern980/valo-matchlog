@@ -253,6 +253,31 @@ export async function setPath(coll, id, path, value) {
   show(coll, id, { ...next, updatedAt: Date.now() });
 }
 
+// Wie setPath, aber für ein Dokument mit fester ID, das beim ersten Schreiben entsteht (z. B. weeks/mappool, die
+// Map-Pool-Umfrage). base = Felder, die ein neues Dokument bekommt. Geschrieben wird mit mergeFields: Nur der Pfad
+// (und bei einem neuen Dokument die Grundfelder) wird ersetzt, alles andere bleibt. Zwei Erste gleichzeitig
+// überschreiben sich so nicht. path darf keine Punkte enthalten (uid, Feldnamen).
+export async function upsertPath(coll, id, path, value, base = {}) {
+  const old = all[coll].get(id);
+  if (old && old.deleted) throw say("Diesen Eintrag gibt es nicht mehr. Vielleicht hat ihn gerade jemand gelöscht.");
+  const head = old ? {} : { ...base, createdAt: Date.now(), createdBy: S.user ? S.user.uid : null, deleted: false };
+  if (!S.demo) {
+    const { db, F } = await loadDb();
+    const mine = run;
+    const body = { ...head, updatedAt: F.serverTimestamp() };
+    let o = body;
+    for (const k of path.slice(0, -1)) { o[k] = o[k] || {}; o = o[k]; }
+    o[path[path.length - 1]] = value;
+    const fields = [...Object.keys(head), "updatedAt", path.join(".")];
+    F.setDoc(F.doc(db, coll, id), body, { mergeFields: fields }).catch((e) => failed(coll, e, mine));
+  }
+  const next = structuredClone(old || { ...head, id });
+  let o = next;
+  for (const k of path.slice(0, -1)) { if (!o[k] || typeof o[k] !== "object") o[k] = {}; o = o[k]; }
+  o[path[path.length - 1]] = value;
+  show(coll, id, { ...next, updatedAt: Date.now() });
+}
+
 // Weich löschen: Der Eintrag verschwindet aus den Ansichten, bleibt aber in der Datenbank.
 export async function remove(coll, id) {
   const old = current(coll, id);

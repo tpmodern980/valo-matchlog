@@ -210,7 +210,23 @@ export function loadDemo() {
   plan.push({ id: "edemo-x", date: addDays(monday, 4), time: "20:00", type: "Scrim", opponent: "Mitternacht", note: "Gegner hat kurzfristig abgesagt", status: "cancelled", match: null });
   plan.push({ id: "edemo-p", date: addDays(monday, 5), time: "18:30", type: "Premier", opponent: "", note: "Treffen 18:00 im Discord", status: "planned", match: null });
   plan.push({ id: "edemo-r", date: addDays(monday, 6), time: "", type: "Ruhetag", opponent: "", note: "Pause nach Premier", status: "planned", match: "none" });
-  setLocal("weeks", [{ id: "wdemo1", start: monday, days, votes, plan, pollPostedAt: now - 5 * 86400000, planPostedAt: null, createdAt: now - 6 * 86400000, createdBy: null, deleted: false }]);
+  // Map-Pool-Umfrage (Tab "Maps"): Sterne und Bann-Wünsche der Beispiel-Spieler; Kairo (angemeldet) hat noch nicht abgestimmt
+  const poolVotes = {
+    pdemo2: [{ Bind: 5, Haven: 4, Sunset: 3, Abyss: 2, Summit: 4 }, ["Corrode"]],
+    pdemo3: [{ Bind: 4, Haven: 5, Sunset: 4, Abyss: 3, Corrode: 2, Summit: 3 }, []],
+    pdemo4: [{ Bind: 3, Haven: 4, Sunset: 5, Abyss: 1, Corrode: 2 }, ["Abyss"]],
+    pdemo5: [{ Bind: 5, Haven: 3, Sunset: 4, Abyss: 2, Corrode: 1, Summit: 5 }, ["Corrode", "Abyss"]],
+    pdemo6: [{ Bind: 4, Haven: 4, Summit: 3 }, []],
+  };
+  const ratings = {};
+  for (const [pid, [stars, ban]] of Object.entries(poolVotes)) {
+    const name = PLAYERS.find((p) => p.id === pid).name;
+    ratings["u" + pid] = { email: name.toLowerCase() + "@example.com", name, stars, ban, at: now - 86400000 };
+  }
+  setLocal("weeks", [
+    { id: "wdemo1", start: monday, days, votes, plan, pollPostedAt: now - 5 * 86400000, planPostedAt: null, createdAt: now - 6 * 86400000, createdBy: null, deleted: false },
+    { id: "mappool", kind: "mappool", ratings, createdAt: now - 3 * 86400000, createdBy: null, deleted: false },
+  ]);
   S.demo = true;
   S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };
   S.team = {

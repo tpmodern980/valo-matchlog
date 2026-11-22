@@ -15,6 +15,7 @@ import * as authPages from "./views/auth.js";
 import * as teamPages from "./views/team.js";
 import * as planPages from "./views/plan.js";
 import * as stratPages from "./views/strats.js";
+import * as mapPool from "./views/mappool.js";
 import * as playerPages from "./views/players.js";
 import * as matchForm from "./views/matchform.js";
 import * as clipPages from "./views/clips.js";
@@ -124,7 +125,7 @@ document.addEventListener("change", (e) => {
 });
 
 // Knöpfe mit data-action und Formulare mit data-form: Die Ansichten bringen ihre Funktionen dafür mit.
-const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions };
+const ACTIONS = { ...authPages.actions, ...teamPages.actions, ...playerPages.actions, ...matchForm.actions, ...clipPages.actions, ...matchActions, ...planPages.actions, ...stratPages.actions, ...mapPool.actions };
 const FORMS = { ...authPages.forms, ...teamPages.forms, ...playerPages.forms, ...clipPages.forms, ...planPages.forms };
 // Auswahlfelder mit data-change speichern sofort beim Ändern (bei Clips: eine Videodatei wurde gewählt,
 // im Match-Formular: ein Screenshot zum Auslesen)

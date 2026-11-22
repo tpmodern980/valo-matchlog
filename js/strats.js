@@ -25,6 +25,12 @@ export function folderId(text) {
 }
 export const validKey = (s) => /^AIza[\w-]{30,}$/.test(String(s || "").trim());
 export const stratsOn = () => Boolean(S.team && S.team.stratsFolder && S.team.stratsKey);
+// Lohnt ein Link "Strats" für diese Map? Drive verbunden und (falls der Ordner schon geladen ist) ein Map-Ordner dafür da.
+export function hasStrats(name) {
+  if (!stratsOn() || !name) return false;
+  const { tree } = stratsState();
+  return !tree || tree.maps.some((m) => m.base.toLowerCase() === String(name).trim().toLowerCase());
+}
 
 // Bildadressen bei Google (Größe in Pixel Breite). Beispielbilder der Vorschau sind eingebettet.
 export const thumbUrl = (f, w = 640) => (f.demo ? f.demo : `https://drive.google.com/thumbnail?id=${encodeURIComponent(f.id)}&sz=w${w}`);
@@ -201,6 +207,9 @@ function demoFiles() {
     Bind: [210, { Attack: ["A Push", "B Push", "Default", "Fake Hookah", { Pistol: ["Pistol", "Hookah Contact"] }], Defense: ["A Retake", "B Retake", "Default", { Pistol: ["A Push"] }, { "Short Push": ["Short Push 1", "Short Push 2"] }] }],
     Haven: [160, { Attack: ["A Long Take", "C Pop aus Smoke", "Walk Up B", { Pistol: ["B Hit"] }], Defense: ["122 Default", "C Retake", { Pistol: ["122 Start"] }] }],
     Sunset: [20, { Attack: ["A Rush", "B Split", { Default: ["Mid Default", "131 Default"] }], Defense: [{ Defaults: ["Default 221", "Default B Main Presure"] }, { "mid contest": ["Mid Push"] }] }],
+    Abyss: [120, { Attack: ["Mid Take", { Pistol: ["Pistol"] }], Defense: ["A Main Controll", "Mid Fight"] }],
+    Corrode: [40, { Attack: [], Defense: [] }],
+    Summit: [240, { Attack: ["A Execute", "B Walk Up", { Defaults: ["131", "Default"] }], Defense: ["Mid Play", { Pistol: ["212"] }] }],
     "Ascent (inactiv)": [280, { Attack: ["B Rush", "Default"], Defense: ["Trap Play"] }],
     "Lotus (perma bann)": [330, { Attack: ["A Take"], Defense: [] }],
   };

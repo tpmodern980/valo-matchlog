@@ -1,10 +1,14 @@
-// Ansicht "Maps": Bilanz pro Map, Angriff und Verteidigung, Pistols, meistgespielte Komposition.
+// Ansicht "Maps": Map-Pool-Umfrage (mappool.js), Bilanz pro Map, Angriff und Verteidigung, Pistols, meistgespielte
+// Komposition, Link zu den Strats der Map.
 import { S } from "../state.js";
 import { MAPS } from "../constants.js";
 import { esc, norm, pct, signed1 } from "../util.js";
 import { filtered, mapStats } from "../stats.js";
 import { barChart, chartTable } from "../charts.js";
 import { filterBar, record, nMatches, chartPanel, noMatches } from "./parts.js";
+import { mapPoolPanel } from "./mappool.js";
+import { stratsLink } from "./strats.js";
+import { hasStrats } from "../strats.js";
 
 const kv = (label, value, title = "") => `<div class="kv"${title ? ` title="${esc(title)}"` : ""}><span>${esc(label)}</span><b>${value}</b></div>`;
 // Rundenquote einer Seite: "58 % (35:25)"
@@ -20,7 +24,7 @@ function card(s) {
       + `<p class="hint">Aus ${s.withRounds} von ${nMatches(s.n)} mit Rundenverlauf.</p>`
     : '<p class="hint">Angriff, Verteidigung und Pistols: noch kein Match mit Rundenverlauf.</p>';
   return `<article class="map-card">
-    <h3>${esc(s.name)}</h3>
+    <div class="map-card-head"><h3>${esc(s.name)}</h3>${hasStrats(s.name) ? `<a class="btn small ghost" href="${stratsLink(s.name)}">Strats</a>` : ""}</div>
     <div class="map-wr"><b>${pct(s.wr)}</b><span>Winrate</span></div>
     ${s.wr === null ? "" : `<div class="bar" aria-hidden="true"><i style="width:${Math.round(s.wr * 100)}%"></i></div>`}
     ${kv("Bilanz", record(s))}${kv("Matches", s.n)}${kv("Ø Rundendiff.", signed1(s.diff))}
@@ -32,11 +36,12 @@ function card(s) {
 export function mapsView() {
   // Hier ohne Map-Filter: Die Seite vergleicht die Maps miteinander
   const head = `<div class="view-head"><div><div class="eyebrow">Statistik</div><h1>Maps</h1>
-    <p>Wie läuft es auf welcher Map? Bilanz und Winrate, Runden im Angriff und in der Verteidigung, Pistol-Runden.</p></div>
+    <p>Welche Maps mögt ihr, und wie läuft es auf welcher Map? Umfrage zum Map-Pool, Bilanz und Winrate, Runden im Angriff und in der Verteidigung, Pistol-Runden.</p></div>
     <div class="head-side">${filterBar(false)}</div></div>`;
   if (!S.loaded.matches) return head + '<p class="loading">Lade Matches …</p>';
+  const poll = mapPoolPanel();   // Map-Pool-Umfrage (js/views/mappool.js), auch ohne Matches
   const list = filtered({ anyMap: true });
-  if (!list.length) return head + noMatches("Hier steht dann die Bilanz pro Map.");
+  if (!list.length) return head + poll + noMatches("Hier steht dann die Bilanz pro Map.");
   const stats = mapStats(list);
 
   const ranked = stats.filter((s) => s.wr !== null).sort((a, b) => b.wr - a.wr || b.n - a.n || a.name.localeCompare(b.name, "de"));
@@ -49,6 +54,6 @@ export function mapsView() {
 
   const played = new Set(stats.map((s) => s.key));
   const rest = MAPS.filter((m) => !played.has(norm(m)));
-  return head + chart + `<div class="map-grid">${stats.map(card).join("")}</div>`
+  return head + poll + chart + `<div class="map-grid">${stats.map(card).join("")}</div>`
     + (rest.length ? `<p class="hint">Noch ohne Match${S.filters.type !== "alle" || S.filters.range !== "alle" ? " (für diese Filter)" : ""}: ${rest.map(esc).join(", ")}</p>` : "");
 }

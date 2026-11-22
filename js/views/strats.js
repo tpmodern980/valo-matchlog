@@ -2,7 +2,10 @@
 // Attack/Defense, gruppiert nach den Unterordnern (Pistol, Defaults …). Antippen öffnet das Bild groß, mit Blättern.
 // Daten: js/strats.js (liest Drive, nichts in Firestore). Adressen: #strats und #strats-<Map>.
 import { S, changed } from "../state.js";
-import { esc, norm } from "../util.js";
+import { esc, norm, pct } from "../util.js";
+import { mapStats } from "../stats.js";
+import { record } from "./parts.js";
+import { poolAverage } from "./mappool.js";
 import { stratsOn, stratsState, loadStrats, thumbUrl, driveUrl, isImage, stratTitle, countMap, countSide } from "../strats.js";
 
 const MAP_KEY = "valo-strats-map", SIDE_KEY = "valo-strats-side";
@@ -70,9 +73,14 @@ export function stratsView(id) {
         <span>${esc(stratTitle(f))}</span></button>`).join("")}</div></section>`).join("")
     : `<p class="hint">Für ${esc(map.base)}${cur ? ` (${esc(cur.name)})` : ""} liegen noch keine Strats im Ordner.</p>`;
 
+  // Bilanz aus den Matches und Ergebnis der Map-Pool-Umfrage für diese Map (Link in den Tab "Maps")
+  const st = S.loaded.matches ? mapStats(S.matches).find((s) => s.key === norm(map.base)) : null;
+  const played = st ? st.w + st.l + st.d : 0;
+  const vote = poolAverage(map.base);
+  const facts = [played ? `Bilanz <b>${record(st)}</b> (${pct(st.wr)})` : "noch kein Match", vote ? `Umfrage <b>${vote.avg.toFixed(1).replace(".", ",")} ★</b>${vote.bans ? ` · ${vote.bans}× bannen` : ""}` : ""].filter(Boolean);
   const panel = `<section class="panel"><div class="panel-head"><h2>${esc(map.base)}${map.note ? ` <small class="muted">(${esc(map.note)})</small>` : ""}</h2>
       <a class="hint" href="${esc(driveUrl({ id: map.id, mimeType: "application/vnd.google-apps.folder" }))}" target="_blank" rel="noopener">Ordner in Drive ↗</a></div>
-    <div class="panel-body">${sideBar}${body}</div></section>`;
+    <div class="panel-body"><p class="st-facts"><a href="#maps">${facts.join(" · ")}</a></p>${sideBar}${body}</div></section>`;
 
   return head + errBox + general + picker + panel + lightbox(tree, map, cur);
 }

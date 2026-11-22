@@ -8,6 +8,8 @@ import { result, roundInfo, rowKey } from "../stats.js";
 import { change } from "../data.js";
 import { buildPost, postMatch, hookFor } from "../discord.js";
 import { errorText } from "../auth.js";
+import { hasStrats } from "../strats.js";
+import { stratsLink } from "./strats.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 
@@ -82,8 +84,9 @@ export function matchView(id) {
   const r = result(m), d = fmtDate(m.date);
   const dcBtn = hookOn(m) && dcOpen !== m.id
     ? `<button class="btn" type="button" data-action="dc-open" data-id="${esc(m.id)}" title="${m.discordAt ? "Schon in Discord gepostet" : "Ergebnis und Scoreboard in euren Discord-Kanal posten"}">${m.discordAt ? "Discord ✓" : "In Discord posten"}</button>` : "";
+  const stratsBtn = hasStrats(m.map) ? `<a class="btn" href="${stratsLink(m.map)}" title="Taktiken für ${esc(m.map)} aus eurem Drive-Ordner">Strats ${esc(m.map)}</a>` : "";
   const top = `<div class="detail-top">${back}
-    <div class="detail-btns">${dcBtn}<button class="btn" type="button" data-action="mf-edit" data-id="${esc(m.id)}">Bearbeiten</button></div></div>`;
+    <div class="detail-btns">${stratsBtn}${dcBtn}<button class="btn" type="button" data-action="mf-edit" data-id="${esc(m.id)}">Bearbeiten</button></div></div>`;
   const head = `<div class="detail-head">
     <div><div class="eyebrow">${esc(m.type || "Match")} · ${esc(d.full)}</div><h1>${esc(m.map || "Map?")}</h1>
       <div class="detail-meta"><span>vs ${esc(m.opponent || "unbekannt")}</span></div></div>
