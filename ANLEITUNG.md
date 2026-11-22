@@ -406,6 +406,14 @@ Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch 
 
 Nach dem ersten **„Wochenplan in Discord posten“** merkt sich die App die Discord-Nachricht. Danach wird **dieselbe Nachricht bearbeitet**, statt eine neue zu schicken: von selbst, sobald ein Match eingetragen oder gelöscht wird, ein Gegner dazukommt, jemand absagt, abstimmt oder ein Termin bzw. die Aufstellung geändert wird (nach ein paar Sekunden). Unten im Post zeigt Discord die Uhrzeit des letzten Stands. Der Knopf heißt dann **„Wochenplan in Discord aktualisieren“**; **„Als neue Nachricht posten“** schickt bei Bedarf einen frischen Post (die App bearbeitet ab dann den neuen). Wurde die Nachricht in Discord gelöscht, postet der Knopf einfach neu.
 
+## Match und Wochenplan verknüpfen (Extra-Scrims)
+
+Beim Eintragen eines Matches steht unter „Serie“ das Feld **„Wochenplan“** (nur wenn es für die Woche einen Plan in der App gibt). Darunter steht, mit welchem Termin das Match verknüpft wird, z. B. „Wird verknüpft mit: Mi 18.11. 20:00 · Scrim“. Auswählen lässt sich:
+- **Automatisch** (Standard): gleicher Tag und gleiche Art, passender Gegner zuerst, sonst der Reihe nach.
+- **ein bestimmter Termin** des Tages.
+- **Extra-Scrim: als neuen Termin eintragen** (mit Uhrzeit, freiwillig): Für Scrims, die nicht geplant waren. Das Match kommt als eigener Termin „Extra-Scrim“ in den Wochenplan und in den Discord-Post und nimmt keinem geplanten Termin den Platz weg.
+- **Nicht mit dem Plan verknüpfen**: z. B. für ein altes Match oder ein Spiel, das nicht in den Plan gehört.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

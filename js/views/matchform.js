@@ -2,7 +2,7 @@
 // damit Eingaben erhalten bleiben, wenn die Seite darunter neu gezeichnet wird.
 // Alle Eingaben stehen als Text in "ed" (dem Modell). Vor jedem Neuzeichnen holt pull() die Felder dorthin.
 import { sideTag } from "./match.js";
-import { plannedLineup, refreshPlanFor } from "./plan.js";
+import { plannedLineup, refreshPlanFor, planFor, autoEntryFor, linkMatchToPlan } from "./plan.js";
 import { S } from "../state.js";
 import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL, AGENT_LOOKALIKE } from "../constants.js";
 import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
@@ -64,7 +64,7 @@ function lineup() {
 }
 
 const snapshot = () => JSON.stringify([ed.date, ed.type, ed.opponent, ed.map, ed.us, ed.them, ed.notes, ed.good, ed.work, ed.startSide, ed.rounds,
-  ed.series, ed.series ? ed.seriesName : "", ed.series ? ed.seriesFormat : "",
+  ed.series, ed.series ? ed.seriesName : "", ed.series ? ed.seriesFormat : "", ed.planChoice, ed.planChoice === "extra" ? ed.planTime : "",
   ...[ed.rows, ed.foes].map((list) => list.map((r) => [r.name, r.agent, ...ALL_STAT_FIELDS.map(([f]) => r[f])]))]);
 
 function open(match) {
@@ -103,6 +103,9 @@ function open(match) {
     seriesName: m.seriesId ? ((seriesInfo(m.seriesId) || {}).name || m.seriesName || "") : "",
     seriesFormat: m.seriesId ? ((seriesInfo(m.seriesId) || {}).format || "bo3") : (m.type === "Turnier" ? "bo3" : "bo3"),
     seriesTouched: Boolean(match),
+    // Wochenplan (seit 22.11.2026): "" = automatisch, "none" = nicht verknüpfen, "extra" = neuer Termin, sonst Termin-ID
+    planChoice: match ? (match.planNone ? "none" : (() => { const p = planFor(match.date); const e = p && p.entries.find((x) => x.manual && x.taken === match.id); return e ? e.id : ""; })()) : "",
+    planTime: "",
     busy: false,
     snap: "",
   };
@@ -634,6 +637,44 @@ function drawDupe() {
   const box = $("#ed-dupe");
   if (box) box.innerHTML = dupeHtml();
   drawSeries();
+  drawPlan();
+}
+
+// ---------- Wochenplan: zu welchem Termin gehört das Match? ----------
+function planHtml() {
+  const p = planFor(ed.date);
+  if (!p) return "";   // für diese Woche gibt es keinen Plan in der App
+  const auto = autoEntryFor({ id: ed.id || "__neu", date: ed.date, type: clean(ed.type) || TYPES[0], opponent: clean(ed.opponent), createdAt: ed.id ? ((S.matches.find((m) => m.id === ed.id) || {}).createdAt || 0) : Date.now() });
+  if (ed.planChoice && !["none", "extra"].includes(ed.planChoice) && !p.entries.some((e) => e.id === ed.planChoice)) ed.planChoice = "";
+  const o = (v, label) => `<option value="${esc(v)}"${v === ed.planChoice ? " selected" : ""}>${esc(label)}</option>`;
+  const mine = (e) => e.taken && e.taken === ed.id;
+  const opts = [
+    o("", auto ? `Automatisch: ${auto.label}` : "Automatisch (kein passender Termin)"),
+    ...p.entries.map((e) => o(e.id, `${e.label}${e.taken && !mine(e) ? " (hat schon ein Match)" : ""}`)),
+    o("extra", "Extra-Scrim: als neuen Termin eintragen"),
+    o("none", "Nicht mit dem Plan verknüpfen"),
+  ].join("");
+  const hint = ed.planChoice === "none" ? "Taucht im Wochenplan nicht auf."
+    : ed.planChoice === "extra" ? "Kommt als eigener Termin „Extra-Scrim“ in den Wochenplan (auch in den Discord-Post)."
+    : ed.planChoice ? "Wird mit diesem Termin verknüpft."
+    : auto ? `Wird verknüpft mit: ${auto.label}` : "An diesem Tag gibt es keinen passenden Termin, das Match steht dann nicht im Plan.";
+  return `<div class="grid-form plan-form"><label class="field"><span>Wochenplan</span><select id="ed-plan-sel" data-f="planChoice" data-change="mf-plan">${opts}</select></label>
+      ${ed.planChoice === "extra" ? `<label class="field"><span>Uhrzeit (freiwillig)</span><input type="text" id="ed-plan-time" data-f="planTime" class="time-in" maxlength="5" value="${esc(ed.planTime)}" placeholder="z. B. 21:00" autocomplete="off"></label>` : ""}
+    </div><p class="hint">${esc(hint)}</p>`;
+}
+function planBox() {
+  const html = planHtml();
+  queueMicrotask(() => { const box = $("#ed-plan"); if (box) box._html = html; });
+  return html;
+}
+function drawPlan() {
+  const box = $("#ed-plan");
+  if (!box) return;
+  const html = planHtml();
+  if (html === box._html) return;
+  const focusId = box.contains(document.activeElement) ? document.activeElement.id : null;
+  box.innerHTML = box._html = html;
+  refocus(box, focusId);
 }
 
 // ---------- Serie (BO3/BO5) ----------
@@ -707,6 +748,7 @@ function sheet() {
       </div>
       <div id="ed-dupe" aria-live="polite">${dupeHtml()}</div>
       <div id="ed-series">${seriesBox()}</div>
+      <div id="ed-plan">${planBox()}</div>
 
       <section class="panel"><div class="panel-head"><h2>Spieler</h2><span class="hint">Leere Felder bleiben leer und zählen nicht mit</span></div>
         <div class="panel-body">
@@ -858,6 +900,11 @@ function save() {
   fields.seriesId = seriesId;
   fields.seriesName = seriesId ? clean(ed.seriesName) : "";
   fields.seriesFormat = seriesId ? (ed.seriesFormat === "bo5" ? "bo5" : "bo3") : null;
+  // Wochenplan: "nicht verknüpfen" steht am Match, alles andere am Termin (nach dem Speichern, linkMatchToPlan)
+  const planChoice = String(ed.planChoice || "");
+  const planTime = String(ed.planTime || "").trim().replace(/^(\d{1,2})$/, "$1:00").replace(/^(\d):/, "0$1:");
+  if (planChoice === "extra" && planTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(planTime)) return fail("Uhrzeit für den Extra-Scrim bitte als 21:00 eintragen.", "ed-plan-time");
+  fields.planNone = planChoice === "none";
   const mine = ed;
   ed.busy = true;
   run(async () => {
@@ -904,6 +951,11 @@ function save() {
       closeEditor();
       const saved = (mine.id ? "Match gespeichert." : "Match eingetragen.") + (off ? " Hinweis: Der Rundenverlauf passt nicht zum Score." : "");
       toast(saved);
+      // Wochenplan: Termin verknüpfen, Extra-Termin anlegen oder Verknüpfung lösen. Scheitert das, bleibt das Match gespeichert.
+      if (planFor(fields.date) || (mine.date0 && planFor(mine.date0))) {
+        linkMatchToPlan({ id, date: fields.date, oldDate: mine.id ? mine.date0 : null, choice: planChoice, type: fields.type, opponent: fields.opponent, time: planTime })
+          .catch((e) => console.warn("Wochenplan verknüpfen:", e.message || e));
+      }
       location.hash = "match-" + id;
       // Wochenplan-Post in Discord aktuell halten (Ergebnis beim Termin), auch für das alte Datum, falls es sich geändert hat
       refreshPlanFor(fields.date);
@@ -1065,6 +1117,7 @@ export const actions = {
 export const changes = {
   // Art geändert: Bei Premier kommt die Spalte "Trades" dazu, sonst fällt sie weg
   "mf-type": () => { if (ed) { pull(); draw(); } },
+  "mf-plan": (el) => { if (!ed) return; ed.planChoice = el.value; drawPlan(); },
   "mf-series": (el) => { if (!ed) return; pull(); ed.seriesTouched = true; useSeries(el.value); drawSeries(); },
   "mf-scan-file": (el) => {
     const file = el.files && el.files[0];

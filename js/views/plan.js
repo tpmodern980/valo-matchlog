@@ -218,7 +218,8 @@ export function linkedMatch(entry, w) {
   const plan = (w.plan || []).filter((e) => e.status !== "cancelled");
   // Matches, die schon von Hand einem Termin zugeordnet sind, fallen weg
   const taken = new Set(plan.filter((e) => e.match && e.match !== "none").map((e) => e.match));
-  const pool = S.matches.filter((m) => m.date === entry.date && norm(m.type) === norm(entry.type) && !taken.has(m.id))
+  // planNone: beim Eintragen "nicht mit dem Plan verknüpfen" gewählt (seit 22.11.2026)
+  const pool = S.matches.filter((m) => m.date === entry.date && norm(m.type) === norm(entry.type) && !taken.has(m.id) && !m.planNone)
     .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   // Alle automatischen Termine dieses Tages und dieser Art: erst die mit passendem Gegner, dann der Reihe nach
   const autos = plan.filter((e) => !e.match && e.date === entry.date && e.type === entry.type).sort(byTime);
@@ -230,6 +231,47 @@ export function linkedMatch(entry, w) {
   }
   for (const e of autos) if (!got.has(e) && pool.length) got.set(e, pool.shift());
   return got.get(entry) || null;
+}
+
+// ---------- Match-Formular: zu welchem Termin gehört ein Match? (Wunsch Tim, 22.11.2026) ----------
+const entryLabel = (e) => `${dayLabel(e.date)}${e.time ? " " + e.time : ""} · ${e.type}${e.opponent ? " vs " + e.opponent : ""}`;
+// Die Woche (Plan) zu einem Datum und ihre Termine an diesem Tag, an denen ein Match hängen kann
+export function planFor(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return null;
+  const w = weekOf(mondayOf(date));
+  if (!w) return null;
+  const entries = (w.plan || []).filter((e) => e.date === date && !isRest(e) && !noMatchType(e.type) && e.status !== "cancelled").sort(byTime);
+  return { w, entries: entries.map((e) => ({ id: e.id, label: entryLabel(e), taken: (() => { const m = linkedMatch(e, w); return m ? m.id : null; })(), manual: Boolean(e.match && e.match !== "none") })) };
+}
+// Wo landet ein Match automatisch? match = { id, date, type, opponent, createdAt }. Rechnet mit dem Match, als wäre es gespeichert.
+export function autoEntryFor(match) {
+  const p = planFor(match.date);
+  if (!p) return null;
+  const keep = S.matches;
+  try {
+    S.matches = [...keep.filter((m) => m.id !== match.id), { ...match, planNone: false }];
+    const e = (p.w.plan || []).find((x) => { const m = linkedMatch(x, p.w); return m && m.id === match.id; });
+    return e ? { id: e.id, label: entryLabel(e), manual: Boolean(e.match && e.match !== "none") } : null;
+  } finally { S.matches = keep; }
+}
+// Nach dem Speichern: Wahl aus dem Formular in den Plan schreiben.
+// choice: "" = automatisch, "none" = nicht verknüpfen, "extra" = als neuen Termin anlegen, sonst die ID eines Termins
+export async function linkMatchToPlan({ id, date, oldDate, choice, type, opponent, time }) {
+  for (const d of [...new Set([oldDate, date].filter(Boolean))]) {
+    const p = planFor(d);
+    if (!p) continue;
+    const w = p.w;
+    let plan = (w.plan || []).map((e) => (e.match === id && e.id !== choice ? { ...e, match: null } : e));   // alte Zuordnung lösen
+    if (d === date) {
+      if (choice === "extra") {
+        plan.push({ id: "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), date, time: time || "", type: type || "Scrim",
+          opponent: opponent || "", note: "Extra-Scrim", status: "planned", match: id, extra: true });
+      } else if (choice && choice !== "none") {
+        plan = plan.map((e) => (e.id === choice ? { ...e, match: id } : e));
+      }
+    }
+    if (JSON.stringify(plan) !== JSON.stringify(w.plan || [])) { await change("weeks", w.id, { plan }); refreshSoon(w.id); }
+  }
 }
 
 // ---------- Ansicht ----------

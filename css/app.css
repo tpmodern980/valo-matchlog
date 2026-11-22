@@ -1305,3 +1305,5 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .pl-lineup-form { flex-basis: 100%; padding: 8px 0 2px; }
 .pl-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 12px; margin: 6px 0 10px; }
 .pl-pick .check.muted { color: var(--muted); }
+.plan-form { margin-top: 12px; }
+.plan-form .field:first-child { grid-column: 1 / -1; }
