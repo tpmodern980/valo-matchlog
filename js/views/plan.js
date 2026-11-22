@@ -17,7 +17,7 @@ import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../ut
 import { weekRecap } from "../recap.js";
 import { create, change, remove, setPath, upsertPath } from "../data.js";
 import { result, oppKey } from "../stats.js";
-import { postPoll, postPlan, postRecap, planHookOn, scheduleHookOn } from "../discord.js";
+import { postPoll, postPlan, postRecap, postRemind, planHookOn, scheduleHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
@@ -171,6 +171,24 @@ export function plannedLineup(date) {
     if (l.ids.length) return l.ids;
   }
   return [];
+}
+
+// Wer hat noch nicht (ganz) abgestimmt? [{ name, open: Tage ohne Angabe, all: gar nichts angegeben }] (für die Erinnerung)
+export function missingVoters(w) {
+  const days = (w.days || []).map((d) => d.date);
+  if (!days.length) return [];
+  const fixed = (v) => (v && v.email && links()[v.email] ? 1 : 0), byPid = new Map();
+  for (const v of Object.values(w.votes || {}).sort((a, b) => fixed(b) - fixed(a))) {
+    const pid = votePid(v);
+    if (!pid) continue;
+    const got = byPid.get(pid) || new Set();
+    for (const d of days) if (((v.picks || {})[d] || []).length) got.add(d);
+    byPid.set(pid, got);
+  }
+  return S.players.filter((p) => p.status !== "staff").map((p) => {
+    const n = days.length - ((byPid.get(p.id) || new Set()).size);
+    return { name: p.name, open: n, all: n === days.length, sub: p.status === "sub" };
+  }).filter((x) => x.open > 0).sort((a, b) => b.open - a.open || a.name.localeCompare(b.name, "de"));
 }
 
 // Bester Zeitpunkt eines Tages (für den Vorschlag beim Planen)
@@ -476,13 +494,15 @@ function planPanel(w) {
 }
 
 function adminPanel(w) {
-  const hook = scheduleHookOn();
+  const hook = scheduleHookOn(), miss = missingVoters(w);
   const when = (t) => (t ? fmtDate(isoDate(new Date(t))).full : "");
   return `<section class="panel"><div class="panel-head"><h2>Discord und Umfrage</h2><span class="hint">nur Admins</span></div>
     <div class="panel-body">
       ${hook ? `<div class="actions">
           <button class="btn primary" type="button" data-action="plan-post-plan" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Wochenplan in Discord posten</button>
-          <button class="btn" type="button" data-action="plan-post-poll" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Umfrage nochmal ankündigen</button></div>
+          <button class="btn" type="button" data-action="plan-post-poll" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Umfrage nochmal ankündigen</button>
+          ${miss.length ? `<button class="btn" type="button" data-action="plan-post-remind" data-week="${esc(w.id)}"${busy ? " disabled" : ""}>Erinnerung posten (${miss.length})</button>` : ""}</div>
+        ${miss.length ? `<p class="hint">Noch nicht abgestimmt: ${miss.map((x) => esc(x.name) + (x.all ? "" : ` (${x.open} ${x.open === 1 ? "Tag" : "Tage"} offen)`)).join(", ")}${w.remindPostedAt ? ` · Erinnerung zuletzt am ${esc(when(w.remindPostedAt))}` : ""}</p>` : '<p class="hint">Alle haben abgestimmt.</p>'}
         <p class="hint">${w.planPostedAt ? `Plan zuletzt gepostet am ${esc(when(w.planPostedAt))}. ` : ""}${w.pollPostedAt ? `Umfrage angekündigt am ${esc(when(w.pollPostedAt))}.` : ""}</p>`
       : '<p class="hint">Für Discord-Posts im Tab „Team“ unter „Discord“ einen Planungs-Kanal eintragen.</p>'}
       <div class="actions"><button class="btn danger" type="button" data-action="plan-delete" data-week="${esc(w.id)}">Umfrage und Plan dieser Woche löschen</button></div>
@@ -536,6 +556,7 @@ export const actions = {
   },
   "plan-post-poll": async (el) => postNow(wk(el), "poll"),
   "plan-post-plan": async (el) => postNow(wk(el), "plan"),
+  "plan-post-remind": async (el) => postNow(wk(el), "remind"),
   // Rückblick geht auch für Wochen ohne Umfrage (dann wird nicht vermerkt, wann gepostet wurde)
   "plan-post-recap": async (el) => {
     if (!S.isAdmin || busy) return;
@@ -571,7 +592,8 @@ async function postNow(w, what) {
   if (!w || !S.isAdmin || busy) return;
   busy = true; changed();
   try {
-    if (what === "poll") { await postPoll(w); await change("weeks", w.id, { pollPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Umfrage würde jetzt in Discord angekündigt." : "Umfrage in Discord angekündigt."); }
+    if (what === "remind") { await postRemind(w, missingVoters(w)); await change("weeks", w.id, { remindPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Erinnerung würde jetzt in Discord gepostet." : "Erinnerung in Discord gepostet."); }
+    else if (what === "poll") { await postPoll(w); await change("weeks", w.id, { pollPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Umfrage würde jetzt in Discord angekündigt." : "Umfrage in Discord angekündigt."); }
     else { await postPlan(w); await change("weeks", w.id, { planPostedAt: Date.now() }); toast(S.demo ? "Vorschau: Wochenplan würde jetzt in Discord gepostet." : "Wochenplan in Discord gepostet."); }
   } catch (e) { fail(e); }
   finally { busy = false; changed(); }

@@ -392,6 +392,10 @@ Beim Anlegen eines Termins darf der Gegner leer bleiben. Sobald er feststeht, im
 
 Unter jedem Termin steht **👥 wer spielt**. Das kommt automatisch aus der Umfrage: alle, die genau zur Uhrzeit des Termins können. Jeder Termin zählt für sich: 20 Uhr und 21 Uhr am selben Tag haben ihre eigenen Leute. Steht die Uhrzeit nicht in der Umfrage (z. B. 20:30), wählt ein Admin die Aufstellung von Hand. Können **mehr als 5**, steht dort „6 können · Aufstellung noch wählen“: Ein Admin tippt **„Jetzt wählen“** und hakt die 5 an. Mit **„Ändern“** lässt sich jede Aufstellung von Hand setzen, „Wieder aus der Umfrage“ macht das rückgängig. Die Spieler stehen auch im **Discord-Post** vom Wochenplan unter dem Termin, und beim Match eintragen schlägt die App die geplante Aufstellung des Tages vor.
 
+## Erinnerung an die Umfrage
+
+Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch nicht (ganz) abgestimmt hat. **„Erinnerung posten“** schickt die Liste mit Link zur Umfrage in den Kanal für Umfrage und Wochenplan (dino scrim zeiten).
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

@@ -212,6 +212,22 @@ export function buildPollPost(w) {
 }
 export const postPoll = (w) => sendPlanHook(buildPollPost(w), scheduleUrl());
 
+// Erinnerung an die Umfrage (Wunsch Tim, 22.11.2026): wer noch nicht (ganz) abgestimmt hat, mit Link. Geht wie die Umfrage
+// in den Kanal für Umfrage und Wochenplan.
+export function buildRemindPost(w, miss) {
+  const link = appUrl() + planLink(w.start);
+  const who = miss.map((x) => `• **${md(x.name)}**${x.all ? "" : ` (${x.open} ${x.open === 1 ? "Tag" : "Tage"} offen)`}`);
+  return {
+    username: "ScrimStar",
+    embeds: [{
+      title: cut(`⏰ Erinnerung: Umfrage ${weekLabel(w.start)}`, 256), url: link, color: 0xD1A12A,
+      description: cut(`Bitte noch abstimmen, damit der Wochenplan steht.\n**[Jetzt abstimmen](${link})**\n\n${who.join("\n")}`, 4000),
+      footer: FOOT,
+    }],
+  };
+}
+export const postRemind = (w, miss) => sendPlanHook(buildRemindPost(w, miss), scheduleUrl());
+
 // Wochenplan: alle Termine der Woche, abgesagte durchgestrichen, gespielte mit Ergebnis
 export function buildPlanPost(w) {
   const link = appUrl() + planLink(w.start);
