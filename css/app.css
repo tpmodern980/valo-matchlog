@@ -1264,9 +1264,10 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .badge.t3, .bdg-chip.t3 { --tc: #d1a12a; }
 .badge.t4, .bdg-chip.t4 { --tc: #2f9eaa; }
 .badge.t5, .bdg-chip.t5 { --tc: #a36bd8; }
-.badge.t6, .bdg-chip.t6 { --tc: #c8374e; }
-.badge.t7, .bdg-chip.t7 { --tc: #e3b83f; }
-.badge.t7 { box-shadow: 0 0 0 1px #e3b83f55, 0 0 14px #e3b83f33; }
+.badge.t6, .bdg-chip.t6 { --tc: #2f9e6b; }
+.badge.t7, .bdg-chip.t7 { --tc: #c8374e; }
+.badge.t8, .bdg-chip.t8 { --tc: #e3b83f; }
+.badge.t8 { box-shadow: 0 0 0 1px #e3b83f55, 0 0 14px #e3b83f33; }
 .bdg-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--tc, var(--line)); border-radius: 999px; font-size: 13px; margin: 0 6px 6px 0; }
 @media (max-width: 640px) { .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; gap: 8px; } .badge-val { font-size: 17px; } }
 .bdg-chip { text-decoration: none; color: inherit; }

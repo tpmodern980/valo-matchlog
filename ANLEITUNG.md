@@ -347,7 +347,7 @@ Oben auf jeder Gegner-Seite (Analyse → Gegner → Name) steht der **Steckbrief
 
 ## Abzeichen
 
-Auf jeder Spieler-Seite stehen **Abzeichen** mit Stufen wie die Ränge in Valorant: **Eisen, Bronze, Silber, Gold, Platin, Diamant, Unsterblich, Radiant**. Sie zählen immer alle Matches und steigen von selbst auf:
+Auf jeder Spieler-Seite stehen **Abzeichen** mit Stufen wie die Ränge in Valorant: **Eisen, Bronze, Silber, Gold, Platin, Diamant, Aufgestiegen, Unsterblich, Radiant**. Sie zählen immer alle Matches und steigen von selbst auf:
 
 | Abzeichen | Zählt | Eisen … Radiant |
 |---|---|---|
@@ -362,7 +362,7 @@ Auf jeder Spieler-Seite stehen **Abzeichen** mit Stufen wie die Ränge in Valora
 | 💥 Bombe | Meiste Kills in einem Match | 15 … 50 |
 | 🎭 Allrounder | Verschiedene Agents | 2 … 12 |
 
-Jede Kachel zeigt, wie viel bis zur nächsten Stufe fehlt. Steigt jemand mit einem Match auf, steht das auf der Match-Seite unter **„Neue Abzeichen“** und im Discord-Post zum Ergebnis.
+Aufgestiegen liegt zwischen Diamant und Unsterblich (9 Stufen). Jede Kachel zeigt, wie viel bis zur nächsten Stufe fehlt. Steigt jemand mit einem Match auf, steht das auf der Match-Seite unter **„Neue Abzeichen“** und im Discord-Post zum Ergebnis.
 
 ## Hinweis „Wochenrückblick noch nicht gepostet“
 

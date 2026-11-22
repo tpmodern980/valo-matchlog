@@ -4,23 +4,23 @@ import { S } from "./state.js";
 import { num } from "./util.js";
 import { playerStats, rowKey } from "./stats.js";
 
-export const TIERS = ["Eisen", "Bronze", "Silber", "Gold", "Platin", "Diamant", "Unsterblich", "Radiant"];
+export const TIERS = ["Eisen", "Bronze", "Silber", "Gold", "Platin", "Diamant", "Aufgestiegen", "Unsterblich", "Radiant"];
 
-// [id, Name, Symbol, Einheit, Erklärung, Schwellen für die 8 Stufen, Wert aus den Zahlen des Spielers]
+// [id, Name, Symbol, Einheit, Erklärung, Schwellen für die 9 Stufen, Wert aus den Zahlen des Spielers]
 export const BADGES = [
-  ["kills", "Killer", "🔫", "Kills", "Kills insgesamt", [50, 150, 300, 600, 1000, 1500, 2500, 4000], (x) => x.s.kills],
-  ["games", "Dauerbrenner", "🎮", "Matches", "Matches gespielt", [5, 15, 30, 50, 80, 120, 180, 250], (x) => x.s.n],
-  ["wins", "Sieger", "🏆", "Siege", "Matches gewonnen", [3, 10, 20, 35, 55, 80, 120, 170], (x) => x.s.w],
-  ["fb", "Eröffner", "⚡", "First Bloods", "First Bloods insgesamt", [10, 30, 60, 100, 160, 250, 400, 600], (x) => x.s.fb],
-  ["assists", "Teamplayer", "🤝", "Assists", "Assists insgesamt", [30, 100, 200, 350, 550, 800, 1200, 1800], (x) => x.s.assists],
-  ["mvp", "MVP", "⭐", "Matches als MVP", "Meiste Kills im Team (MVP im Match)", [1, 3, 6, 10, 15, 22, 30, 40], (x) => x.mvp],
-  ["spike", "Spike-Profi", "💣", "Plants + Defuses", "Spike gelegt oder entschärft", [5, 15, 30, 50, 80, 120, 180, 250], (x) => x.s.plants + x.s.defuses],
-  ["streak", "Siegesserie", "🔥", "Siege am Stück", "Längste Siegesserie (eigene Matches)", [2, 3, 4, 5, 6, 8, 10, 12], (x) => x.streak],
-  ["bomb", "Bombe", "💥", "Kills", "Meiste Kills in einem Match", [15, 20, 25, 30, 35, 40, 45, 50], (x) => x.best],
-  ["agents", "Allrounder", "🎭", "Agents", "Verschiedene Agents gespielt", [2, 3, 4, 5, 6, 8, 10, 12], (x) => x.s.agents.length],
+  ["kills", "Killer", "🔫", "Kills", "Kills insgesamt", [50, 150, 300, 600, 1000, 1500, 2000, 2800, 4000], (x) => x.s.kills],
+  ["games", "Dauerbrenner", "🎮", "Matches", "Matches gespielt", [5, 15, 30, 50, 80, 120, 150, 190, 250], (x) => x.s.n],
+  ["wins", "Sieger", "🏆", "Siege", "Matches gewonnen", [3, 10, 20, 35, 55, 80, 100, 130, 170], (x) => x.s.w],
+  ["fb", "Eröffner", "⚡", "First Bloods", "First Bloods insgesamt", [10, 30, 60, 100, 160, 250, 320, 430, 600], (x) => x.s.fb],
+  ["assists", "Teamplayer", "🤝", "Assists", "Assists insgesamt", [30, 100, 200, 350, 550, 800, 1000, 1300, 1800], (x) => x.s.assists],
+  ["mvp", "MVP", "⭐", "Matches als MVP", "Meiste Kills im Team (MVP im Match)", [1, 3, 6, 10, 15, 22, 27, 33, 40], (x) => x.mvp],
+  ["spike", "Spike-Profi", "💣", "Plants + Defuses", "Spike gelegt oder entschärft", [5, 15, 30, 50, 80, 120, 150, 190, 250], (x) => x.s.plants + x.s.defuses],
+  ["streak", "Siegesserie", "🔥", "Siege am Stück", "Längste Siegesserie (eigene Matches)", [2, 3, 4, 5, 6, 7, 8, 10, 12], (x) => x.streak],
+  ["bomb", "Bombe", "💥", "Kills", "Meiste Kills in einem Match", [15, 20, 25, 30, 35, 38, 41, 45, 50], (x) => x.best],
+  ["agents", "Allrounder", "🎭", "Agents", "Verschiedene Agents gespielt", [2, 3, 4, 5, 6, 7, 8, 10, 12], (x) => x.s.agents.length],
 ];
 
-// Stufe zu einem Wert: -1 = noch keine, 0 = Eisen … 7 = Radiant
+// Stufe zu einem Wert: -1 = noch keine, 0 = Eisen … 8 = Radiant
 export const tierOf = (value, steps) => steps.reduce((t, need, i) => (value >= need ? i : t), -1);
 
 // Zusatzwerte, die playerStats nicht kennt: MVP-Zahl, längste Siegesserie, meiste Kills in einem Match
