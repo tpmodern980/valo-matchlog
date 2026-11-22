@@ -241,7 +241,7 @@ Ohne diese Zeile zeigt der Tab nur „Lade Planung …“, alles andere läuft w
 1. **Managerin (oder ein anderer Admin):** Tab „Planung“, mit den Pfeilen die Woche wählen → **„Umfrage erstellen“** → Tage anhaken, pro Tag Scrim (18 / 19 / 20 Uhr) oder Premier (18:00 / 18:30) → **„Umfrage starten“**. Ist der Planungs-Kanal eingetragen, steht die Umfrage sofort mit Link in Discord.
 2. **Spieler:** Link antippen oder Tab „Planung“ öffnen (oben steht „Du stimmst ab als …“). Dann pro Tag alle Uhrzeiten antippen, zu denen man kann, oder „kann nicht“. Gespeichert wird sofort.
 3. **Alle sehen** unter „Wer kann wann?“ pro Tag und Uhrzeit, wer kann. Grün = mindestens 5. Darunter steht, wer noch nicht abgestimmt hat.
-4. **Managerin:** Unter „Wochenplan“ mit **„+ Termin“** die Termine eintragen (Tag, Uhrzeit, Art, Gegner, Notiz). Die App schlägt die Uhrzeit vor, zu der die meisten können. Dann **„Wochenplan in Discord posten“**.
+4. **Managerin:** Unter „Wochenplan“ mit **„+ Termin“** die Termine eintragen (Tag, Uhrzeit, Art, Gegner, Notiz). Die App schlägt die Uhrzeit vor, zu der die meisten können. Freie Tage mit **„+ Ruhetag“** eintragen (Tag und auf Wunsch eine Notiz). Dann **„Wochenplan in Discord posten“**.
 5. **Während der Woche:** Wird ein Match eingetragen (gleicher Tag, gleiche Art), bekommt der Termin von selbst einen **grünen Haken** mit Ergebnis, Antippen springt zum Match. Fällt ein Termin aus: „Bearbeiten“ → Status **„abgesagt“** → **rotes X**. Bei „Bearbeiten“ lässt sich auch ein anderes Match von Hand verknüpfen.
 
 ## Wenn etwas nicht klappt

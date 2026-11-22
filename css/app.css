@@ -264,6 +264,9 @@ select { padding-right: 28px; }
 .pl-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--line); background: var(--surface-2); padding: 8px 10px; }
 .pl-row.cancelled .pl-main { text-decoration: line-through; opacity: .7; }
 .pl-row.editing { display: block; background: var(--surface); }
+.pl-row.rest { border-style: dashed; background: var(--surface); }
+.pl-row.rest .pl-when span { font-style: italic; }
+.tag.rest { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
 .pl-main { flex: 1 1 220px; display: flex; gap: 12px; align-items: center; min-width: 0; color: inherit; text-decoration: none; }
 a.pl-main:hover .pl-what { color: var(--accent); }
 .pl-when { display: flex; flex-direction: column; min-width: 64px; }

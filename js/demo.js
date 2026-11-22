@@ -209,6 +209,7 @@ export function loadDemo() {
   const plan = weekMatches.map((m, i) => ({ id: "edemo" + i, date: m.date, time: m.type === "Premier" ? "18:30" : "19:00", type: m.type, opponent: m.opponent, note: "", status: "planned", match: null }));
   plan.push({ id: "edemo-x", date: addDays(monday, 4), time: "20:00", type: "Scrim", opponent: "Mitternacht", note: "Gegner hat kurzfristig abgesagt", status: "cancelled", match: null });
   plan.push({ id: "edemo-p", date: addDays(monday, 5), time: "18:30", type: "Premier", opponent: "", note: "Treffen 18:00 im Discord", status: "planned", match: null });
+  plan.push({ id: "edemo-r", date: addDays(monday, 6), time: "", type: "Ruhetag", opponent: "", note: "Pause nach Premier", status: "planned", match: "none" });
   setLocal("weeks", [{ id: "wdemo1", start: monday, days, votes, plan, pollPostedAt: now - 5 * 86400000, planPostedAt: null, createdAt: now - 6 * 86400000, createdBy: null, deleted: false }]);
   S.demo = true;
   S.user = { uid: "demo", email: "kairo@example.com", name: "Kairo" };

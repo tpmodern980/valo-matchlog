@@ -13,7 +13,7 @@ import { result, roundInfo, kdOf } from "./stats.js";
 import { appUrl } from "./auth.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
-import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch } from "./views/plan.js";
+import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST } from "./views/plan.js";
 
 // Webhook-Adressen von Discord (auch die Test-Versionen ptb/canary und die alte discordapp.com)
 const WEBHOOK = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
@@ -190,6 +190,7 @@ export function buildPlanPost(w) {
   const link = appUrl() + planLink(w.start);
   const plan = (w.plan || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || "").localeCompare(String(b.time || "")));
   const lines = plan.map((e) => {
+    if (e.type === REST) return `💤 **${dayLabel(e.date)}** · Ruhetag${e.note ? ` – ${md(e.note)}` : ""}`;
     const text = `**${dayLabel(e.date)}**${e.time ? ` ${e.time}` : ""} · ${md(e.type)}${e.opponent ? ` vs ${md(e.opponent)}` : ""}${e.note ? ` – ${md(e.note)}` : ""}`;
     if (e.status === "cancelled") return `❌ ~~${text}~~ (abgesagt)`;
     const m = linkedMatch(e, w);

@@ -7,6 +7,7 @@
 //     votes: { <uid>: { email, playerId | null, name, picks: { <date>: ["18", "19"] | ["no"] }, at } },
 //     (Für wen eine Stimme zählt: feste Zuordnung des Kontos aus config/team.links, sonst playerId aus "Ich bin")
 //     plan: [{ id, date, time: "19:00", type, opponent, note, status: "planned" | "cancelled", match: null | "none" | <matchId> }],
+//     (Ruhetag: type "Ruhetag", time "", opponent "", match "none")
 //     pollPostedAt, planPostedAt }
 // Abstimmen dürfen alle, Umfrage und Plan anlegen und ändern nur Admins (die Managerin ist Admin).
 // Jede Stimme wird als eigenes Feld votes.<uid> geschrieben (setPath): Gleichzeitiges Abstimmen überschreibt nichts.
@@ -23,6 +24,9 @@ export const SLOTS = { scrim: ["18", "19", "20"], premier: ["18:00", "18:30"] };
 export const slotLabel = (s) => (s.includes(":") ? s : s + " Uhr");
 const KIND_LABEL = { scrim: "Scrim", premier: "Premier" };
 const PLAN_TYPES = [...TYPES, "Training"];
+// Ruhetag (Wunsch Tim, 22.11.2026): eigener Eintrag im Wochenplan ohne Uhrzeit, Gegner und Match
+export const REST = "Ruhetag";
+const isRest = (e) => e && e.type === REST;
 const FULL = 5;   // so viele braucht ein Team: ab da ist ein Zeitfenster grün
 
 // ---------- Datum ----------
@@ -107,7 +111,7 @@ function bestSlot(w, day) {
 // Welches Match gehört zu einem Plan-Eintrag? Von Hand gewählt (match = ID), keins (match = "none"), sonst automatisch:
 // Match am selben Tag mit derselben Art; gleicher Gegner zuerst; bei mehreren Terminen derselben Art der Reihe nach.
 export function linkedMatch(entry, w) {
-  if (entry.status === "cancelled" || entry.match === "none" || entry.type === "Training") return null;
+  if (entry.status === "cancelled" || entry.match === "none" || entry.type === "Training" || isRest(entry)) return null;
   if (entry.match) return S.matches.find((m) => m.id === entry.match) || null;
   const plan = (w.plan || []).filter((e) => e.status !== "cancelled");
   // Matches, die schon von Hand einem Termin zugeordnet sind, fallen weg
@@ -207,7 +211,8 @@ function overviewPanel(w) {
     const slots = Object.entries(st.slots).map(([s, names]) => `<div class="ov-slot${names.length >= FULL ? " ok" : ""}">
         <div class="ov-time">${esc(slotLabel(s))} <b>${names.length}</b></div>
         <div class="ov-names">${names.length ? names.map(esc).join(", ") : "–"}</div></div>`).join("");
-    return `<div class="ov-day"><div class="pv-label"><b>${esc(dayLabel(day.date))}</b><span class="tag">${KIND_LABEL[day.kind] || "Scrim"}</span></div>
+    const rest = (w.plan || []).some((e) => isRest(e) && e.date === day.date);
+    return `<div class="ov-day"><div class="pv-label"><b>${esc(dayLabel(day.date))}</b><span class="tag">${KIND_LABEL[day.kind] || "Scrim"}</span>${rest ? '<span class="tag rest">Ruhetag</span>' : ""}</div>
       <div class="ov-slots">${slots}</div>
       ${st.no.length ? `<div class="ov-extra"><span class="st-x">kann nicht:</span> ${st.no.map(esc).join(", ")}</div>` : ""}
       ${st.open.length ? `<div class="ov-extra muted">noch offen: ${st.open.map(esc).join(", ")}</div>` : ""}</div>`;
@@ -216,7 +221,24 @@ function overviewPanel(w) {
     <div class="panel-body ov">${days || '<p class="hint">Keine Tage in dieser Umfrage.</p>'}</div></section>`;
 }
 
+// Ruhetag eintragen oder ändern: nur Tag und Notiz
+function restForm(w, e) {
+  const days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(w.start, i));
+  // Vorschlag für einen neuen Ruhetag: erster Tag der Woche, an dem noch nichts geplant ist
+  const busyDays = new Set((w.plan || []).map((x) => x.date));
+  const date = e ? e.date : days.find((d) => !busyDays.has(d)) || days[days.length - 1];
+  return `<form class="pe-form" data-form="plan-entry" data-week="${esc(w.id)}" data-id="${e ? esc(e.id) : "new"}" novalidate>
+      <input type="hidden" name="type" value="${REST}">
+      <label class="field"><span>Ruhetag am</span><select name="date">${days.map((d) => `<option value="${d}"${d === date ? " selected" : ""}>${esc(dayLabel(d))}</option>`).join("")}</select></label>
+      <label class="field wide"><span>Notiz (freiwillig)</span><input type="text" name="note" maxlength="120" value="${esc(e ? e.note || "" : "")}" placeholder="z. B. Pause vor Premier" autocomplete="off"></label>
+      <div class="actions wide"><button class="btn primary" type="submit">${e ? "Speichern" : "Ruhetag eintragen"}</button>
+        <button class="btn" type="button" data-action="plan-entry-cancel">Abbrechen</button>
+        ${e ? `<button class="btn danger" type="button" data-action="plan-entry-delete" data-week="${esc(w.id)}" data-id="${esc(e.id)}">Ruhetag löschen</button>` : ""}</div>
+    </form>`;
+}
+
 function entryForm(w, e) {
+  if (isRest(e)) return restForm(w, e);
   const days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(w.start, i));
   const date = e ? e.date : ((w.days || [])[0] || {}).date || w.start;
   const day = (w.days || []).find((d) => d.date === date);
@@ -253,6 +275,11 @@ function planPanel(w) {
   const todayIso = isoDate(new Date());
   const rows = plan.map((e) => {
     if (editId === e.id) return `<div class="pl-row editing">${entryForm(w, e)}</div>`;
+    if (isRest(e)) {
+      return `<div class="pl-row rest"><div class="pl-main"><div class="pl-when"><b>${esc(dayLabel(e.date))}</b><span>frei</span></div>
+        <div class="pl-what"><span class="tag rest">Ruhetag</span>${e.note ? `<small>${esc(e.note)}</small>` : ""}</div></div>
+        ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}</div>`;
+    }
     const m = linkedMatch(e, w);
     let status;
     if (e.status === "cancelled") status = '<span class="pl-st st-x" title="Abgesagt">✗ abgesagt</span>';
@@ -270,13 +297,18 @@ function planPanel(w) {
       ${status}
       ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}</div>`;
   }).join("");
-  const add = S.isAdmin ? (editId === "new" ? `<div class="pl-row editing">${entryForm(w, null)}</div>`
-    : '<button class="btn" type="button" data-action="plan-entry-new">+ Termin</button>') : "";
-  return `<section class="panel"><div class="panel-head"><h2>Wochenplan</h2><span class="hint">${plan.length ? `${plan.length} ${plan.length === 1 ? "Termin" : "Termine"}` : "noch leer"}</span></div>
+  const add = !S.isAdmin ? ""
+    : editId === "new" ? `<div class="pl-row editing">${entryForm(w, null)}</div>`
+    : editId === "rest" ? `<div class="pl-row editing">${restForm(w, null)}</div>`
+    : `<div class="actions"><button class="btn" type="button" data-action="plan-entry-new">+ Termin</button>
+        <button class="btn" type="button" data-action="plan-rest-new">+ Ruhetag</button></div>`;
+  const rests = plan.filter(isRest).length, dates = plan.length - rests;
+  const count = [dates ? `${dates} ${dates === 1 ? "Termin" : "Termine"}` : "", rests ? `${rests} ${rests === 1 ? "Ruhetag" : "Ruhetage"}` : ""].filter(Boolean).join(" · ");
+  return `<section class="panel"><div class="panel-head"><h2>Wochenplan</h2><span class="hint">${count || "noch leer"}</span></div>
     <div class="panel-body">
       ${rows ? `<div class="pl-list">${rows}</div>` : `<p class="hint">${S.isAdmin ? "Noch keine Termine. Schau oben, wann die meisten können, und trag die Termine ein." : "Die Managerin hat den Plan noch nicht eingetragen."}</p>`}
       ${add}
-      <p class="hint">✓ = Match gespielt (antippen springt zum Match), ✗ = abgesagt.</p>
+      <p class="hint">✓ = Match gespielt (antippen springt zum Match), ✗ = abgesagt, Ruhetag = bewusst frei.</p>
     </div></section>`;
 }
 
@@ -319,12 +351,13 @@ export const actions = {
     try { await savePicks(w, date, next); } catch (e) { fail(e); }
   },
   "plan-entry-new": () => { editId = "new"; changed(); },
+  "plan-rest-new": () => { editId = "rest"; changed(); },
   "plan-entry-edit": (el) => { editId = el.dataset.id; changed(); },
   "plan-entry-cancel": () => { editId = null; changed(); },
   "plan-entry-delete": async (el) => {
     const w = wk(el);
     if (!w || !S.isAdmin) return;
-    try { await change("weeks", w.id, { plan: (w.plan || []).filter((e) => e.id !== el.dataset.id) }); editId = null; toast("Termin gelöscht."); }
+    try { await change("weeks", w.id, { plan: (w.plan || []).filter((e) => e.id !== el.dataset.id) }); editId = null; changed(); toast("Termin gelöscht."); }
     catch (e) { fail(e); }
   },
   "plan-post-poll": async (el) => postNow(wk(el), "poll"),
@@ -380,6 +413,22 @@ export const forms = {
     const w = S.weeks.find((x) => x.id === form.dataset.week);
     if (!w || !S.isAdmin) return;
     const data = new FormData(form);
+    const isNew = form.dataset.id === "new";
+    const plan = (w.plan || []).slice();
+    if (data.get("type") === REST) {
+      const date = String(data.get("date"));
+      if (plan.some((e) => isRest(e) && e.date === date && e.id !== form.dataset.id)) return toast("An dem Tag ist schon ein Ruhetag eingetragen.");
+      const rest = { date, time: "", type: REST, opponent: "", note: String(data.get("note") || "").trim().slice(0, 120), status: "planned", match: "none" };
+      if (isNew) plan.push({ id: "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...rest });
+      else {
+        const i = plan.findIndex((e) => e.id === form.dataset.id);
+        if (i < 0) return;
+        plan[i] = { ...plan[i], ...rest };
+      }
+      try { await change("weeks", w.id, { plan }); editId = null; changed(); toast(isNew ? "Ruhetag eingetragen." : "Ruhetag gespeichert."); }
+      catch (e) { fail(e); }
+      return;
+    }
     const time = String(data.get("time") || "").trim().replace(/^(\d{1,2})$/, "$1:00").replace(/^(\d):/, "0$1:");
     if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return toast("Uhrzeit bitte als 19:00 oder 18:30 eintragen.");
     const fields = {
@@ -388,8 +437,6 @@ export const forms = {
       opponent: String(data.get("opponent") || "").trim().slice(0, 40),
       note: String(data.get("note") || "").trim().slice(0, 120),
     };
-    const isNew = form.dataset.id === "new";
-    const plan = (w.plan || []).slice();
     if (isNew) plan.push({ id: "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...fields, status: "planned", match: null });
     else {
       const i = plan.findIndex((e) => e.id === form.dataset.id);
@@ -397,7 +444,7 @@ export const forms = {
       const match = String(data.get("match") || "");
       plan[i] = { ...plan[i], ...fields, status: data.get("status") === "cancelled" ? "cancelled" : "planned", match: match || null };
     }
-    try { await change("weeks", w.id, { plan }); editId = null; toast(isNew ? "Termin eingetragen." : "Termin gespeichert."); }
+    try { await change("weeks", w.id, { plan }); editId = null; changed(); toast(isNew ? "Termin eingetragen." : "Termin gespeichert."); }
     catch (e) { fail(e); }
   },
 };
