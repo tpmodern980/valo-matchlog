@@ -119,6 +119,7 @@ function wantClose() {
   pull();
   if (snapshot() === ed.snap) return closeEditor();
   ed.confirm = "discard";
+  ed.after = null;
   draw();
   showFoot();
 }
@@ -600,6 +601,27 @@ async function runScan() {
   if (box) box.scrollIntoView({ block: "nearest" });
 }
 
+// Gibt es schon ein Match mit demselben Datum, Gegner und derselben Map? (nur ein Hinweis, speichern geht trotzdem)
+function dupes() {
+  const o = norm(ed.opponent), m = norm(ed.map);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ed.date || "") || !o || !m) return [];
+  return S.matches.filter((x) => x.id !== ed.id && x.date === ed.date && norm(x.opponent) === o && norm(x.map) === m);
+}
+
+function dupeHtml() {
+  const list = dupes();
+  if (!list.length) return "";
+  const x = list[0], score = `${x.scoreUs ?? "?"}:${x.scoreThem ?? "?"}`;
+  return `<div class="notice warn dupe"><span><b>Schon eingetragen?</b> Am ${esc(x.date.split("-").reverse().join("."))} gibt es bereits ${list.length > 1 ? list.length + " Matches" : "ein Match"} gegen ${esc(x.opponent)} auf ${esc(x.map)} (${esc(score)}).
+    Wenn ihr wirklich zweimal gespielt habt, einfach speichern.</span>
+    <button class="btn small" type="button" data-action="mf-dupe-open" data-id="${esc(x.id)}">Vorhandenes öffnen</button></div>`;
+}
+
+function drawDupe() {
+  const box = $("#ed-dupe");
+  if (box) box.innerHTML = dupeHtml();
+}
+
 function sheet() {
   const types = TYPES.includes(ed.type) ? TYPES : [...TYPES, ed.type];
   return `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ed-title">
@@ -616,6 +638,7 @@ function sheet() {
           <input type="text" class="numf" inputmode="numeric" pattern="[0-9]*" maxlength="5" autocomplete="off" id="ed-us" data-f="us" value="${esc(ed.us)}" placeholder="wir" aria-label="Unsere Runden"><b>:</b>
           <input type="text" class="numf" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" id="ed-them" data-f="them" value="${esc(ed.them)}" placeholder="die" aria-label="Runden der Gegner"></div></div>
       </div>
+      <div id="ed-dupe" aria-live="polite">${dupeHtml()}</div>
 
       <section class="panel"><div class="panel-head"><h2>Spieler</h2><span class="hint">Leere Felder bleiben leer und zählen nicht mit</span></div>
         <div class="panel-body">
@@ -926,8 +949,15 @@ export const actions = {
   },
 
   "mf-ask-delete": () => { pull(); ed.confirm = "delete"; S.msg = null; draw(); showFoot(); },
-  "mf-confirm-cancel": () => { pull(); ed.confirm = null; draw(); },
-  "mf-discard": closeEditor,
+  "mf-confirm-cancel": () => { pull(); ed.confirm = null; ed.after = null; draw(); },
+  // Zum schon vorhandenen Match springen: Bei ungespeicherten Eingaben erst nachfragen (wie beim Schließen)
+  "mf-dupe-open": (el) => {
+    pull();
+    const go = () => { location.hash = "match-" + el.dataset.id; };
+    if (snapshot() === ed.snap) { closeEditor(); go(); return; }
+    ed.confirm = "discard"; ed.after = go; draw(); showFoot();
+  },
+  "mf-discard": () => { const after = ed && ed.after; closeEditor(); if (after) after(); },
   "mf-delete": () => {
     if (!ed || !ed.id || ed.busy) return;
     const mine = ed;
@@ -1085,6 +1115,15 @@ document.addEventListener("input", (e) => {
   }
   if (el.id === "ed-us" || el.id === "ed-them") drawRounds();
 });
+// Datum, Gegner oder Map geändert: Hinweis auf ein doppeltes Match auffrischen
+for (const type of ["input", "change"]) {
+  document.addEventListener(type, (e) => {
+    const el = e.target;
+    if (!ed || !["ed-date", "ed-opponent", "ed-map"].includes(el.id)) return;
+    ed[el.dataset.f] = el.value;
+    drawDupe();
+  });
+}
 document.addEventListener("keydown", (e) => {
   if (ed && e.key === "Escape") { e.preventDefault(); wantClose(); }
 });

@@ -1,4 +1,4 @@
-// Ansicht "Analyse" (#analysis, Unterseiten #analysis-pistols, #analysis-comps, #analysis-foes).
+// Ansicht "Analyse" (#analysis, Unterseiten #analysis-pistols, #analysis-comps, #analysis-compare, #analysis-foes).
 // Überblick: die wichtigsten Erkenntnisse in ein paar Sätzen. Pistols: Seite, Folgerunden, Einfluss aufs Ergebnis.
 // Comps: die meistgespielten Kompositionen pro Map und die Rollen-Verteilung. Gegner: Agents und Comps der Gegner.
 // Der Agent-Pool steht auf der Detailseite jedes Spielers (js/views/player.js).
@@ -12,10 +12,11 @@ import { barChart, chartTable } from "../charts.js";
 import { filterBar, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
 import { opponentsView } from "./opponents.js";
 import { mapsView } from "./maps.js";
+import { comparePage } from "./compare.js";
 
 // Unterreiter des Bereichs "Analyse". Maps und Gegner sind eigene Seiten (#maps, #opponents), stehen aber seit
 // 22.11.2026 hier mit drin (Wunsch Tim: weniger Bereiche im Menü). Die Agents/Comps der Gegner stehen auf #opponents.
-const SUBS = [["", "Überblick", "#analysis"], ["pistols", "Pistols", "#analysis-pistols"], ["comps", "Comps", "#analysis-comps"], ["maps", "Maps", "#maps"], ["foes", "Gegner", "#opponents"]];
+const SUBS = [["", "Überblick", "#analysis"], ["pistols", "Pistols", "#analysis-pistols"], ["comps", "Comps", "#analysis-comps"], ["compare", "Vergleich", "#analysis-compare"], ["maps", "Maps", "#maps"], ["foes", "Gegner", "#opponents"]];
 export const analysisNav = (cur) => `<nav class="seg an-subs" aria-label="Analyse">${SUBS.map(([k, t, href]) => `<a href="${href}"${k === cur ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>`;
 const TOP = 3;              // so viele Comps pro Map, bevor "Alle anzeigen" kommt
 const SURE = 3;             // ab so vielen Matches gilt ein Wert als einigermaßen aussagekräftig
@@ -213,11 +214,12 @@ export function analysisView(sub = "") {
   const cur = SUBS.some(([k]) => k === sub) ? sub : "";
   const head = `<div class="view-head"><div><div class="eyebrow">Statistik</div><h1>Analyse</h1>
     <p>Erkenntnisse, Pistol-Runden, eure Kompositionen, Maps und Gegner. Den Agent-Pool jedes Spielers findest du auf seiner Spieler-Seite.</p></div>
-    <div class="head-side">${filterBar(true)}</div></div>`;
+    <div class="head-side">${filterBar(true, cur !== "compare")}</div></div>`;
   if (cur === "foes") return opponentsView();   // alte Adresse #analysis-foes
   if (cur === "maps") return mapsView();
   const nav = analysisNav(cur);
   if (!S.loaded.matches) return head + nav + '<p class="loading">Lade Matches …</p>';
+  if (cur === "compare") return head + nav + (S.matches.length ? comparePage() : noMatches("Hier vergleicht ihr dann zwei Zeiträume."));
   const list = filtered();
   if (!list.length) return head + nav + noMatches("Hier stehen dann Pistols, Comps und die Agents der Gegner.");
   const body = cur === "pistols" ? pistolPage(list) : cur === "comps" ? compPage(list) : overview(list);

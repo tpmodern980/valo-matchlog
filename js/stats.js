@@ -27,8 +27,8 @@ function actSpan(range) {
   if (i < 0) return null;
   return { from: start, to: list[i + 1] ? list[i + 1].start : null };   // "to" gehört schon zum nächsten Act
 }
-export function filtered({ anyMap = false } = {}) {
-  const f = S.filters;
+export function filtered({ anyMap = false, anyRange = false } = {}) {
+  const f = anyRange ? { ...S.filters, range: "alle" } : S.filters;
   const days = /^\d+$/.test(f.range) ? Number(f.range) : null;
   const cutoff = days ? daysAgo(days) : null;
   const act = String(f.range).startsWith("act:") ? actSpan(f.range) : null;

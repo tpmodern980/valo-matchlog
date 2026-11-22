@@ -319,13 +319,23 @@ Oben im Bereich **„Analyse“ → „Maps“** gibt jeder pro Map 1–5 Sterne
 
 ## Menü (seit 22.11.2026)
 
-Übersicht · Matches · Spieler · Analyse · Strats · Planung · Team. **Maps** und **Gegner** stehen jetzt als Unterreiter in **Analyse** (zusammen mit Überblick, Pistols, Comps). Auf der Gegner-Seite stehen unten auch die Agents und Comps der Gegner. Im Filter „Zeitraum“ gibt es zusätzlich **Letzte 7 Tage** und **Letzte 10 Matches**.
+Übersicht · Matches · Spieler · Analyse · Strats · Planung · Team. **Maps** und **Gegner** stehen jetzt als Unterreiter in **Analyse** (zusammen mit Überblick, Pistols, Comps, Vergleich). Auf der Gegner-Seite stehen unten auch die Agents und Comps der Gegner. Im Filter „Zeitraum“ gibt es zusätzlich **Letzte 7 Tage** und **Letzte 10 Matches**.
 
 **Startseite:** zeigt zusätzlich die **Form der Spieler** (Pfeile). Der **Wochenrückblick** (App und Discord) nennt, wer heiß ↑ oder kalt ↓ läuft. **Discord-Ergebnis:** Agent steht am Spielernamen, darunter der Stand der Wochenziele.
 
 **Acts / Saisons:** Im Tab „Team“ → „Acts / Saisons“ legt ein Admin Acts mit Namen und Startdatum an (z. B. „V26 Act 6“ ab 27.10.). Sie stehen dann im Filter „Zeitraum“, der neueste als „Aktueller Act“. Ein Act geht bis zum Start des nächsten. Gespeichert in `config/team` (keine neue Regel nötig).
 
 **Form-Trend:** In der Spieler-Tabelle und auf jeder Spieler-Seite zeigt ein Pfeil, wie die letzten 5 Matches im Vergleich zum Schnitt laufen (KPR, ab ±10 % ↑ bzw. ↓; die K/D steht im Tooltip). Braucht mindestens 6 Matches mit Kills und Score.
+
+## Matches suchen und doppelte Matches
+
+Im Tab **„Matches“** steht über der Liste ein **Suchfeld**: Es findet Gegner, Maps, Spieler, Agents, Notizen und das Review („Lief gut“ / „Üben wir“). Mehrere Wörter grenzen weiter ein (z. B. „ascent nordlicht“). Die Liste ist **nach Monaten gruppiert**, neben jedem Monat steht dessen Bilanz und Winrate.
+
+Trägt man ein Match ein, das es mit **gleichem Datum, Gegner und Map** schon gibt, erscheint unter dem Score ein Hinweis mit „Vorhandenes öffnen“. Speichern geht trotzdem (z. B. wenn ihr wirklich zweimal dieselbe Map gespielt habt).
+
+## Zeiträume vergleichen (Analyse → „Vergleich“)
+
+Zwei Zeiträume nebeneinander: z. B. **aktueller Act gegen den Act davor** (Standard, sobald unter „Team“ zwei Acts angelegt sind), **letzte 30 Tage gegen die 30 davor**, 7 oder 90 Tage, oder die **letzten 10 Matches gegen die 10 davor**. Verglichen werden Winrate, Rundendifferenz, Runden im Angriff und in der Verteidigung, Pistols (auch nach Seite), die Folgerunde nach einem Pistol-Sieg und pro Spieler KPR und K/D. **↑** = besser, **↓** = schlechter, **→** = kaum Unterschied. Art und Map aus dem Filter oben gelten, den Zeitraum wählt ihr hier zweimal. „⇄ Tauschen“ dreht A und B um.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 

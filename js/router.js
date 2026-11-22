@@ -1,5 +1,5 @@
 // Seiten über den Teil hinter dem # in der Adresse:
-// #home (Startseite), #matches, #match-<id>, #players, #player-<id>, #maps, #veto, #analysis, #analysis-<pistols|comps|foes>, #opponents, #opponent-<name>, #strats, #strats-<Map>, #plan, #plan-<JJJJMMTT>, #team
+// #home (Startseite), #matches, #match-<id>, #players, #player-<id>, #maps, #veto, #analysis, #analysis-<pistols|comps|compare|foes>, #opponents, #opponent-<name>, #strats, #strats-<Map>, #plan, #plan-<JJJJMMTT>, #team
 // (#plan-20261123 = Planung der Woche, die am Montag 23.11.2026 beginnt; so verlinken die Discord-Posts)
 
 const LISTS = ["home", "matches", "players", "maps", "veto", "analysis", "opponents", "strats", "plan", "team"];

@@ -6,7 +6,7 @@ import { result, rangeOptions } from "../stats.js";
 
 // Filterzeile (Art, Map, Zeitraum). Änderungen fängt main.js über data-filter ab.
 // Muss vor filtered() aufgerufen werden: räumt einen gemerkten Map-Filter weg, den es nicht mehr gibt.
-export function filterBar(showMap) {
+export function filterBar(showMap, showRange = true) {
   const f = S.filters;
   // Alle bekannten Maps, dazu jede, die in einem Match steht (z. B. eine neue Map, die noch nicht in MAPS ist)
   const seen = new Set();
@@ -22,7 +22,7 @@ export function filterBar(showMap) {
   return `<div class="filters">
     <label class="field"><span>Art</span><select id="f-type" data-filter="type">${o("alle", "Alle", f.type)}${TYPES.map((t) => o(t, t, f.type)).join("")}</select></label>
     ${showMap ? `<label class="field"><span>Map</span><select id="f-map" data-filter="map">${o("alle", "Alle", f.map)}${maps.map((m) => o(m, m, f.map)).join("")}</select></label>` : ""}
-    <label class="field"><span>Zeitraum</span><select id="f-range" data-filter="range">${rangeOptions().map(([v, label]) => o(v, label, f.range)).join("")}</select></label>
+    ${showRange ? `<label class="field"><span>Zeitraum</span><select id="f-range" data-filter="range">${rangeOptions().map(([v, label]) => o(v, label, f.range)).join("")}</select></label>` : ""}
   </div>`;
 }
 

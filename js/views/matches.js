@@ -32,9 +32,54 @@ export function matchesView() {
     <div class="stat"><span>Letzte 5</span><div class="form-dots">${dots}</div></div>
   </div>`;
 
-  const rows = list.map(matchRow).join("");
-
-  return head + summary + (list.length
-    ? `<div class="match-list">${rows}</div>`
-    : '<div class="empty"><h2>Keine Treffer</h2><p>Für diese Filter gibt es keine Matches.</p></div>');
+  if (!list.length) return head + summary + '<div class="empty"><h2>Keine Treffer</h2><p>Für diese Filter gibt es keine Matches.</p></div>';
+  const search = `<div class="ml-search"><input type="search" id="ml-q" value="${esc(query)}" placeholder="Suchen: Gegner, Map, Spieler, Notizen …" aria-label="Matches durchsuchen" autocomplete="off" spellcheck="false" maxlength="60"></div>`;
+  return head + summary + search + `<div id="ml-list">${listHtml(list)}</div>`;
 }
+
+// ---------- Suche und Monatsgruppen ----------
+
+let query = "";   // bleibt beim Tab-Wechsel stehen, bis man es löscht
+
+const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const fold = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+// Alles, wonach man suchen kann: Gegner, Map, Art, Notizen, Review, Spieler und Agents
+function haystack(m) {
+  const who = (m.players || []).map((p) => `${p.name || ""} ${p.agent || ""}`).join(" ");
+  return fold([m.opponent, m.map, m.type, m.notes, m.good, m.work, who].join(" "));
+}
+
+function searched(list) {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  if (!words.length) return list;
+  return list.filter((m) => { const h = haystack(m); return words.every((w) => h.includes(w)); });
+}
+
+function listHtml(all) {
+  const list = searched(all);
+  if (!list.length) return `<div class="empty"><h2>Nichts gefunden</h2><p>Kein Match passt zu „${esc(query.trim())}“.</p></div>`;
+  const groups = [];
+  for (const m of list) {
+    const key = String(m.date || "").slice(0, 7) || "?";
+    let g = groups[groups.length - 1];
+    if (!g || g.key !== key) groups.push(g = { key, items: [] });
+    g.items.push(m);
+  }
+  const hit = query.trim() ? `<p class="hint ml-hits">${list.length} von ${all.length} ${all.length === 1 ? "Match" : "Matches"}</p>` : "";
+  return hit + groups.map((g) => {
+    const [y, mo] = g.key.split("-");
+    const name = MONTHS[Number(mo) - 1] ? `${MONTHS[Number(mo) - 1]} ${y}` : "Ohne Datum";
+    const s = teamSummary(g.items);
+    return `<section class="ml-month"><h3><span>${esc(name)}</span><small>${s.w}–${s.l}${s.d ? "–" + s.d : ""} · ${pct(s.wr)}</small></h3>
+      <div class="match-list">${g.items.map(matchRow).join("")}</div></section>`;
+  }).join("");
+}
+
+// Tippen filtert sofort, nur die Liste wird neu gezeichnet (das Feld behält Fokus und Cursor)
+document.addEventListener("input", (e) => {
+  if (e.target.id !== "ml-q") return;
+  query = e.target.value;
+  const box = document.getElementById("ml-list");
+  if (box) box.innerHTML = listHtml(sortMatches(filtered()));
+});

@@ -209,7 +209,7 @@ main.wrap { padding-block: 24px 40px; display: flex; flex-direction: column; gap
 .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field > span { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-input[type="text"], input[type="date"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input:not([type]), select, textarea {
+input[type="text"], input[type="date"], input[type="number"], input[type="url"], input[type="email"], input[type="password"], input[type="search"], input:not([type]), select, textarea {
   background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; min-width: 0;
 }
 textarea { resize: vertical; min-height: 70px; }
@@ -1195,3 +1195,26 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .inst-text small { color: var(--muted); }
 .inst-text .btn { align-self: flex-start; margin-top: 4px; }
 .inst-btns { display: flex; gap: 6px; }
+
+/* Match-Liste: Suche und Monatsgruppen */
+.ml-search { margin: 4px 0 14px; }
+.ml-search input { width: 100%; max-width: 420px; }
+.ml-hits { margin: 0 0 8px; }
+.ml-month { margin-bottom: 18px; }
+.ml-month h3 { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 0 0 8px; font-size: 15px; }
+.ml-month h3 small { color: var(--muted); font-weight: 500; font-size: 13px; }
+.notice.dupe { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.notice.dupe span { flex: 1 1 260px; }
+
+/* Analyse → Vergleich */
+.cmp-pick { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin: 4px 0 14px; }
+.cmp-pick .field select { min-width: 190px; }
+.cmp-vs { color: var(--muted); padding-bottom: 10px; }
+.cmp-table td.name small { font-family: var(--font-body, inherit); font-size: 12px; }
+@media (max-width: 640px) {
+  .cmp-table tr { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cmp-table td.name { font-size: 16px; }
+  .cmp-pick .field { flex: 1 1 140px; }
+  .cmp-pick .field select { min-width: 0; width: 100%; }
+  .cmp-vs { display: none; }
+}
