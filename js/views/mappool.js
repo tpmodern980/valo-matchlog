@@ -47,8 +47,9 @@ export function currentPool() {
   return { maps: MAPS.slice(), from: "all", notes: {} };
 }
 
-// Auswertung pro Map: Ø Sterne, Anzahl Stimmen, Bann-Stimmen (Namen), Bilanz aus allen Matches
-function results(pool) {
+// Auswertung pro Map: Ø Sterne, Anzahl Stimmen, Bann-Stimmen (Namen), Bilanz aus allen Matches.
+// Auch für den Map-Veto-Helfer (js/views/veto.js).
+export function results(pool) {
   const doc = poolDoc();
   const votes = Object.values((doc && doc.ratings) || {}).map((v) => ({ v, who: voterOf(v) })).filter((x) => x.who);
   // Derselbe Spieler doppelt (zwei Konten): die neuere Stimme zählt

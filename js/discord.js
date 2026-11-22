@@ -12,6 +12,7 @@ import { num, fmt2, fmtDate, norm } from "./util.js";
 import { result, roundInfo, kdOf } from "./stats.js";
 import { appUrl } from "./auth.js";
 import { weekRecap } from "./recap.js";
+import { goalLines } from "./goals.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
 import { SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST } from "./views/plan.js";
@@ -169,6 +170,7 @@ async function sendPlanHook(payload) {
   throw say(`Discord hat die Nachricht nicht angenommen (Fehler ${res.status}).`);
 }
 
+const isoToday = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
 const FOOT = { text: "ScrimStar · Fan-Projekt, nicht mit Riot Games verbunden" };
 
 // Umfrage ankündigen: welche Tage, welche Uhrzeiten, Link zum Abstimmen
@@ -198,6 +200,9 @@ export function buildPlanPost(w) {
     if (m) return result(m) === "Q" ? `✅ ${text} (gespielt)` : `✅ ${text} → ${num(m.scoreUs)}:${num(m.scoreThem)} ${HEAD[result(m)].word}`;
     return `▫️ ${text}`;
   });
+  // Wochenziele (js/goals.js) unter den Terminen
+  const goals = goalLines(w.start, false, isoToday());
+  if (goals.length) lines.push("", "**Wochenziele**", ...goals);
   return {
     username: "ScrimStar",
     embeds: [{
@@ -234,6 +239,8 @@ export function buildRecapPost(start, w = null) {
   if (people.length) lines.push("", ...people);
   const mapBits = [r.most ? `meistgespielt ${md(r.most.name)} (${r.most.n}×, ${rec(r.most)})` : "", r.best && (!r.most || r.best.key !== r.most.key) ? `beste ${md(r.best.name)} (${rec(r.best)})` : ""].filter(Boolean);
   if (mapBits.length) lines.push("", `🗺️ Maps: ${mapBits.join(" · ")}`);
+  const goals = goalLines(start, true, isoToday());
+  if (goals.length) lines.push("", "**Wochenziele**", ...goals);
   if (r.plan) lines.push(`🗓️ Plan: ${r.plan.played} von ${r.plan.total} ${r.plan.total === 1 ? "Termin" : "Terminen"} gespielt${r.plan.cancelled ? ` · ${r.plan.cancelled} abgesagt` : ""}${r.plan.rest ? ` · ${r.plan.rest} ${r.plan.rest === 1 ? "Ruhetag" : "Ruhetage"}` : ""}`);
   lines.push("", `[In ScrimStar ansehen](${link})`);
   const color = s.wr === null ? 0x0B7480 : s.wr > 0.5 ? HEAD.W.color : s.wr < 0.5 ? HEAD.L.color : HEAD.D.color;

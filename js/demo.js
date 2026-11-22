@@ -230,6 +230,22 @@ export function loadDemo() {
   setLocal("weeks", [
     { id: "wdemo1", start: monday, days, votes, plan, pollPostedAt: now - 5 * 86400000, planPostedAt: null, createdAt: now - 6 * 86400000, createdBy: null, deleted: false },
     { id: "mappool", kind: "mappool", ratings, createdAt: now - 3 * 86400000, createdBy: null, deleted: false },
+    // Wochenziele (Tab "Planung", js/goals.js): drei für diese Woche, zwei für die Vorwoche (zum Übernehmen und Prüfen)
+    { id: "goals-" + monday.replace(/-/g, ""), kind: "goals", week: monday, createdAt: now - 6 * 86400000, createdBy: null, deleted: false, goals: {
+      gd1: { id: "gd1", kind: "stat", metric: "pistol", target: 60, map: "", type: "", text: "", done: false, doneBy: null, by: "Kairo", at: now - 6 * 86400000, deleted: false },
+      gd2: { id: "gd2", kind: "stat", metric: "conv", target: 75, map: "", type: "", text: "", done: false, doneBy: null, by: "Mats", at: now - 6 * 86400000 + 1, deleted: false },
+      gd3: { id: "gd3", kind: "free", metric: null, target: null, map: "", type: "", text: "Retakes auf B üben (Ascent)", done: true, doneBy: "Lumo", by: "Lumo", at: now - 6 * 86400000 + 2, deleted: false },
+    } },
+    { id: "goals-" + addDays(monday, -7).replace(/-/g, ""), kind: "goals", week: addDays(monday, -7), createdAt: now - 13 * 86400000, createdBy: null, deleted: false, goals: {
+      gd4: { id: "gd4", kind: "stat", metric: "winrate", target: 50, map: "", type: "", text: "", done: false, doneBy: null, by: "Kairo", at: now - 13 * 86400000, deleted: false },
+      gd5: { id: "gd5", kind: "stat", metric: "pistolDef", target: 50, map: "", type: "", text: "", done: false, doneBy: null, by: "Feli", at: now - 13 * 86400000 + 1, deleted: false },
+    } },
+    // Ein gespeichertes Map-Veto (js/views/veto.js) zum neuesten Beispiel-Match (Ascent gegen Nordlicht)
+    { id: "wdemo-veto", kind: "veto", format: "bo1", opponent: "Nordlicht", date: daysAgo(1), first: "us",
+      pool: ["Abyss", "Ascent", "Bind", "Corrode", "Haven", "Lotus", "Sunset"], maps: ["Ascent"], by: "Kairo", at: now - 86400000,
+      steps: [["us", "Corrode"], ["them", "Bind"], ["us", "Abyss"], ["them", "Haven"], ["us", "Lotus"], ["them", "Sunset"]].map(([who, map]) => ({ who, act: "ban", map }))
+        .concat([{ who: null, act: "decider", map: "Ascent" }]),
+      createdAt: now - 86400000, createdBy: null, deleted: false },
     // Notizen pro Strat (Tab "Strats"): IDs wie die Beispiel-Bilder in js/strats.js (demoFiles)
     { id: "stratnotes", kind: "stratnotes", createdAt: now - 2 * 86400000, createdBy: null, deleted: false, notes: {
       "d-bind-attack-a-push": { text: "Nur gegen Eco oder wenn sie A stacken. Brix callt den Push.", clip: null, by: "Kairo", at: now - 2 * 86400000 },

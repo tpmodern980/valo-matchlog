@@ -37,7 +37,7 @@ export function mapsView() {
   // Hier ohne Map-Filter: Die Seite vergleicht die Maps miteinander
   const head = `<div class="view-head"><div><div class="eyebrow">Statistik</div><h1>Maps</h1>
     <p>Welche Maps mögt ihr, und wie läuft es auf welcher Map? Umfrage zum Map-Pool, Bilanz und Winrate, Runden im Angriff und in der Verteidigung, Pistol-Runden.</p></div>
-    <div class="head-side">${filterBar(false)}</div></div>`;
+    <div class="head-side">${filterBar(false)}<a class="btn primary" href="#veto">Map-Veto-Helfer</a></div></div>`;
   if (!S.loaded.matches) return head + '<p class="loading">Lade Matches …</p>';
   const poll = mapPoolPanel();   // Map-Pool-Umfrage (js/views/mappool.js), auch ohne Matches
   const list = filtered({ anyMap: true });

@@ -19,6 +19,7 @@ import { create, change, remove, setPath } from "../data.js";
 import { result } from "../stats.js";
 import { postPoll, postPlan, postRecap, planHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
+import { goalsPanel } from "./goals.js";
 
 // Uhrzeiten, die zur Wahl stehen: Scrim-Tage "ab 18/19/20 Uhr", Premier-Samstag Treffen 18:00 oder 18:30
 export const SLOTS = { scrim: ["18", "19", "20"], premier: ["18:00", "18:30"] };
@@ -144,14 +145,16 @@ export function planView(id) {
       <a class="btn small" href="${planLink(addDays(start, 7))}" aria-label="Nächste Woche">→</a>
     </div>`;
   const head = `<div class="view-head"><div><div class="eyebrow">Team</div><h1>Planung</h1>
-    <p>Umfrage „Wann könnt ihr?“ für die Woche, darunter der Wochenplan. Abstimmen können alle, Umfrage und Plan erstellt ein Admin.</p></div></div>`;
+    <p>Umfrage „Wann könnt ihr?“ für die Woche, darunter der Wochenplan und die Wochenziele. Abstimmen und Ziele anlegen können alle, Umfrage und Plan erstellt ein Admin.</p></div></div>`;
   if (!S.loaded.weeks) return head + nav + '<p class="loading">Lade Planung …</p>';
   // Wochenrückblick: bei vergangenen Wochen ganz oben, sonst unter dem Plan (nur wenn es Matches in der Woche gibt)
   const recap = S.loaded.matches ? recapPanel(start, w) : "";
   const over = addDays(start, 6) < isoDate(new Date());
-  if (!w) return head + nav + (over ? recap : "") + (S.isAdmin ? createPanel(start) : '<div class="empty"><h2>Noch keine Umfrage</h2><p>Für diese Woche hat noch niemand eine Umfrage erstellt.</p></div>') + (over ? "" : recap);
-  if (over) return head + nav + recap + planPanel(w) + overviewPanel(w) + votePanel(w) + (S.isAdmin ? adminPanel(w) : "");
-  return head + nav + votePanel(w) + overviewPanel(w) + planPanel(w) + recap + (S.isAdmin ? adminPanel(w) : "");
+  // Wochenziele (js/views/goals.js): gibt es für jede Woche, auch ohne Umfrage
+  const goals = goalsPanel(start);
+  if (!w) return head + nav + (over ? recap + goals : "") + (S.isAdmin ? createPanel(start) : '<div class="empty"><h2>Noch keine Umfrage</h2><p>Für diese Woche hat noch niemand eine Umfrage erstellt.</p></div>') + (over ? "" : goals + recap);
+  if (over) return head + nav + recap + goals + planPanel(w) + overviewPanel(w) + votePanel(w) + (S.isAdmin ? adminPanel(w) : "");
+  return head + nav + votePanel(w) + overviewPanel(w) + planPanel(w) + goals + recap + (S.isAdmin ? adminPanel(w) : "");
 }
 
 // ---------- Wochenrückblick (js/recap.js) ----------

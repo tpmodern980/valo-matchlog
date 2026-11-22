@@ -10,6 +10,7 @@ import { buildPost, postMatch, hookFor } from "../discord.js";
 import { errorText } from "../auth.js";
 import { hasStrats } from "../strats.js";
 import { stratsLink } from "./strats.js";
+import { vetoForMatch, vetoSteps } from "./veto.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 
@@ -93,7 +94,7 @@ export function matchView(id) {
     <div class="detail-score"><div class="score">${esc(m.scoreUs ?? "?")}<span class="sep">:</span>${esc(m.scoreThem ?? "?")}</div><div class="res ${r}">${RES_LABEL[r]}</div></div>
   </div>`;
   const notes = m.notes ? `<section class="panel"><div class="panel-head"><h2>Notizen</h2></div><div class="panel-body notes-text">${esc(m.notes)}</div></section>` : "";
-  return top + head + discordPanel(m) + scoreboard(m) + roundsPanel(m) + notes + clipsPanel(m);
+  return top + head + discordPanel(m) + scoreboard(m) + roundsPanel(m) + vetoPanel(m) + notes + clipsPanel(m);
 }
 
 // K/D zum Vergleichen: ohne Deaths unendlich, ohne Werte ganz hinten
@@ -133,6 +134,14 @@ function board(m, list, ours) {
 }
 // Unser Scoreboard, darunter (falls eingetragen) das der Gegner
 const scoreboard = (m) => board(m, m.players, true) + board(m, m.opponents, false);
+
+// Gespeichertes Map-Veto (js/views/veto.js): gleiches Datum, gleicher Gegner
+function vetoPanel(m) {
+  const x = vetoForMatch(m);
+  if (!x) return "";
+  return `<section class="panel"><div class="panel-head"><h2>Map-Veto</h2><span class="hint">${x.format === "bo3" ? "Turnier (BO3)" : "Premier (BO1)"} · ${x.first === "them" ? "Gegner hat angefangen" : "wir haben angefangen"}</span></div>
+    <div class="panel-body">${vetoSteps(x)}</div></section>`;
+}
 
 function roundsPanel(m) {
   const ri = roundInfo(m);
