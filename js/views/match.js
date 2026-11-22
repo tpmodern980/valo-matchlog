@@ -10,7 +10,7 @@ import { buildPost, postMatch, hookFor } from "../discord.js";
 import { errorText } from "../auth.js";
 import { hasStrats } from "../strats.js";
 import { stratsLink } from "./strats.js";
-import { vetoForMatch, vetoSteps } from "./veto.js";
+import { vetoForMatch, vetoSteps, vetoLabel } from "./veto.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 
@@ -139,7 +139,7 @@ const scoreboard = (m) => board(m, m.players, true) + board(m, m.opponents, fals
 function vetoPanel(m) {
   const x = vetoForMatch(m);
   if (!x) return "";
-  return `<section class="panel"><div class="panel-head"><h2>Map-Veto</h2><span class="hint">${x.format === "bo3" ? "Turnier (BO3)" : "Premier (BO1)"} · ${x.first === "them" ? "Gegner hat angefangen" : "wir haben angefangen"}</span></div>
+  return `<section class="panel"><div class="panel-head"><h2>Map-Veto</h2><span class="hint">${esc(vetoLabel(x))} · ${x.first === "them" ? "Gegner hat angefangen" : "wir haben angefangen"}</span></div>
     <div class="panel-body">${vetoSteps(x)}</div></section>`;
 }
 

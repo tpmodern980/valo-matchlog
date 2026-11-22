@@ -1,10 +1,12 @@
 // Map-Veto-Helfer (#veto, Wunsch Tim, 22.11.2026). Erreichbar über den Tab "Maps".
 //   1. Rangliste: welche Maps picken, welche bannen. Gewichtet vor allem nach der Map-Pool-Umfrage (Sterne und
 //      Bann-Stimmen, js/views/mappool.js), dazu eure Winrate und, wenn ein Gegner gewählt ist, eure Bilanz gegen ihn.
-//   2. Live-Veto Schritt für Schritt, Premier (BO1: abwechselnd bannen, bis eine Map übrig ist) oder BO3
-//      (Ban, Ban, Pick, Pick, dann abwechselnd bannen bis zum Decider). Bei euren Schritten schlägt die App eine Map vor,
-//      bei den Schritten des Gegners tippt ihr an, was er gewählt hat.
-//   3. Speichern: weeks/<id> = { kind: "veto", format, opponent, date, first, pool, steps: [{ who, act, map }], maps, by, at }
+//   2. Live-Veto Schritt für Schritt. Art (Premier, Turnier, Scrim) und Format (BO1, BO3, BO5) wählt ihr selbst
+//      (Wunsch Tim, 22.11.2026: auch Turniere sind meist BO1, nur Halbfinale und Finale BO3).
+//      BO1: abwechselnd bannen, bis eine Map übrig ist. BO3: Ban, Ban, Pick, Pick, dann bannen bis zum Decider.
+//      BO5: bannen, bis 5 Maps übrig sind, dann vier Picks, die letzte Map ist der Decider.
+//      Bei euren Schritten schlägt die App eine Map vor, bei den Schritten des Gegners tippt ihr an, was er gewählt hat.
+//   3. Speichern: weeks/<id> = { kind: "veto", type, format, opponent, date, first, pool, steps: [{ who, act, map }], maps, by, at }
 //      (Sammlung "weeks", dieselbe Firestore-Regel wie die Planung). Die Match-Seite zeigt das Veto, wenn Datum und
 //      Gegner passen (vetoForMatch).
 import { S, changed } from "../state.js";
@@ -14,14 +16,18 @@ import { mapStats } from "../stats.js";
 import { errorText } from "../auth.js";
 import { currentPool, results } from "./mappool.js";
 
-const FORMATS = { bo1: "Premier (BO1)", bo3: "Turnier (BO3)" };
+const TYPES = ["Premier", "Turnier", "Scrim"];
+const FORMATS = { bo1: "BO1", bo3: "BO3", bo5: "BO5" };
+// "Turnier · BO3"; ältere Vetos ohne Art: nur das Format
+export const vetoLabel = (x) => [x.type || "", FORMATS[x.format] || ""].filter(Boolean).join(" · ");
+const multi = (f) => f === "bo3" || f === "bo5";
 // "Wir bannen Bind" / "Gegner bannt Bind"
 const ACT = { us: { ban: "bannen", pick: "picken" }, them: { ban: "bannt", pick: "pickt" } };
 const actText = (s) => ((ACT[s.who] || ACT.them)[s.act] || "");
 const WHO = { us: "Wir", them: "Gegner" };
 
 // Zustand des Live-Vetos (nur im Arbeitsspeicher, bis gespeichert wird)
-const v = { format: "bo1", opponent: "", date: "", first: "us", out: [], steps: [], saved: false };
+const v = { type: "Premier", format: "bo1", opponent: "", date: "", first: "us", out: [], steps: [], saved: false };
 let busy = false;
 
 const fail = (e) => toast(e && e.plain ? e.message : (errorText(e) || "Das hat nicht geklappt."));
@@ -60,6 +66,7 @@ export function rateMaps(pool, opponent) {
 // Wer ist wann dran? Liefert die Schritte für einen Pool mit n Maps.
 // BO1: abwechselnd bannen, bis eine Map übrig ist (die wird gespielt).
 // BO3: Ban, Ban, Pick, Pick, danach abwechselnd bannen, bis eine Map übrig ist (Decider).
+// BO5: abwechselnd bannen, bis 5 Maps übrig sind, dann vier Picks; die letzte Map ist der Decider.
 function plan(format, first, n) {
   const out = [];
   let turn = first;
@@ -67,6 +74,9 @@ function plan(format, first, n) {
   if (format === "bo3" && n >= 5) {
     push("ban"); push("ban"); push("pick"); push("pick");
     for (let left = n - 4; left > 1; left--) push("ban");
+  } else if (format === "bo5" && n >= 5) {
+    for (let left = n; left > 5; left--) push("ban");
+    push("pick"); push("pick"); push("pick"); push("pick");
   } else {
     for (let left = n; left > 1; left--) push("ban");
   }
@@ -81,7 +91,7 @@ const order = () => plan(v.format, v.first, poolNow().length);
 const finished = () => order().length > 0 && v.steps.length >= order().length;
 function playedMaps() {
   const left = remaining();
-  if (v.format === "bo3") return [...v.steps.filter((s) => s.act === "pick").map((s) => s.map), ...left];
+  if (multi(v.format)) return [...v.steps.filter((s) => s.act === "pick").map((s) => s.map), ...left];
   return left;
 }
 
@@ -96,6 +106,7 @@ function setupPanel(pool) {
   const chips = all.map((m) => `<button type="button" class="vt-pool${v.out.includes(m) ? " out" : ""}" data-action="veto-pool" data-map="${esc(m)}" aria-pressed="${!v.out.includes(m)}"${v.steps.length ? " disabled" : ""}>${esc(m)}</button>`).join("");
   return `<section class="panel"><div class="panel-head"><h2>Vorbereitung</h2><span class="hint">${pool.length} Maps im Pool</span></div>
     <div class="panel-body vt-setup">
+      <div class="field"><span>Art</span>${seg("veto-type", v.type, TYPES.map((t) => [t, t]))}</div>
       <div class="field"><span>Format</span>${seg("veto-format", v.format, Object.entries(FORMATS))}</div>
       <label class="field"><span>Gegner (freiwillig)</span><input type="text" id="vt-opp" data-change="veto-opp" list="vt-opps" maxlength="40" value="${esc(v.opponent)}" placeholder="Teamname" autocomplete="off">
         <datalist id="vt-opps">${opps.map((o) => `<option value="${esc(o)}">`).join("")}</datalist></label>
@@ -125,7 +136,7 @@ function livePanel(rated) {
   if (!steps.length) body = '<p class="hint">Zu wenige Maps im Pool.</p>';
   else if (done) {
     const maps = playedMaps();
-    body = `<div class="vt-result"><span>Gespielt wird</span><b>${maps.map(esc).join(" → ")}</b>${v.format === "bo3" && maps.length === 3 ? '<small>Map 1 · Map 2 · Decider</small>' : ""}</div>
+    body = `<div class="vt-result"><span>Gespielt wird</span><b>${maps.map(esc).join(" → ")}</b>${multi(v.format) && maps.length > 1 ? `<small>${maps.slice(0, -1).map((_, i) => `Map ${i + 1}`).join(" · ")} · Decider</small>` : ""}</div>
       <div class="actions">${v.saved ? '<span class="tag">gespeichert</span>' : `<button class="btn primary" type="button" data-action="veto-save"${busy ? " disabled" : ""}>Veto speichern</button>`}
         <button class="btn" type="button" data-action="veto-undo">Zurück</button>
         <button class="btn ghost" type="button" data-action="veto-reset">Neues Veto</button></div>
@@ -145,8 +156,8 @@ function livePanel(rated) {
         ${v.steps.length ? '<button class="btn ghost" type="button" data-action="veto-reset">Neu anfangen</button>' : ""}</div>`;
   }
   const flow = steps.map((s, i) => `<span class="vt-flow ${s.who}${i < v.steps.length ? " done" : i === v.steps.length ? " cur" : ""}">${s.who === "us" ? "Wir" : "Geg."} ${s.act === "pick" ? "Pick" : "Ban"}</span>`).join("")
-    + (steps.length ? `<span class="vt-flow dec">${v.format === "bo3" ? "Decider" : "Map"}</span>` : "");
-  return `<section class="panel"><div class="panel-head"><h2>Live-Veto</h2><span class="hint">${esc(FORMATS[v.format])}</span></div>
+    + (steps.length ? `<span class="vt-flow dec">${multi(v.format) ? "Decider" : "Map"}</span>` : "");
+  return `<section class="panel"><div class="panel-head"><h2>Live-Veto</h2><span class="hint">${esc(vetoLabel(v))}</span></div>
     <div class="panel-body"><div class="vt-flows">${flow}</div>${body}${history ? `<ol class="vt-hist">${history}</ol>` : ""}</div></section>`;
 }
 
@@ -162,7 +173,7 @@ export function vetoForMatch(m) {
 
 export function vetoSteps(x) {
   const line = (s, i) => (s.act === "decider"
-    ? `<li class="dec"><span>${i + 1}.</span> ${x.format === "bo3" ? "Decider" : "Gespielt wird"}: <b>${esc(s.map)}</b></li>`
+    ? `<li class="dec"><span>${i + 1}.</span> ${multi(x.format) ? "Decider" : "Gespielt wird"}: <b>${esc(s.map)}</b></li>`
     : `<li class="${s.who}"><span>${i + 1}.</span> <b>${WHO[s.who] || "?"}</b> ${actText(s)} <b>${esc(s.map)}</b></li>`);
   return `<ol class="vt-hist">${(x.steps || []).map(line).join("")}</ol>`;
 }
@@ -170,7 +181,7 @@ export function vetoSteps(x) {
 function savedPanel() {
   const list = savedVetos();
   if (!list.length) return "";
-  const rows = list.slice(0, 10).map((x) => `<div class="vt-saved"><div><b>${esc(fmtDate(x.date).full)}</b> · ${esc(FORMATS[x.format] || "")}${x.opponent ? ` · vs ${esc(x.opponent)}` : ""}
+  const rows = list.slice(0, 10).map((x) => `<div class="vt-saved"><div><b>${esc(fmtDate(x.date).full)}</b> · ${esc(vetoLabel(x))}${x.opponent ? ` · vs ${esc(x.opponent)}` : ""}
       <small>Gespielt: ${(x.maps || []).map(esc).join(", ") || "–"}</small></div>
       <details><summary>Ablauf</summary>${vetoSteps(x)}</details>
       <button type="button" class="alias-x" data-action="veto-delete" data-id="${esc(x.id)}" aria-label="Veto löschen" title="Veto löschen">×</button></div>`).join("");
@@ -192,7 +203,9 @@ export function vetoView() {
 const resetSteps = () => { v.steps = []; v.saved = false; };
 
 export const actions = {
-  "veto-format": (el) => { if (v.steps.length && el.dataset.v !== v.format && !confirm2(el)) return; v.format = el.dataset.v === "bo3" ? "bo3" : "bo1"; resetSteps(); changed(); },
+  "veto-format": (el) => { if (v.steps.length && el.dataset.v !== v.format && !confirm2(el)) return; v.format = FORMATS[el.dataset.v] ? el.dataset.v : "bo1"; resetSteps(); changed(); },
+  // Art ändert am Ablauf nichts: kein Neustart nötig
+  "veto-type": (el) => { v.type = TYPES.includes(el.dataset.v) ? el.dataset.v : "Premier"; v.saved = false; changed(); },
   "veto-first": (el) => { if (v.steps.length && el.dataset.v !== v.first && !confirm2(el)) return; v.first = el.dataset.v === "them" ? "them" : "us"; resetSteps(); changed(); },
   "veto-pool": (el) => {
     if (v.steps.length) return;
@@ -214,10 +227,10 @@ export const actions = {
     if (!finished() || busy || v.saved) return;
     busy = true; changed();
     const maps = playedMaps();
-    const steps = [...v.steps, ...(v.format === "bo3" ? maps.slice(2) : maps).map((map) => ({ who: null, act: "decider", map }))];
+    const steps = [...v.steps, ...maps.slice(multi(v.format) ? maps.length - 1 : 0).map((map) => ({ who: null, act: "decider", map }))];
     try {
       await create("weeks", {
-        kind: "veto", format: v.format, opponent: v.opponent.trim().slice(0, 40), date: v.date || isoDate(new Date()), first: v.first,
+        kind: "veto", type: v.type, format: v.format, opponent: v.opponent.trim().slice(0, 40), date: v.date || isoDate(new Date()), first: v.first,
         pool: poolNow(), steps, maps, by: who(), at: Date.now(),
       });
       v.saved = true;

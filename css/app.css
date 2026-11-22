@@ -1037,6 +1037,8 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .gl-fields { display: flex; flex-wrap: wrap; gap: 10px; }
 .gl-fields .field { flex: 1 1 120px; }
 .gl-fields .field.wide, .gl-fields .hint.wide { flex: 1 1 100%; }
+.gl-fields .field.wide2 { flex: 2 1 240px; }
+.gl-free-hint { padding: 8px 10px; background: var(--surface-2); border-left: 3px solid var(--accent); }
 .gl-fields .hint.wide { margin: 0; }
 @media (max-width: 640px) {
   .gl-row { grid-template-columns: auto 1fr auto; }

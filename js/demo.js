@@ -241,7 +241,7 @@ export function loadDemo() {
       gd5: { id: "gd5", kind: "stat", metric: "pistolDef", target: 50, map: "", type: "", text: "", done: false, doneBy: null, by: "Feli", at: now - 13 * 86400000 + 1, deleted: false },
     } },
     // Ein gespeichertes Map-Veto (js/views/veto.js) zum neuesten Beispiel-Match (Ascent gegen Nordlicht)
-    { id: "wdemo-veto", kind: "veto", format: "bo1", opponent: "Nordlicht", date: daysAgo(1), first: "us",
+    { id: "wdemo-veto", kind: "veto", type: "Premier", format: "bo1", opponent: "Nordlicht", date: daysAgo(1), first: "us",
       pool: ["Abyss", "Ascent", "Bind", "Corrode", "Haven", "Lotus", "Sunset"], maps: ["Ascent"], by: "Kairo", at: now - 86400000,
       steps: [["us", "Corrode"], ["them", "Bind"], ["us", "Abyss"], ["them", "Haven"], ["us", "Lotus"], ["them", "Sunset"]].map(([who, map]) => ({ who, act: "ban", map }))
         .concat([{ who: null, act: "decider", map: "Ascent" }]),

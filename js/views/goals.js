@@ -5,7 +5,7 @@ import { TYPES, MAPS } from "../constants.js";
 import { esc, isoDate, toast } from "../util.js";
 import { upsertPath } from "../data.js";
 import { errorText } from "../auth.js";
-import { METRICS, goalsOf, goalsDoc, goalsDocId, goalTitle, goalStatus, cleanMap } from "../goals.js";
+import { METRICS, OPS, goalsOf, goalsDoc, goalsDocId, goalTitle, goalStatus, cleanMap } from "../goals.js";
 import { postGoals, planHookOn } from "../discord.js";
 
 let formFor = null;     // Woche (Montag), für die das Formular "Ziel hinzufügen" offen ist
@@ -40,6 +40,21 @@ function goalRow(g, start, today) {
   </div>`;
 }
 
+// Baukasten für Statistik-Ziele: wer, was, mindestens/höchstens, Wert, Map, Art (Wunsch Tim, 22.11.2026)
+function statFields(g, maps) {
+  const groups = [...new Set(Object.values(METRICS).map((m) => m.group))];
+  const metric = g ? g.metric : "pistol";
+  const players = S.players.filter((p) => p.status !== "ex").slice().sort((a, b) => (a.status === "sub") - (b.status === "sub") || a.name.localeCompare(b.name, "de"));
+  return `<label class="field"><span>Wer</span><select name="player">${opt("", "Ganzes Team", g ? g.player : "")}${players.map((p) => opt(p.id, p.name + (p.status === "sub" ? " (Sub)" : ""), g ? g.player : "")).join("")}</select></label>
+    <label class="field wide2"><span>Was</span><select name="metric">${groups.map((gr) => `<optgroup label="${esc(gr)}">${Object.entries(METRICS).filter(([, m]) => m.group === gr).map(([k, m]) => opt(k, m.label, metric)).join("")}</optgroup>`).join("")}</select></label>
+    <label class="field"><span>Vergleich</span><select name="op">${Object.entries(OPS).map(([k, t]) => opt(k, t, g ? g.op || ">=" : ">=")).join("")}</select></label>
+    <label class="field"><span>Wert</span><input type="text" name="target" inputmode="decimal" maxlength="6" required value="${esc(g ? String(g.target).replace(".", ",") : "60")}" placeholder="60" autocomplete="off"></label>
+    <label class="field"><span>Map</span><select name="map">${opt("", "alle", g ? g.map : "")}${maps.map((m) => opt(m, m, g ? g.map : "")).join("")}</select></label>
+    <label class="field"><span>Art</span><select name="type">${opt("", "alle", g ? g.type : "")}${TYPES.map((t) => opt(t, t, g ? g.type : "")).join("")}</select></label>
+    <p class="hint wide">Prozent als Zahl (60 = 60 %), K/D und Co. mit Komma (1,1). Mit einem Spieler zählen nur Matches, in denen er dabei war. Bei Deaths passt meist „höchstens“.</p>
+    ${g ? "" : `<p class="hint wide gl-free-hint">Nicht dabei, was ihr messen wollt (z. B. Lineups, Comms, VODs)? Die App kennt nur, was in den Matches eingetragen ist. Dann <button type="button" class="linkish" data-action="goal-kind" data-kind="free">als freies Ziel anlegen</button> und selbst abhaken.</p>`}`;
+}
+
 const opt = (v, label, cur) => `<option value="${esc(v)}"${String(v) === String(cur ?? "") ? " selected" : ""}>${esc(label)}</option>`;
 
 function goalForm(start, g = null) {
@@ -50,11 +65,7 @@ function goalForm(start, g = null) {
   const maps = [...new Set([...MAPS, ...S.matches.map((m) => cleanMap(m.map)).filter(Boolean)])].sort((a, b) => a.localeCompare(b, "de"));
   const fields = kind === "free"
     ? `<label class="field wide"><span>Ziel</span><input type="text" name="text" maxlength="100" required value="${esc(g ? g.text : "")}" placeholder="z. B. Retakes auf B üben" autocomplete="off"></label>`
-    : `<label class="field wide"><span>Was</span><select name="metric">${Object.entries(METRICS).map(([k, m]) => opt(k, m.label, g ? g.metric : "pistol")).join("")}</select></label>
-      <label class="field"><span>Mindestens</span><input type="text" name="target" inputmode="decimal" maxlength="5" required value="${esc(g ? g.target : "60")}" placeholder="60" autocomplete="off"></label>
-      <label class="field"><span>Map</span><select name="map">${opt("", "alle", g ? g.map : "")}${maps.map((m) => opt(m, m, g ? g.map : "")).join("")}</select></label>
-      <label class="field"><span>Art</span><select name="type">${opt("", "alle", g ? g.type : "")}${TYPES.map((t) => opt(t, t, g ? g.type : "")).join("")}</select></label>
-      <p class="hint wide">Prozent-Ziele als Zahl (60 = 60 %). Bei der Ø Rundendifferenz die Runden, z. B. 3 oder -1.</p>`;
+    : statFields(g, maps);
   return `<form class="gl-form" data-form="goal-save" data-start="${start}" data-id="${esc(g ? g.id : "")}" data-kind="${kind}">
     ${seg}<div class="gl-fields">${fields}</div>
     <div class="actions"><button class="btn primary" type="submit"${busy ? " disabled" : ""}>${g ? "Speichern" : "Ziel hinzufügen"}</button>
@@ -141,16 +152,23 @@ export const forms = {
     if (kind === "free") {
       const text = String(data.get("text") || "").trim().slice(0, 100);
       if (!text) return toast("Bitte das Ziel eintragen.");
-      g = { kind, text, metric: null, target: null, map: "", type: "" };
+      g = { kind, text, metric: null, op: null, target: null, player: "", map: "", type: "" };
     } else {
-      const metric = String(data.get("metric"));
-      if (!METRICS[metric]) return;
-      const target = Number(String(data.get("target") || "").replace(",", ".").replace("%", "").trim());
-      if (!isFinite(target)) return toast("Bitte eine Zahl eintragen, z. B. 60.");
-      if (METRICS[metric].unit === "%" && (target < 0 || target > 100)) return toast("Prozent-Ziele bitte zwischen 0 und 100.");
-      if (METRICS[metric].unit === "" && Math.abs(target) > 13) return toast("Die Rundendifferenz liegt zwischen -13 und 13.");
-      const type = String(data.get("type") || "");
-      g = { kind, metric, target: Math.round(target * 10) / 10, map: cleanMap(String(data.get("map") || "")), type: TYPES.includes(type) ? type : "", text: "" };
+      const metric = String(data.get("metric")), m = METRICS[metric];
+      if (!m) return;
+      const raw = String(data.get("target") || "").replace(",", ".").replace("%", "").trim();
+      const target = raw === "" ? NaN : Number(raw);
+      if (!isFinite(target)) return toast("Bitte eine Zahl eintragen, z. B. 60 oder 1,1.");
+      if (m.unit === "%" && (target < 0 || target > 100)) return toast("Prozent-Ziele bitte zwischen 0 und 100.");
+      if (metric === "diff" && Math.abs(target) > 13) return toast("Die Rundendifferenz liegt zwischen -13 und 13.");
+      if (metric !== "diff" && (target < 0 || target > 999)) return toast("Bitte eine Zahl zwischen 0 und 999.");
+      if (m.unit === "int" && !Number.isInteger(target)) return toast(`Bei „${m.label}“ bitte eine ganze Zahl.`);
+      const type = String(data.get("type") || ""), player = String(data.get("player") || "");
+      g = {
+        kind, metric, op: data.get("op") === "<=" ? "<=" : ">=", target: Math.round(target * 100) / 100,
+        player: S.players.some((p) => p.id === player) ? player : "",
+        map: cleanMap(String(data.get("map") || "")), type: TYPES.includes(type) ? type : "", text: "",
+      };
     }
     const id = old ? old.id : "g" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     busy = true;

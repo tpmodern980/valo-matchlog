@@ -284,7 +284,8 @@ Oben im Tab **„Maps“** gibt jeder pro Map 1–5 Sterne („wie gern und wie 
 
 Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Alle im Team dürfen Ziele anlegen, ändern, abhaken und löschen.
 
-- **Statistik-Ziele** prüft die App selbst aus den Matches der Woche, z. B. „Pistol-Quote mindestens 60 %“, „Runde nach Pistol-Sieg mindestens 75 %“ oder „Winrate mindestens 50 %“. Wahlweise nur für eine Map oder eine Art (Scrim, Premier, Turnier). Während der Woche steht dort „auf Kurs“ oder „noch drunter“, danach „erreicht“ oder „verfehlt“.
+- **Statistik-Ziele** prüft die App selbst aus den Matches der Woche. Ihr baut sie euch zusammen: **Wer** (ganzes Team oder ein Spieler), **Was** (Winrate, Siege, gespielte Matches, Rundendifferenz, Angriff/Verteidigung, Pistols und Folgerunden, K/D, KPR, Kills/Deaths/Assists/First Bloods/Plants/Defuses/Trades pro Match), **mindestens** oder **höchstens**, der Wert und wahlweise Map und Art. Beispiele: „Kairo: K/D mindestens 1,1“, „Deaths pro Match höchstens 70“, „Pistol-Quote mindestens 60 % · nur Premier“. Mit einem Spieler zählen nur Matches, in denen er dabei war. Während der Woche steht dort „auf Kurs“ oder „noch drunter/drüber“, danach „erreicht“ oder „verfehlt“.
+- Was die App nicht messen kann (alles, was nicht in den Matches steht, z. B. Lineups, Comms, VODs), legt ihr als freies Ziel an.
 - **Freie Ziele** (z. B. „Retakes auf B üben“) werden von Hand abgehakt.
 - **„Ziele der Vorwoche übernehmen“** kopiert die Ziele der letzten Woche in eine leere Woche.
 - **„Ziele in Discord posten“** schickt die Ziele einzeln in den Planungs-Kanal (Schritt 10), ab Wochenbeginn mit dem aktuellen Stand. Das darf jeder. Außerdem stehen sie beim Wochenplan-Post und mit ✅/❌ im Wochenrückblick.
@@ -293,7 +294,7 @@ Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Al
 ## Map-Veto-Helfer (Tab „Maps“ → „Map-Veto-Helfer“)
 
 - **Rangliste:** welche Maps ihr picken und welche ihr bannen solltet. Zählt vor allem eure **Map-Pool-Umfrage** (Sterne und Bann-Wünsche), dazu eure Winrate auf der Map und, wenn ein Gegner eingetragen ist, eure Bilanz gegen ihn.
-- **Live-Veto:** Format wählen (**Premier BO1**: abwechselnd bannen, bis eine Map übrig ist; **Turnier BO3**: Ban, Ban, Pick, Pick, dann bannen bis zum Decider) und wer anfängt. Bei euren Schritten schlägt die App eine Map vor, beim Gegner tippt ihr an, was er gewählt hat.
+- **Live-Veto:** Art (Premier, Turnier, Scrim) und Format selbst wählen: **BO1** = abwechselnd bannen, bis eine Map übrig ist; **BO3** = Ban, Ban, Pick, Pick, dann bannen bis zum Decider; **BO5** = bannen bis 5 Maps übrig sind, dann vier Picks und der Decider. Dazu, wer anfängt. Bei euren Schritten schlägt die App eine Map vor, beim Gegner tippt ihr an, was er gewählt hat.
 - Der Pool kommt aus dem Strats-Ordner. Ohne Ordner stehen alle Maps da: Nehmt die raus, die gerade nicht im Pool sind.
 - **Veto speichern:** Es steht dann auf der Seite des Matches mit gleichem Datum und gleichem Gegner. Gespeichert in `weeks` (`kind: "veto"`), **keine neue Regel** nötig.
 
