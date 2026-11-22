@@ -38,6 +38,7 @@ Die Seite direkt als Datei zu öffnen (`file://`) funktioniert nicht, weil ES-Mo
 | `js/team.js` | Team-Liste (wer die App benutzen darf) |
 | `js/views/` | Die einzelnen Ansichten (u. a. `plan.js`: Tab „Planung“ mit Wochenumfrage und Wochenplan) |
 | `js/discord.js` | Posts in Discord über Webhooks (Ergebnisse, Umfrage, Wochenplan) |
+| `js/strats.js` | Tab „Strats“: liest den Google-Drive-Ordner mit den Taktik-Screenshots (Ansicht in `js/views/strats.js`) |
 | `js/agentrefs.js` | KI-Trainingsbilder fürs Screenshot-Auslesen |
 | `js/stats.js` | Berechnungen |
 | `js/demo.js` | Beispieldaten für die Vorschau |

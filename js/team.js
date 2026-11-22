@@ -54,6 +54,10 @@ export async function watchTeam(email, cb) {
       // links: { "<email>": "<playerId>" | "manager" }: Wer ist welches Konto (Tab "Team"). Damit stimmt im Tab
       // "Planung" jeder automatisch als er selbst ab; "manager" = Managerin, stimmt nicht mit ab (Wunsch Tim, 19.11.2026)
       links: cleanLinks(d.links),
+      // Strats aus Google Drive (Tab "Strats", js/strats.js, Wunsch Tim, 22.11.2026): ID des Ordners und API-Schlüssel.
+      // Stehen hier statt im öffentlichen Repo, damit niemand den Ordner über GitHub findet.
+      stratsFolder: typeof d.stratsFolder === "string" ? d.stratsFolder : "",
+      stratsKey: typeof d.stratsKey === "string" ? d.stratsKey : "",
     };
     // Stammt die Liste nur aus dem Zwischenspeicher des Geräts, zählt sie erst, wenn man selbst draufsteht.
     // (Auf einem geteilten Gerät könnte sie von jemand anderem stammen.)
@@ -123,6 +127,13 @@ export async function setDiscordHooks(url, maps, plan = "") {
   if (S.demo) { S.team = { ...S.team, discordWebhook: url, discordMaps: clean, discordPlan: plan }; changed(); return; }
   const { F, ref } = await teamRef();
   await F.updateDoc(ref, { discordWebhook: url, discordMaps: clean, discordPlan: plan, updatedAt: F.serverTimestamp() });
+}
+
+// Google-Drive-Ordner der Strats speichern (folder = Ordner-ID, key = API-Schlüssel; beides "" = getrennt). Nur Admins.
+export async function setStratsDrive(folder, key) {
+  if (S.demo) { S.team = { ...S.team, stratsFolder: folder, stratsKey: key }; changed(); return; }
+  const { F, ref } = await teamRef();
+  await F.updateDoc(ref, { stratsFolder: folder, stratsKey: key, updatedAt: F.serverTimestamp() });
 }
 
 export async function setAdmin(email, on) {

@@ -244,10 +244,31 @@ Ohne diese Zeile zeigt der Tab nur „Lade Planung …“, alles andere läuft w
 4. **Managerin:** Unter „Wochenplan“ mit **„+ Termin“** die Termine eintragen (Tag, Uhrzeit, Art, Gegner, Notiz). Die App schlägt die Uhrzeit vor, zu der die meisten können. Freie Tage mit **„+ Ruhetag“** eintragen (Tag und auf Wunsch eine Notiz). Dann **„Wochenplan in Discord posten“**.
 5. **Während der Woche:** Wird ein Match eingetragen (gleicher Tag, gleiche Art), bekommt der Termin von selbst einen **grünen Haken** mit Ergebnis, Antippen springt zum Match. Fällt ein Termin aus: „Bearbeiten“ → Status **„abgesagt“** → **rotes X**. Bei „Bearbeiten“ lässt sich auch ein anderes Match von Hand verknüpfen.
 
+## Schritt 12: Strats aus Google Drive (freiwillig)
+
+Der Tab **„Strats“** zeigt eure Taktik-Screenshots direkt aus einem Google-Drive-Ordner. Die Bilder bleiben in Drive. Die App speichert nichts davon, Firestore und der Gratisplan bleiben unberührt. Neue Strats legt ihr einfach in Drive ab.
+
+**Aufbau des Ordners:** pro Map ein Ordner (z. B. `Bind`), darin `Attack` und `Defense`. Darunter dürfen Unterordner liegen (z. B. `Pistol`, `Defaults`), die App zeigt sie als Gruppen. Maps mit Klammer im Namen, z. B. `Ascent (inactiv)` oder `Lotus (perma bann)`, stehen eingeklappt unter „Weitere Maps“. Dateien direkt im obersten Ordner (z. B. ein Plan als Bild oder eine Tabelle) erscheinen oben als Knöpfe. Der Dateiname ohne `.png` ist der Name der Strat.
+
+**Einmal einrichten:**
+1. **Ordner freigeben:** In Google Drive Rechtsklick auf den Ordner → **Teilen** → **Teilen** → bei „Allgemeiner Zugriff“ **„Jeder, der über den Link verfügt“**, Rolle **Betrachter** → **Link kopieren**. Wer den Link kennt, sieht die Strats. Gebt ihn deshalb nicht weiter.
+2. **Drive-Schnittstelle einschalten:** https://console.cloud.google.com → oben das Firebase-Projekt wählen → **APIs und Dienste → Bibliothek** → „Google Drive API“ → **Aktivieren**.
+3. **Schlüssel anlegen:** **APIs und Dienste → Anmeldedaten → Anmeldedaten erstellen → API-Schlüssel**. Den Schlüssel öffnen:
+   - **Anwendungseinschränkungen:** „Websites“, Einträge `https://tpmodern980.github.io/*` und `http://localhost:8123/*` (bei einer neuen Adresse der App diese dazu).
+   - **API-Einschränkungen:** „Schlüssel einschränken“, nur **Google Drive API**.
+   - **Speichern.**
+4. **In der App:** Tab **„Team“** → **„Strats (Google Drive)“** → Ordner-Link und Schlüssel einfügen → **„Prüfen und speichern“**. Die App fragt Drive einmal an und speichert nur, wenn es klappt.
+
+Link und Schlüssel liegen in Firestore (`config/team`), nicht im öffentlichen Code. Eine neue Firestore-Regel braucht es nicht.
+
+**Hinweise:** Beim ersten Öffnen dauert das Laden ein paar Sekunden (eine Abfrage pro Ordner). Danach zeigt die App sofort den letzten Stand und holt Neues im Hintergrund. Mit **„Aktualisieren“** holt sie es sofort. Ein Bild antippen öffnet es groß. Blättern geht mit den Pfeilen, mit Wischen oder mit den Pfeiltasten. **„In Drive“** öffnet das Original.
+
 ## Wenn etwas nicht klappt
 
 | Was du siehst | Woran es meist liegt |
 |---|---|
+| Tab „Strats“: „Der API-Schlüssel ist für diese Adresse nicht freigegeben“ | Beim Schlüssel in der Google-Cloud-Konsole fehlt die Adresse der App unter „Websites“ (Schritt 12). |
+| Tab „Strats“: „Der Drive-Ordner wurde nicht gefunden“ | Ordner steht nicht auf „Jeder mit dem Link“, oder der Link ist falsch (Schritt 12). |
 | „Firebase ist noch nicht eingerichtet“ | `firebase-config.js` ist noch leer oder nicht gespeichert (Schritt 2). |
 | „Noch nicht freigeschaltet“, obwohl du der Besitzer bist | Die Regeln sind nicht veröffentlicht, oder `ADMIN_EMAIL` stimmt nicht genau mit deiner Adresse überein (Schritt 4: kleingeschrieben, kein Leerzeichen). |
 | „Keine Verbindung“, obwohl das Internet geht | Die Firestore-Datenbank ist noch nicht angelegt (Schritt 4). |

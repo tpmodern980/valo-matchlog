@@ -2,7 +2,7 @@
 // damit neue Maps/Agents ohne Update eingetragen werden können.
 // AGENTS ist auch die Liste für das Screenshot-Auslesen: Die KI darf nur Namen daraus nennen (js/scan.js), ein fehlender
 // Agent wird sonst falsch erkannt oder weggelassen. Neuen Agent hier eintragen (und VERSION in sw.js erhöhen).
-export const MAPS = ["Abyss", "Ascent", "Bind", "Breeze", "Corrode", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"];
+export const MAPS = ["Abyss", "Ascent", "Bind", "Breeze", "Corrode", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Summit", "Sunset"];
 export const AGENTS = ["Astra", "Breach", "Brimstone", "Chamber", "Clove", "Cypher", "Deadlock", "Fade", "Gekko", "Harbor", "Hush", "Iso", "Jett", "KAY/O", "Killjoy", "Neon", "Omen", "Phoenix", "Raze", "Reyna", "Sage", "Skye", "Sova", "Tejo", "Veto", "Viper", "Vyse", "Waylay", "Yoru"];
 // Agents, die die KI beim Auslesen leicht verwechselt (laut Tim, 16.11.2026; Fade/Hush seit 17.11.2026):
 // Das Formular bittet dann ums Prüfen. Dieselben Paare stehen im Prompt (boardPrompt in js/scan.js).

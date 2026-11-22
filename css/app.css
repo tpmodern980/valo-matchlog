@@ -122,13 +122,13 @@ main.wrap { padding-block: 24px 40px; display: flex; flex-direction: column; gap
   body.no-nav { --tabbar: 0px; }
   .tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0;
+    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0;
     background: var(--surface); border-top: 1px solid var(--line);
     padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
   .tab {
-    display: grid; place-items: center; min-height: 52px; padding: 0 2px;
-    font-size: 12px; letter-spacing: .03em; border-bottom: 0; border-top: 2px solid transparent;
+    display: grid; place-items: center; min-height: 52px; padding: 0;
+    font-size: 11px; letter-spacing: 0; border-bottom: 0; border-top: 2px solid transparent;
   }
   .tab[aria-current="page"] { border-top-color: var(--accent); color: var(--accent); }
   .brand-name { font-size: 16px; letter-spacing: .1em; }
@@ -274,6 +274,43 @@ a.pl-main:hover .pl-what { color: var(--accent); }
 .pl-what { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; }
 .pl-what small { flex-basis: 100%; color: var(--muted); }
 .pl-st { font-weight: 700; font-size: 14px; white-space: nowrap; text-decoration: none; }
+
+/* Tab "Strats" (Bilder aus Google Drive) */
+.st-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.st-tools { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.st-general { display: flex; flex-wrap: wrap; gap: 6px; }
+a.chip-btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.chip-btn small { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip-btn[aria-pressed="true"] small { color: inherit; }
+.st-more summary { cursor: pointer; color: var(--muted); font-weight: 600; font-size: 14px; padding: 4px 0; }
+.st-more .chips { margin-top: 6px; }
+.st-sides { margin-bottom: 14px; max-width: 420px; }
+.st-sides small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.st-group + .st-group { margin-top: 16px; }
+.st-group .group { margin-bottom: 8px; }
+.st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.st-tile { display: flex; flex-direction: column; gap: 0; padding: 0; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); cursor: pointer; text-align: left; font: inherit; overflow: hidden; }
+.st-tile img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; background: var(--surface); }
+.st-tile span { padding: 7px 9px; font-weight: 600; font-size: 14px; line-height: 1.25; }
+.st-tile:hover, .st-tile:focus-visible { border-color: var(--accent); }
+.st-tile:hover span { color: var(--accent); }
+@media (max-width: 640px) {
+  .st-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .st-tile span { font-size: 13px; padding: 6px 7px; }
+}
+/* Großansicht */
+body.lb-open { overflow: hidden; }
+.lb { position: fixed; inset: 0; z-index: 40; background: rgba(5, 8, 12, .97); display: flex; flex-direction: column; color: #e8edf2; }
+.lb-bar { display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px; }
+.lb-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.lb-title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-title small { color: #9aa7b4; }
+.lb-img { flex: 1; min-height: 0; display: grid; place-items: center; padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px)); }
+.lb-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.lb-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border: 0; background: rgba(255, 255, 255, .08); color: #fff; font-size: 34px; line-height: 1; cursor: pointer; }
+.lb-nav:hover { background: rgba(255, 255, 255, .18); }
+.lb-nav.prev { left: 6px; }
+.lb-nav.next { right: 6px; }
 .st-ok { color: var(--win); }
 .st-x { color: var(--loss); }
 .pe-form, .pc-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }

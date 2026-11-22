@@ -221,6 +221,8 @@ export function loadDemo() {
       "kairo@example.com": "pdemo1", "mats@example.com": "pdemo2", "lumo@example.com": "pdemo3",
       "feli@example.com": "pdemo4", "brix@example.com": "pdemo5", "zeno@example.com": "pdemo6", "managerin@example.com": "manager",
     },
+    // Tab "Strats": erfundener Drive-Ordner mit gezeichneten Beispielbildern (js/strats.js, demoFiles)
+    stratsFolder: "demo-root", stratsKey: "demo",
   };
   S.isAdmin = true;
 }

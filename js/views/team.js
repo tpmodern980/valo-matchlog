@@ -5,7 +5,8 @@
 import { S, changed } from "../state.js";
 import { RES_LABEL, MAPS } from "../constants.js";
 import { $, esc, norm, toast, fmtDate } from "../util.js";
-import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, setLink, cleanEmails, validEmail } from "../team.js";
+import { createTeam, addMember, removeMember, setAdmin, setDiscordHooks, setLink, setStratsDrive, cleanEmails, validEmail } from "../team.js";
+import { stratsOn, folderId, validKey, testDrive, loadStrats } from "../strats.js";
 import { validWebhook, validMapTarget, anyHook } from "../discord.js";
 import { deletedOf, everything, known, restore, remove, purgeTrash } from "../data.js";
 import { buildCsv, buildJson, download, fileName, readImport, applyImport } from "../backup.js";
@@ -271,6 +272,31 @@ function discordPanel() {
     </div></section>`;
 }
 
+// Strats aus Google Drive (js/strats.js): Ordner-Link und API-Schlüssel
+function stratsPanel() {
+  const on = stratsOn();
+  const state = `<span class="hint">${on ? "verbunden" : "nicht eingerichtet"}</span>`;
+  if (!S.isAdmin) {
+    return `<section class="panel"><div class="panel-head"><h2>Strats (Google Drive)</h2>${state}</div>
+      <div class="panel-body"><p class="hint">${on ? "Der Tab „Strats“ zeigt die Taktiken aus eurem Google-Drive-Ordner." : "Ein Admin kann hier euren Google-Drive-Ordner mit den Strats verbinden."}</p></div></section>`;
+  }
+  const folder = (S.team && S.team.stratsFolder) || "", key = (S.team && S.team.stratsKey) || "";
+  const shown = folder && !S.demo ? `https://drive.google.com/drive/folders/${folder}` : folder;
+  return `<section class="panel"><div class="panel-head"><h2>Strats (Google Drive)</h2>${state}</div>
+    <div class="panel-body">
+      <p class="hint">Der Tab „Strats“ zeigt die Bilder direkt aus eurem Drive-Ordner (pro Map ein Ordner, darin „Attack“ und „Defense“). Gespeichert wird nichts davon in der App. Der Ordner muss auf <b>„Jeder mit dem Link kann ansehen“</b> stehen. Den API-Schlüssel legt ihr in der Google-Cloud-Konsole an, nur für eure Seite und nur für die Google Drive API (ANLEITUNG.md, Schritt 12).<br>
+      Link und Schlüssel liegen nur hier in eurer Datenbank, nicht im öffentlichen Code. Gib den Ordner-Link nicht weiter.</p>
+      <form class="dc-hooks" data-form="strats-drive" novalidate>
+        <label class="field"><span>Link zum Drive-Ordner</span>
+          <input type="text" id="sd-folder" name="folder" data-keep maxlength="300" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" placeholder="https://drive.google.com/drive/folders/…" value="${esc(shown)}"></label>
+        <label class="field"><span>API-Schlüssel</span>
+          <input type="text" id="sd-key" name="key" data-keep maxlength="100" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="AIza…" value="${esc(key)}"></label>
+        <div class="actions"><button class="btn primary" type="submit">Prüfen und speichern</button>
+          ${on ? '<a class="btn" href="#strats">Zu den Strats</a>' : ""}</div>
+      </form>
+    </div></section>`;
+}
+
 // Agenten-Beispiele fürs Screenshot-Auslesen (js/agentrefs.js): ansehen und falsche entfernen
 function refsPanel() {
   const refs = S.agentRefs.slice().sort((a, b) => String(a.agent).localeCompare(String(b.agent), "de") || (b.createdAt || 0) - (a.createdAt || 0));
@@ -323,6 +349,7 @@ export function teamView() {
     <div class="folds">
     ${fold("members", membersPanel())}
     ${fold("discord", discordPanel())}
+    ${fold("strats", stratsPanel())}
     ${fold("refs", refsPanel())}
     ${fold("backup", backupPanel())}
     ${S.isAdmin ? fold("trash", trashPanel()) : '<p class="hint">Gelöschte Matches, Spieler und Clips kann ein Admin im Papierkorb wiederherstellen.</p>'}
@@ -512,6 +539,31 @@ export const forms = {
       ? `Gespeichert: ${[def ? "Standard-Kanal" : "", n ? `${n} ${n === 1 ? "Map" : "Maps"}` : "", plan ? "Planungs-Kanal" : ""].filter(Boolean).join(", ")}.`
       : "Discord ist getrennt (keine Adresse eingetragen)."))
       .catch((e) => toast(errorText(e) || "Speichern hat nicht geklappt."));
+  },
+  "strats-drive": async (form) => {
+    if (!S.isAdmin) return;
+    const data = new FormData(form);
+    const rawFolder = String(data.get("folder") || "").trim(), key = String(data.get("key") || "").trim();
+    if (!rawFolder && !key) {
+      return setStratsDrive("", "").then(() => toast("Drive-Ordner getrennt. Der Tab „Strats“ ist jetzt leer."))
+        .catch((e) => toast(errorText(e) || "Speichern hat nicht geklappt."));
+    }
+    const folder = S.demo && rawFolder === S.team.stratsFolder ? rawFolder : folderId(rawFolder);
+    if (!folder) return toast("Das ist kein Link zu einem Drive-Ordner. Er sieht so aus: https://drive.google.com/drive/folders/…");
+    if (!S.demo && !validKey(key)) return toast("Das sieht nicht nach einem API-Schlüssel aus. Er beginnt mit „AIza“.");
+    const btn = form.querySelector("button[type=submit]");
+    if (btn) { btn.disabled = true; btn.textContent = "Prüfe …"; }
+    try {
+      // Erst prüfen, ob Google den Ordner mit diesem Schlüssel herausgibt, dann speichern
+      const maps = S.demo ? 5 : await testDrive(folder, key);
+      await setStratsDrive(folder, key);
+      toast(`Gespeichert. Drive antwortet: ${maps} Ordner gefunden.`);
+      loadStrats(true);
+    } catch (e) {
+      toast(e && e.plain ? e.message : (errorText(e) || "Speichern hat nicht geklappt."));
+    } finally {
+      if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = "Prüfen und speichern"; }
+    }
   },
   "team-setup": (form) => {
     const lines = cleanEmails(String(new FormData(form).get("emails") || "").split(/[\s,;]+/));
