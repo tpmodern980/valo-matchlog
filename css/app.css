@@ -122,14 +122,15 @@ main.wrap { padding-block: 24px 40px; display: flex; flex-direction: column; gap
   body.no-nav { --tabbar: 0px; }
   .tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
-    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0;
+    display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0;
     background: var(--surface); border-top: 1px solid var(--line);
     padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
   .tab {
     display: grid; place-items: center; min-height: 52px; padding: 0;
-    font-size: 11px; letter-spacing: 0; border-bottom: 0; border-top: 2px solid transparent;
+    font-size: 10.5px; letter-spacing: 0; border-bottom: 0; border-top: 2px solid transparent;
   }
+  @media (max-width: 370px) { .tab { font-size: 9.5px; } }
   .tab[aria-current="page"] { border-top-color: var(--accent); color: var(--accent); }
   .brand-name { font-size: 16px; letter-spacing: .1em; }
   /* Filter füllen die Zeilen gleichmäßig */
@@ -951,3 +952,13 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 @media (prefers-reduced-motion: no-preference) {
   .mrow, .btn, .clip-item { transition: border-color .15s, background-color .15s, filter .15s; }
 }
+
+/* ---------- Tab "Analyse" (js/views/analysis.js) ---------- */
+.an-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.an-sec { margin: 28px 0 10px; }
+#an-pistols > .an-sec:first-child { margin-top: 0; }
+.panel .hint.pad { padding: 14px 16px; margin: 0; }
+.an-line { font-size: 13px; line-height: 1.45; }
+.an-line b { font-weight: 600; margin-right: 4px; }
+.rtable td.tags .tag { margin-bottom: 3px; }
+.rtable td.tags, .rtable td.an-wrap { white-space: normal; }

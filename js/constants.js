@@ -3,7 +3,16 @@
 // AGENTS ist auch die Liste für das Screenshot-Auslesen: Die KI darf nur Namen daraus nennen (js/scan.js), ein fehlender
 // Agent wird sonst falsch erkannt oder weggelassen. Neuen Agent hier eintragen (und VERSION in sw.js erhöhen).
 export const MAPS = ["Abyss", "Ascent", "Bind", "Breeze", "Corrode", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Summit", "Sunset"];
-export const AGENTS = ["Astra", "Breach", "Brimstone", "Chamber", "Clove", "Cypher", "Deadlock", "Fade", "Gekko", "Harbor", "Hush", "Iso", "Jett", "KAY/O", "Killjoy", "Neon", "Omen", "Phoenix", "Raze", "Reyna", "Sage", "Skye", "Sova", "Tejo", "Veto", "Viper", "Vyse", "Waylay", "Yoru"];
+export const AGENTS = ["Astra", "Breach", "Brimstone", "Chamber", "Clove", "Cypher", "Deadlock", "Fade", "Gekko", "Harbor", "Hush", "Iso", "Jett", "KAY/O", "Killjoy", "Miks", "Neon", "Omen", "Phoenix", "Raze", "Reyna", "Sage", "Skye", "Sova", "Tejo", "Veto", "Viper", "Vyse", "Waylay", "Yoru"];
+// Rolle jedes Agents im Spiel (für Rollen-Verteilung und Comps im Tab "Analyse", js/analysis.js).
+// Neuer Agent: hier mit Rolle eintragen. Fehlt einer, zählt er in der Rollen-Verteilung als "?".
+export const AGENT_ROLE_LIST = ["Duelist", "Initiator", "Controller", "Sentinel"];
+export const AGENT_ROLE = {
+  Hush: "Duelist", Iso: "Duelist", Jett: "Duelist", Neon: "Duelist", Phoenix: "Duelist", Raze: "Duelist", Reyna: "Duelist", Waylay: "Duelist", Yoru: "Duelist",
+  Breach: "Initiator", Fade: "Initiator", Gekko: "Initiator", "KAY/O": "Initiator", Skye: "Initiator", Sova: "Initiator", Tejo: "Initiator",
+  Astra: "Controller", Brimstone: "Controller", Clove: "Controller", Harbor: "Controller", Miks: "Controller", Omen: "Controller", Viper: "Controller",
+  Chamber: "Sentinel", Cypher: "Sentinel", Deadlock: "Sentinel", Killjoy: "Sentinel", Sage: "Sentinel", Veto: "Sentinel", Vyse: "Sentinel",
+};
 // Agents, die die KI beim Auslesen leicht verwechselt (laut Tim, 16.11.2026; Fade/Hush seit 17.11.2026):
 // Das Formular bittet dann ums Prüfen. Dieselben Paare stehen im Prompt (boardPrompt in js/scan.js).
 export const AGENT_LOOKALIKE = {

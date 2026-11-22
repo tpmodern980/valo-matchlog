@@ -87,7 +87,7 @@ function count(t, res) { t.n++; if (res === "W") t.w++; else if (res === "L") t.
 const winrate = (t) => (t.w + t.l + t.d) ? t.w / (t.w + t.l + t.d) : null;
 
 // Schreibweise einer Map: die aus MAPS, wenn es sie dort gibt, sonst wie eingetragen
-function mapName(text) {
+export function mapName(text) {
   const key = norm(text);
   return MAPS.find((x) => norm(x) === key) || String(text || "").trim();
 }
