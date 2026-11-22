@@ -22,8 +22,8 @@ import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
 // Uhrzeiten, die zur Wahl stehen: Scrim-Tage "ab 18/19/20 Uhr", Premier-Samstag Treffen 18:00 oder 18:30
-// 21 Uhr seit 22.11.2026 (Wunsch Tim: Scrims auch um 21 Uhr, die Aufstellung braucht dafür eigene Stimmen)
-export const SLOTS = { scrim: ["18", "19", "20", "21"], premier: ["18:00", "18:30"], vod: ["18", "19", "20", "21"] };
+// 18 bis 22 Uhr seit 22.11.2026 (Wunsch Tim). Jede Uhrzeit hat eigene Stimmen, die Aufstellung eines Termins nimmt genau seine.
+export const SLOTS = { scrim: ["18", "19", "20", "21", "22"], premier: ["18:00", "18:30"], vod: ["18", "19", "20", "21", "22"] };
 export const slotLabel = (s) => (s.includes(":") ? s : s + " Uhr");
 export const KIND_LABEL = { scrim: "Scrim", premier: "Premier", vod: "VOD-Review" };
 // VOD-Review (Wunsch Tim, 22.11.2026): Termin ohne Match, wie Training
@@ -279,9 +279,9 @@ function createPanel(start) {
     const date = addDays(start, i), sat = i === 5;
     return `<div class="pc-day"><label class="check"><input type="checkbox" name="day" value="${date}" checked> <b>${esc(dayLabel(date))}</b></label>
       <select name="kind-${date}" aria-label="Art am ${esc(dayLabel(date))}">
-        <option value="scrim"${sat ? "" : " selected"}>Scrim (18 / 19 / 20 / 21 Uhr)</option>
+        <option value="scrim"${sat ? "" : " selected"}>Scrim (18 bis 22 Uhr)</option>
         <option value="premier"${sat ? " selected" : ""}>Premier (18:00 / 18:30)</option>
-        <option value="vod">VOD-Review (18 / 19 / 20 / 21 Uhr)</option></select></div>`;
+        <option value="vod">VOD-Review (18 bis 22 Uhr)</option></select></div>`;
   }).join("");
   return `<section class="panel"><div class="panel-head"><h2>Umfrage erstellen</h2><span class="hint">${esc(weekLabel(start))}</span></div>
     <div class="panel-body">
