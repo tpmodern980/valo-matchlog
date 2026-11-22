@@ -396,6 +396,12 @@ Unter jedem Termin steht **👥 wer spielt**. Das kommt automatisch aus der Umfr
 
 Unten in **Planung → „Discord und Umfrage“** (nur Admins) steht, wer noch nicht (ganz) abgestimmt hat. **„Erinnerung posten“** schickt die Liste mit Link zur Umfrage in den Kanal für Umfrage und Wochenplan (dino scrim zeiten). Wer im Profil seine **Discord-ID** eingetragen hat, wird dabei angepingt (Discord → Einstellungen → Erweitert → Entwicklermodus an, dann auf den eigenen Namen → „Benutzer-ID kopieren“; eintragen unter Spieler → Profil bearbeiten). Ohne ID steht der Name nur in der Liste.
 
+## Absagen und Pings im Wochenplan
+
+**„Ich kann doch nicht“:** Wer für einen bevorstehenden Termin aufgestellt ist (oder laut Umfrage kann), sieht im Wochenplan diesen Knopf (zweimal tippen). Die App nimmt ihn raus und lässt den Nächsten nachrücken, der laut Umfrage zu der Uhrzeit auch kann (steht mit „Ersatz“ dabei). In dino scrim zeiten kommt eine Meldung: wer abgesagt hat, wer nachrückt (wird angepingt) und die neue Aufstellung. Gibt es keinen Ersatz, fragt die Meldung „Wer kann einspringen?“. „Ich kann doch“ nimmt die Absage zurück.
+
+**Pings im Wochenplan-Post:** Alle, die bei einem noch nicht gespielten Termin aufgestellt sind und eine Discord-ID im Profil haben, werden beim Posten des Wochenplans angepingt.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

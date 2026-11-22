@@ -231,12 +231,31 @@ export function buildRemindPost(w, miss) {
 }
 export const postRemind = (w, miss) => sendPlanHook(buildRemindPost(w, miss), scheduleUrl());
 
+// Discord-ID eines Spielers (für Pings), sonst ""
+const pingId = (id) => { const p = S.players.find((x) => x.id === id); return p && /^\d{17,20}$/.test(p.discordId || "") ? p.discordId : ""; };
+const nameOf = (id) => (S.players.find((x) => x.id === id) || {}).name || "?";
+
+// Absage für einen Termin ("Ich kann doch nicht"): wer abgesagt hat, wer nachrückt (wird angepingt), neue Aufstellung
+export function buildAbsencePost(w, e, who, sub, lu) {
+  const when = `${dayLabel(e.date)}${e.time ? ` ${e.time}` : ""} · ${e.type}${e.opponent ? ` vs ${e.opponent}` : ""}`;
+  const lines = [sub ? `🔁 **Ersatz:** ${md(nameOf(sub))} (kann laut Umfrage)` : "⚠️ **Kein Ersatz in der Umfrage.** Wer kann einspringen?"];
+  if (lu.ids.length) lines.push(`👥 **Aufstellung jetzt:** ${lineupNames(lu.ids).map(md).join(", ")}${lu.ids.length < 5 ? ` (noch ${5 - lu.ids.length} offen)` : ""}`);
+  lines.push(`**[Zum Wochenplan](${appUrl() + planLink(w.start)})**`);
+  const ids = sub && pingId(sub) ? [pingId(sub)] : [];
+  return {
+    username: "ScrimStar",
+    ...(ids.length ? { content: `<@${ids[0]}> du rückst nach für ${md(when)} 🎮`, allowed_mentions: { parse: [], users: ids } } : {}),
+    embeds: [{ title: cut(`❌ ${nameOf(who)} kann doch nicht · ${when}`, 256), color: 0xC8374E, description: cut(lines.join("\n"), 4000), footer: FOOT }],
+  };
+}
+export const postAbsence = (w, e, who, sub, lu) => sendPlanHook(buildAbsencePost(w, e, who, sub, lu), scheduleUrl());
+
 // Wochenplan: alle Termine der Woche, abgesagte durchgestrichen, gespielte mit Ergebnis
 export function buildPlanPost(w) {
   const link = appUrl() + planLink(w.start);
   const plan = (w.plan || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || "").localeCompare(String(b.time || "")));
   // Jeder Tag als eigene Überschrift, darunter seine Termine (Wunsch Tim, 22.11.2026: alle Tage gleich, keiner als Unterpunkt)
-  const lines = [];
+  const lines = [], pings = new Set();
   for (const e of plan) {
     if (!lines.length || lines.lastDay !== e.date) { lines.push(`### ${dayLabel(e.date)}`); lines.lastDay = e.date; }
     lines.push(line(e));
@@ -244,6 +263,8 @@ export function buildPlanPost(w) {
     const lu = lineupOf(w, e);
     if (lu.ids.length) lines.push(`\u2003👥 ${lineupNames(lu.ids).map(md).join(", ")}`);
     else if (lu.need) lines.push(`\u2003👥 ${lu.avail.length} können, Aufstellung folgt`);
+    // Anpingen (Wunsch Tim, 22.11.2026): alle, die bei einem noch nicht gespielten Termin aufgestellt sind
+    if (e.status !== "cancelled" && e.date >= isoToday() && !linkedMatch(e, w)) for (const id of lu.ids) if (pingId(id)) pings.add(pingId(id));
   }
   function line(e) {
     if (e.type === REST) return `💤 Ruhetag${e.note ? ` – ${md(e.note)}` : ""}`;
@@ -256,8 +277,10 @@ export function buildPlanPost(w) {
   // Wochenziele (js/goals.js) unter den Terminen
   const goals = goalLines(w.start, false, isoToday());
   if (goals.length) lines.push("### Wochenziele", ...goals);
+  const ids = [...pings];
   return {
     username: "ScrimStar",
+    ...(ids.length ? { content: `${ids.map((id) => `<@${id}>`).join(" ")} ihr seid diese Woche eingeplant 🎮`, allowed_mentions: { parse: [], users: ids } } : {}),
     embeds: [{
       title: cut(`🗓️ Wochenplan ${weekLabel(w.start)}`, 256), url: link, color: 0x0B7480,
       description: cut(lines.length ? lines.join("\n") : "Noch keine Termine.", 4000),

@@ -17,7 +17,7 @@ import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../ut
 import { weekRecap } from "../recap.js";
 import { create, change, remove, setPath, upsertPath } from "../data.js";
 import { result, oppKey } from "../stats.js";
-import { postPoll, postPlan, postRecap, postRemind, planHookOn, scheduleHookOn } from "../discord.js";
+import { postPoll, postPlan, postRecap, postRemind, postAbsence, planHookOn, scheduleHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
@@ -151,15 +151,26 @@ export function availableFor(w, e) {
 }
 // { ids, manual, need, avail, noSlot }: need = true, wenn mehr als 5 können und noch keiner gewählt hat;
 // noSlot = die Uhrzeit steht nicht in der Umfrage (dann gibt es keine Aufstellung aus der Umfrage)
+// Absagen (e.out = [playerId, …], "Ich kann doch nicht", seit 22.11.2026): Wer abgesagt hat, zählt nicht mehr als verfügbar.
+// Fällt jemand aus einer von Hand gewählten Aufstellung, rückt der Nächste nach, der laut Umfrage auch kann (subs).
 export function lineupOf(w, e) {
-  if (!hasLineup(e)) return { ids: [], manual: false, need: false, avail: [], noSlot: false };
+  const out = new Set(Array.isArray(e.out) ? e.out : []);
+  if (!hasLineup(e)) return { ids: [], manual: false, need: false, avail: [], noSlot: false, out: [...out], subs: [] };
   const day = (w.days || []).find((d) => d.date === e.date);
   const noSlot = Boolean(day) && !slotFor(day, e.time);
-  const avail = availableFor(w, e);
-  const manual = Array.isArray(e.lineup) && e.lineup.length ? e.lineup.filter((id) => S.players.some((p) => p.id === id)) : null;
-  if (manual) return { ids: manual, manual: true, need: false, avail, noSlot };
-  if (avail.length > TEAM_SIZE) return { ids: [], manual: false, need: true, avail, noSlot };
-  return { ids: avail, manual: false, need: false, avail, noSlot };
+  const avail = availableFor(w, e).filter((id) => !out.has(id));
+  const base = { avail, noSlot, out: [...out].filter((id) => S.players.some((p) => p.id === id)), subs: [] };
+  const raw = Array.isArray(e.lineup) && e.lineup.length ? e.lineup.filter((id) => S.players.some((p) => p.id === id)) : null;
+  if (raw) {
+    const ids = raw.filter((id) => !out.has(id)), subs = [];
+    for (const id of avail) {
+      if (ids.length >= raw.length) break;
+      if (!ids.includes(id)) { ids.push(id); subs.push(id); }
+    }
+    return { ...base, ids, manual: true, need: false, subs };
+  }
+  if (avail.length > TEAM_SIZE) return { ...base, ids: [], manual: false, need: true };
+  return { ...base, ids: avail, manual: false, need: false };
 }
 export const lineupNames = (ids) => ids.map(playerName).filter(Boolean).sort((a, b) => a.localeCompare(b, "de"));
 // Für das Match-Formular: geplante Aufstellung eines Tages (erster Termin mit Spielern)
@@ -455,16 +466,23 @@ function planPanel(w) {
           <div class="actions"><button class="btn small primary" type="submit">Speichern</button>
             <button class="btn small ghost" type="button" data-action="plan-lineup-cancel">Abbrechen</button>
             ${lu.manual ? '<button class="btn small ghost" type="button" data-action="plan-lineup-auto" data-week="' + esc(w.id) + '" data-id="' + esc(e.id) + '">Wieder aus der Umfrage</button>' : ""}</div></form>`;
-    } else if (hasLineup(e) && (lu.ids.length || lu.need || S.isAdmin)) {
+    } else if (hasLineup(e) && (lu.ids.length || ((lu.need || S.isAdmin) && !m))) {
       const names = lineupNames(lu.ids);
       const text = lu.need ? `<b>${lu.avail.length} können</b> · Aufstellung noch wählen`
         : !lu.ids.length && lu.noSlot ? `<span class="muted">${esc(e.time || "Diese Uhrzeit")} stand nicht in der Umfrage · Aufstellung von Hand wählen</span>`
-        : names.length ? `👥 ${names.map(esc).join(", ")}${names.length < TEAM_SIZE ? ` <span class="muted">(noch ${TEAM_SIZE - names.length} offen)</span>` : ""}${lu.manual ? "" : ' <span class="muted">· aus der Umfrage</span>'}`
+        : names.length ? `👥 ${lineupNames(lu.ids).map((n) => esc(n) + (lu.subs.some((id) => playerName(id) === n) ? ' <span class="tag">Ersatz</span>' : "")).join(", ")}${names.length < TEAM_SIZE ? ` <span class="muted">(noch ${TEAM_SIZE - names.length} offen)</span>` : ""}${lu.manual ? "" : ' <span class="muted">· aus der Umfrage</span>'}`
         : '<span class="muted">Noch niemand eingetragen</span>';
+      const outLine = lu.out.length ? `<br><span class="st-x">✗ abgesagt:</span> ${lineupNames(lu.out).map(esc).join(", ")}` : "";
       // Die Namen stehen direkt unter Art und Gegner im Termin selbst (nicht unter den Knöpfen): Sonst sah es am Handy
       // so aus, als gehörten sie zum nächsten Termin (Tim, 22.11.2026)
-      whoHtml = `<small class="pl-who${lu.need ? " need" : ""}">${text}</small>`;
+      whoHtml = `<small class="pl-who${lu.need ? " need" : ""}">${text}${outLine}</small>`;
       lineupBtn = S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-lineup" data-id="${esc(e.id)}">${lu.need ? "Aufstellung wählen" : "Aufstellung"}</button>` : "";
+    }
+    // "Ich kann doch nicht": für den Spieler selbst, wenn er aufgestellt ist oder laut Umfrage kann (nur bevorstehende Termine)
+    const me = myPlayer(w);
+    if (hasLineup(e) && me && me !== "none" && e.date >= todayIso && !m) {
+      if (lu.out.includes(me)) lineupBtn += `<button class="btn small ghost" type="button" data-action="plan-in" data-week="${esc(w.id)}" data-id="${esc(e.id)}">Ich kann doch</button>`;
+      else if (lu.ids.includes(me) || lu.avail.includes(me)) lineupBtn += `<button class="btn small danger" type="button" data-action="plan-out" data-week="${esc(w.id)}" data-id="${esc(e.id)}">Ich kann doch nicht</button>`;
     }
     const main = `<div class="pl-when"><b>${esc(e.time || "–")}</b></div>
       <div class="pl-what"><span class="tag">${esc(e.type)}</span>${e.opponent ? ` vs ${esc(e.opponent)}` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}${whoHtml}</div>`;
@@ -557,6 +575,33 @@ export const actions = {
   "plan-post-poll": async (el) => postNow(wk(el), "poll"),
   "plan-post-plan": async (el) => postNow(wk(el), "plan"),
   "plan-post-remind": async (el) => postNow(wk(el), "remind"),
+  // Absage für einen Termin: Aufstellung vorher und nachher vergleichen, wer nachrückt, und das in Discord melden
+  "plan-out": async (el) => {
+    const w = wk(el), me = w ? myPlayer(w) : "";
+    if (!w || !me || me === "none" || busy) return;
+    if (!confirmTwice(el, "Wirklich absagen? Nochmal tippen")) return;
+    const e = (w.plan || []).find((x) => x.id === el.dataset.id);
+    if (!e) return;
+    const before = lineupOf(w, e);
+    const next = { ...e, out: [...new Set([...(e.out || []), me])] };
+    const after = lineupOf(w, next);
+    const sub = after.ids.find((id) => !before.ids.includes(id)) || null;
+    const plan = (w.plan || []).map((x) => (x.id === e.id ? next : x));
+    busy = true; changed();
+    try {
+      await change("weeks", w.id, { plan });
+      let posted = false;
+      if (scheduleHookOn()) { try { await postAbsence(w, next, me, sub, after); posted = true; } catch (err) { toast("Abgesagt, aber Discord: " + (err.plain ? err.message : "Posten hat nicht geklappt.")); } }
+      if (posted || !scheduleHookOn()) toast(`Abgesagt.${sub ? ` Ersatz: ${playerName(sub)}.` : before.ids.includes(me) ? " Kein Ersatz in der Umfrage." : ""}${posted ? " In Discord gemeldet." : ""}`);
+    } catch (err) { fail(err); }
+    finally { busy = false; changed(); }
+  },
+  "plan-in": async (el) => {
+    const w = wk(el), me = w ? myPlayer(w) : "";
+    if (!w || !me || busy) return;
+    const plan = (w.plan || []).map((x) => (x.id === el.dataset.id ? { ...x, out: (x.out || []).filter((id) => id !== me) } : x));
+    try { await change("weeks", w.id, { plan }); toast("Absage zurückgenommen."); } catch (err) { fail(err); }
+  },
   // Rückblick geht auch für Wochen ohne Umfrage (dann wird nicht vermerkt, wann gepostet wurde)
   "plan-post-recap": async (el) => {
     if (!S.isAdmin || busy) return;
