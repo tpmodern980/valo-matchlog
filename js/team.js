@@ -51,6 +51,9 @@ export async function watchTeam(email, cb) {
       discordMaps: cleanHooks(d.discordMaps),
       // discordPlan: Webhook des Planungs-Kanals (Umfragen und Wochenplan, Tab "Planung")
       discordPlan: typeof d.discordPlan === "string" ? d.discordPlan : "",
+      // discordSchedule: eigener Kanal nur für Umfrage und Wochenplan (z. B. #scrim-zeiten, Wunsch Tim, 22.11.2026).
+      // Leer = die gehen auch in den Planungs-Kanal. Ziele, Rückblick und Steckbrief bleiben im Planungs-Kanal.
+      discordSchedule: typeof d.discordSchedule === "string" ? d.discordSchedule : "",
       // links: { "<email>": "<playerId>" | "manager" }: Wer ist welches Konto (Tab "Team"). Damit stimmt im Tab
       // "Planung" jeder automatisch als er selbst ab; "manager" = Managerin, stimmt nicht mit ab (Wunsch Tim, 19.11.2026)
       links: cleanLinks(d.links),
@@ -134,11 +137,11 @@ export async function setLink(email, value) {
 
 // Discord-Webhooks speichern: Standard-Adresse (url, "" = keine), ein Ziel pro Map (maps) und der Planungs-Kanal
 // (plan). Ersetzt alles ganz. Nur Admins (Firestore-Regeln: config/team).
-export async function setDiscordHooks(url, maps, plan = "") {
+export async function setDiscordHooks(url, maps, plan = "", schedule = "") {
   const clean = cleanHooks(maps);
-  if (S.demo) { S.team = { ...S.team, discordWebhook: url, discordMaps: clean, discordPlan: plan }; changed(); return; }
+  if (S.demo) { S.team = { ...S.team, discordWebhook: url, discordMaps: clean, discordPlan: plan, discordSchedule: schedule }; changed(); return; }
   const { F, ref } = await teamRef();
-  await F.updateDoc(ref, { discordWebhook: url, discordMaps: clean, discordPlan: plan, updatedAt: F.serverTimestamp() });
+  await F.updateDoc(ref, { discordWebhook: url, discordMaps: clean, discordPlan: plan, discordSchedule: schedule, updatedAt: F.serverTimestamp() });
 }
 
 // Google-Drive-Ordner der Strats speichern (folder = Ordner-ID, key = API-Schlüssel; beides "" = getrennt). Nur Admins.

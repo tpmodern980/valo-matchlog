@@ -171,10 +171,12 @@ export async function postMatch(m) {
 // Eigener Webhook für den Planungs-Kanal (config/team.discordPlan): Umfrage ankündigen und Wochenplan posten.
 
 export const planHookOn = () => validWebhook(S.team && S.team.discordPlan);
+// Umfrage und Wochenplan: eigener Kanal (discordSchedule), sonst der Planungs-Kanal
+const scheduleUrl = () => (validWebhook(S.team && S.team.discordSchedule) ? S.team.discordSchedule : S.team && S.team.discordPlan);
+export const scheduleHookOn = () => validWebhook(scheduleUrl());
 
-export async function sendPlanHook(payload) {
+export async function sendPlanHook(payload, url = S.team && S.team.discordPlan) {
   const say = (text) => Object.assign(new Error(text), { plain: true });
-  const url = S.team && S.team.discordPlan;
   if (!validWebhook(url)) throw say("Für die Planung ist kein Discord-Kanal eingetragen (Tab „Team“ → Discord).");
   if (S.demo) { console.info("Vorschau: Diese Nachricht ginge an Discord:", payload); return; }
   let res;
@@ -187,7 +189,7 @@ export async function sendPlanHook(payload) {
   let code = 0;
   try { code = Number((await res.json()).code) || 0; } catch (e) { /* ohne Einzelheiten */ }
   if (code === 220001) throw say("Der Planungs-Webhook gehört zu einem Forum-Kanal. Nimm für die Planung einen normalen Text-Kanal.");
-  if (res.status === 404 || res.status === 401) throw say("Discord kennt den Webhook des Planungs-Kanals nicht (mehr). Ein Admin trägt im Tab „Team“ einen neuen ein.");
+  if (res.status === 404 || res.status === 401) throw say("Discord kennt diesen Webhook nicht (mehr). Ein Admin trägt im Tab „Team“ unter Discord einen neuen ein.");
   if (res.status === 429) throw say("Discord bremst gerade (zu viele Nachrichten). Warte kurz und versuch es noch einmal.");
   throw say(`Discord hat die Nachricht nicht angenommen (Fehler ${res.status}).`);
 }
@@ -208,7 +210,7 @@ export function buildPollPost(w) {
     }],
   };
 }
-export const postPoll = (w) => sendPlanHook(buildPollPost(w));
+export const postPoll = (w) => sendPlanHook(buildPollPost(w), scheduleUrl());
 
 // Wochenplan: alle Termine der Woche, abgesagte durchgestrichen, gespielte mit Ergebnis
 export function buildPlanPost(w) {
@@ -244,7 +246,7 @@ export function buildPlanPost(w) {
     }],
   };
 }
-export const postPlan = (w) => sendPlanHook(buildPlanPost(w));
+export const postPlan = (w) => sendPlanHook(buildPlanPost(w), scheduleUrl());
 
 // Wochenrückblick (js/recap.js): Bilanz, Ergebnisse, Spieler der Woche, Maps, Plan. Geht in den Planungs-Kanal.
 const de1 = (n) => n.toFixed(1).replace(".", ","), de2 = (n) => n.toFixed(2).replace(".", ",");

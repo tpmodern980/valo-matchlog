@@ -256,8 +256,8 @@ function discordPanel() {
   const def = (S.team && S.team.discordWebhook) || "";
   const maps = discordMaps();
   const mapCount = maps.filter((n) => validMapTarget(mapHook(n))).length;
-  const planHook = (S.team && S.team.discordPlan) || "";
-  const parts = [validWebhook(def) ? "Standard" : "", mapCount ? `${mapCount} ${mapCount === 1 ? "Map" : "Maps"}` : "", validWebhook(planHook) ? "Planung" : ""].filter(Boolean);
+  const planHook = (S.team && S.team.discordPlan) || "", schedHook = (S.team && S.team.discordSchedule) || "";
+  const parts = [validWebhook(def) ? "Standard" : "", mapCount ? `${mapCount} ${mapCount === 1 ? "Map" : "Maps"}` : "", validWebhook(planHook) ? "Planung" : "", validWebhook(schedHook) ? "Wochenplan" : ""].filter(Boolean);
   const state = `<span class="hint">${parts.length ? parts.join(" + ") : "nicht eingerichtet"}</span>`;
   if (!S.isAdmin) {
     return `<section class="panel"><div class="panel-head"><h2>Discord</h2>${state}</div>
@@ -276,8 +276,10 @@ function discordPanel() {
         <h3 class="group">Pro Map: Link zum Forum-Beitrag oder eigener Webhook</h3>
         ${maps.map((n, i) => field(`dh-${i}`, "map:" + n, esc(n), mapHook(n), "https://discord.com/channels/…")).join("")}
         <h3 class="group">Planungs-Kanal (Tab „Planung“)</h3>
-        <p class="hint">Hierhin kündigt die App neue Umfragen an und postet den Wochenplan. Ein normaler Text-Kanal (kein Forum): eigenen Webhook für diesen Kanal anlegen.</p>
+        <p class="hint">Hierhin gehen Wochenziele, Wochenrückblick und Gegner-Steckbrief (und Umfrage und Wochenplan, wenn darunter nichts steht). Ein normaler Text-Kanal (kein Forum): eigenen Webhook für diesen Kanal anlegen.</p>
         ${field("dh-plan", "plan", "Webhook des Planungs-Kanals", planHook, "https://discord.com/api/webhooks/…")}
+        <p class="hint">Freiwillig: ein <b>eigener Kanal für Umfrage und Wochenplan</b> (z. B. #scrim-zeiten). Leer lassen = die gehen auch in den Planungs-Kanal oben.</p>
+        ${field("dh-sched", "sched", "Webhook für Umfrage und Wochenplan", schedHook, "https://discord.com/api/webhooks/…")}
         <div class="actions"><button class="btn primary" type="submit">Speichern</button></div>
       </form>
       <form class="dc-hooks" data-form="access-hook" novalidate>
@@ -586,7 +588,7 @@ export const forms = {
   },
   "discord-hooks": (form) => {
     if (!S.isAdmin) return;
-    let def = "", plan = "";
+    let def = "", plan = "", sched = "";
     const maps = {};
     for (const [name, raw] of new FormData(form).entries()) {
       const url = String(raw || "").trim();
@@ -596,6 +598,9 @@ export const forms = {
       } else if (name === "plan") {
         if (url && !validWebhook(url)) return toast("Planungs-Kanal: Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
         plan = url;
+      } else if (name === "sched") {
+        if (url && !validWebhook(url)) return toast("Umfrage und Wochenplan: Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
+        sched = url;
       } else if (url) {
         if (!validMapTarget(url)) return toast(`${name.slice(4)}: Das ist weder ein Link zu einem Discord-Beitrag (https://discord.com/channels/…) noch eine Webhook-Adresse.`);
         maps[name.slice(4)] = url;
@@ -605,8 +610,8 @@ export const forms = {
     const posts = Object.entries(maps).filter(([, v]) => !validWebhook(v)).map(([k]) => k);
     if (posts.length && !def) return toast(`Für die Forum-Beiträge (${posts.join(", ")}) fehlt oben der Webhook des Forums.`);
     const n = Object.keys(maps).length;
-    setDiscordHooks(def, maps, plan).then(() => toast(def || n || plan
-      ? `Gespeichert: ${[def ? "Standard-Kanal" : "", n ? `${n} ${n === 1 ? "Map" : "Maps"}` : "", plan ? "Planungs-Kanal" : ""].filter(Boolean).join(", ")}.`
+    setDiscordHooks(def, maps, plan, sched).then(() => toast(def || n || plan || sched
+      ? `Gespeichert: ${[def ? "Standard-Kanal" : "", n ? `${n} ${n === 1 ? "Map" : "Maps"}` : "", plan ? "Planungs-Kanal" : "", sched ? "Wochenplan-Kanal" : ""].filter(Boolean).join(", ")}.`
       : "Discord ist getrennt (keine Adresse eingetragen)."))
       .catch((e) => toast(errorText(e) || "Speichern hat nicht geklappt."));
   },

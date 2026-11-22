@@ -17,7 +17,7 @@ import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../ut
 import { weekRecap } from "../recap.js";
 import { create, change, remove, setPath, upsertPath } from "../data.js";
 import { result } from "../stats.js";
-import { postPoll, postPlan, postRecap, planHookOn } from "../discord.js";
+import { postPoll, postPlan, postRecap, planHookOn, scheduleHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
 import { goalsPanel } from "./goals.js";
 
@@ -233,7 +233,7 @@ function createPanel(start) {
         ${rows}
         <div class="actions"><button class="btn primary" type="submit"${busy ? " disabled" : ""}>Umfrage starten</button>
           <button class="btn" type="button" data-action="plan-create-cancel">Abbrechen</button></div>
-        <p class="hint">${planHookOn() ? "Die Umfrage wird danach automatisch im Discord-Planungskanal angekündigt." : "Tipp: Im Tab „Team“ unter „Discord“ lässt sich ein Planungs-Kanal eintragen. Dann kündigt die App die Umfrage dort an."}</p>
+        <p class="hint">${scheduleHookOn() ? "Die Umfrage wird danach automatisch in Discord angekündigt." : "Tipp: Im Tab „Team“ unter „Discord“ lässt sich ein Planungs-Kanal eintragen. Dann kündigt die App die Umfrage dort an."}</p>
       </form>
     </div></section>`;
 }
@@ -384,7 +384,7 @@ function planPanel(w) {
 }
 
 function adminPanel(w) {
-  const hook = planHookOn();
+  const hook = scheduleHookOn();
   const when = (t) => (t ? fmtDate(isoDate(new Date(t))).full : "");
   return `<section class="panel"><div class="panel-head"><h2>Discord und Umfrage</h2><span class="hint">nur Admins</span></div>
     <div class="panel-body">
@@ -486,7 +486,7 @@ export const forms = {
     try {
       const id = await create("weeks", { start, days, votes: {}, plan: [] });
       creating = false;
-      if (planHookOn()) {
+      if (scheduleHookOn()) {
         try { await postPoll(weekOf(start) || { id, start, days }); await change("weeks", id, { pollPostedAt: Date.now() }); toast(S.demo ? "Umfrage erstellt (Vorschau: nichts an Discord gesendet)." : "Umfrage erstellt und in Discord angekündigt."); }
         catch (e) { toast("Umfrage erstellt, aber Discord: " + (e.plain ? e.message : "Posten hat nicht geklappt.")); }
       } else toast("Umfrage erstellt. Sag dem Team Bescheid, dass abgestimmt werden kann.");

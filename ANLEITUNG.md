@@ -380,6 +380,10 @@ In der Umfrage lässt sich ein Tag als **VOD-Review** anlegen (18 / 19 / 20 Uhr)
 
 Uhrzeiten gehen mit Doppelpunkt (19:30) oder einfach als Ziffern (1930 wird beim Tippen zu 19:30). Beim Eintragen oder Bearbeiten eines Termins (Planung → Wochenplan) lassen sich mehrere Uhrzeiten mit Komma eintragen, z. B. **19:00, 20:30**. Dann entsteht für jede Uhrzeit ein eigener Termin; im Wochenplan und im Discord-Post stehen sie zusammen unter dem Tag. Gegner genauso mit Komma in derselben Reihenfolge (ein einzelner Gegner gilt für alle). Die Matches ordnet die App der Reihe nach zu, ein passender Gegner geht vor.
 
+## Eigener Kanal für Umfrage und Wochenplan
+
+Im Tab **Team → Discord** gibt es unter dem Planungs-Kanal das Feld **„Webhook für Umfrage und Wochenplan“**. Steht dort ein Webhook (z. B. von #scrim-zeiten), gehen Umfrage-Ankündigung und Wochenplan dorthin. Wochenziele, Wochenrückblick und Gegner-Steckbrief bleiben im Planungs-Kanal. Leer = alles geht in den Planungs-Kanal.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.
