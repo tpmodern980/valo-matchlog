@@ -41,7 +41,7 @@ const empty = (text) => `<p class="hint pad">${esc(text)}</p>`;
 // ---------- Überblick ----------
 
 // Ein paar Sätze aus den Zahlen. Jeder Satz nur, wenn genug Matches dahinterstehen.
-function insights(list) {
+export function insights(list) {
   const p = pistolStats(list), c = compStats(list), f = foeStats(list), out = [];
   const add = (tone, title, text, sub) => out.push({ tone, title, text, sub });
 

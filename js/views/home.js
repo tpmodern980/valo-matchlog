@@ -1,0 +1,69 @@
+// Startseite "Diese Woche" (#home, Wunsch Tim, 22.11.2026): was man beim Öffnen der App zuerst sehen will.
+// Bilanz der Woche, nächster Termin (falls ein Wochenplan in der App steht), Stand der Wochenziele, die Ergebnisse
+// der Woche und die wichtigsten Erkenntnisse aus dem Tab "Analyse". Rechnet nur mit dem, was schon geladen ist.
+import { S } from "../state.js";
+import { esc, isoDate, pct, signed1, daysAgo } from "../util.js";
+import { teamSummary, sortMatches } from "../stats.js";
+import { matchesOfWeek } from "../recap.js";
+import { goalsOf, goalTitle, goalStatus } from "../goals.js";
+import { mondayOf, addDays, weekLabel, weekOf, dayLabel, planLink, REST } from "./plan.js";
+import { insights } from "./analysis.js";
+import { tiles, matchRow, record } from "./parts.js";
+
+const STATE_CLS = { done: "good", track: "good", miss: "bad", behind: "warn", open: "", nodata: "" };
+
+function nextEntry(today) {
+  // Heute und die nächsten 7 Tage, aus dieser und der nächsten Woche
+  const start = mondayOf(today);
+  const entries = [weekOf(start), weekOf(addDays(start, 7))].filter(Boolean)
+    .flatMap((w) => (w.plan || []).map((e) => ({ ...e, week: w.start })))
+    .filter((e) => e.status !== "cancelled" && e.type !== REST && e.date >= today && e.date <= addDays(today, 7))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || "").localeCompare(String(b.time || "")));
+  return entries[0] || null;
+}
+
+export function homeView() {
+  const today = isoDate(new Date()), start = mondayOf(today);
+  const head = `<div class="view-head"><div><div class="eyebrow">Übersicht</div><h1>Diese Woche</h1><p>${esc(weekLabel(start))}</p></div>
+    <div class="head-side hm-actions"><button class="btn primary" type="button" data-action="mf-new">Match eintragen</button>
+      <a class="btn" href="${planLink(start)}">Wochenziele</a></div></div>`;
+  if (!S.loaded.matches) return head + '<p class="loading">Lade …</p>';
+
+  const week = matchesOfWeek(start);
+  const sum = teamSummary(week);
+  const cards = week.length ? tiles([
+    ["Bilanz", record(sum), `${week.length} ${week.length === 1 ? "Match" : "Matches"} diese Woche`],
+    ["Winrate", pct(sum.wr), "gewertete Matches"],
+    ["Ø Rundendiff.", signed1(sum.diff), "pro Match"],
+    ["Pistols", sum.pistolN ? pct(sum.pistolWr) : "–", sum.pistolN ? `${sum.pistolW} von ${sum.pistolN}` : "kein Rundenverlauf"],
+  ]) : '<div class="empty"><h2>Noch kein Match diese Woche</h2><p>Sobald ein Match eingetragen ist, steht hier die Bilanz der Woche.</p></div>';
+
+  // Nächster Termin (nur, wenn ihr den Wochenplan in der App führt)
+  const next = S.loaded.weeks ? nextEntry(today) : null;
+  const nextPanel = next ? `<a class="hm-next" href="${planLink(next.week)}"><span>Nächster Termin</span>
+      <b>${esc(next.date === today ? "Heute" : dayLabel(next.date))}${next.time ? ` · ${esc(next.time)}` : ""} · ${esc(next.type)}${next.opponent ? ` vs ${esc(next.opponent)}` : ""}</b>
+      ${next.note ? `<small>${esc(next.note)}</small>` : ""}</a>` : "";
+
+  // Wochenziele kurz
+  const goals = S.loaded.weeks ? goalsOf(start) : [];
+  const goalRows = goals.map((g) => {
+    const s = goalStatus(g, start, today);
+    return `<a class="hm-goal" href="${planLink(start)}"><span class="hm-goal-t">${esc(goalTitle(g))}${s.value ? `<small>${esc(s.value.text)}</small>` : ""}</span><span class="gl-state ${STATE_CLS[s.state] || ""}">${esc(s.label)}</span></a>`;
+  }).join("");
+  const goalPanel = `<section class="panel"><div class="panel-head"><h2>Wochenziele</h2><a class="linkish" href="${planLink(start)}">${goals.length ? "Alle Ziele →" : "Ziele anlegen →"}</a></div>
+    ${goals.length ? `<div class="hm-goals">${goalRows}</div>` : '<p class="hint pad">Für diese Woche gibt es noch keine Ziele.</p>'}</section>`;
+
+  // Ergebnisse: diese Woche, sonst die letzten drei
+  const recent = week.length ? sortMatches(week) : sortMatches(S.matches).slice(0, 3);
+  const results = recent.length ? `<section class="sec"><div class="sec-head"><h2>${week.length ? "Ergebnisse der Woche" : "Zuletzt gespielt"}</h2><a class="linkish" href="#matches">Alle Matches →</a></div>
+    <div class="match-list">${recent.map(matchRow).join("")}</div></section>` : "";
+
+  // Erkenntnisse aus den letzten 30 Tagen (wie im Tab "Analyse", höchstens drei)
+  const last30 = S.matches.filter((m) => (m.date || "") >= daysAgo(30));
+  const tips = insights(last30).slice(0, 3);
+  const tipPanel = tips.length ? `<section class="sec"><div class="sec-head"><h2>Erkenntnisse</h2><a class="linkish" href="#analysis">Analyse →</a></div>
+    <p class="hint">Aus den letzten 30 Tagen.</p>
+    <div class="an-cards">${tips.map((x) => `<a class="an-card ${x.tone}" href="#analysis${x.sub ? "-" + x.sub : ""}"><b>${esc(x.title)}</b><span>${esc(x.text)}</span><small>Details →</small></a>`).join("")}</div></section>` : "";
+
+  return head + nextPanel + cards + goalPanel + results + tipPanel;
+}

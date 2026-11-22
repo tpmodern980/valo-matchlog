@@ -103,6 +103,8 @@ code { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; font-siz
   font-family: var(--font-display); font-weight: 600; font-size: 14px; letter-spacing: .06em; text-transform: uppercase;
   text-decoration: none; color: var(--muted); padding: 6px 12px; border-bottom: 2px solid transparent;
 }
+/* 9 Tabs (seit der Startseite "Übersicht"): etwas enger, damit Logo, Tabs und Status in eine Zeile passen */
+@media (min-width: 641px) { .tabs { gap: 0; } .tab { padding: 6px 9px; font-size: 13.5px; letter-spacing: .04em; } }
 .tab:hover { color: var(--ink); }
 .tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 .top-right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
@@ -1102,3 +1104,22 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .vt-saved .alias-x.sure { width: auto; padding: 0 8px; font-size: 12px; color: var(--loss); }
 @media (max-width: 640px) { .vt-saved { grid-template-columns: 1fr auto; } .vt-saved details { grid-column: 1 / -1; grid-row: 2; } }
 .head-side .btn.primary { align-self: flex-end; }
+
+/* Match-Formular: nach dem Speichern automatisch in Discord posten */
+.ed-post { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 6px 0; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink); text-align: left; }
+.ed-post-box { width: 20px; height: 20px; flex: none; border: 2px solid var(--line); border-radius: 3px; display: grid; place-items: center; font-size: 13px; line-height: 1; color: var(--win); background: var(--surface); }
+.ed-post[aria-pressed="true"] .ed-post-box { border-color: var(--win); background: var(--win-soft); }
+
+/* ---------- Startseite "Diese Woche" (js/views/home.js) ---------- */
+.hm-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.hm-next { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); text-decoration: none; color: var(--ink); }
+.hm-next span { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.hm-next b { font-family: var(--font-display); font-size: 18px; }
+.hm-next small { color: var(--muted); }
+.hm-goals { display: flex; flex-direction: column; }
+.hm-goal { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+.hm-goal:last-child { border-bottom: 0; }
+.hm-goal-t { display: flex; flex-direction: column; font-weight: 600; font-size: 15px; min-width: 0; overflow-wrap: anywhere; }
+.hm-goal-t small { font-weight: 400; color: var(--muted); font-size: 13px; }
+.panel-head .linkish { text-decoration: none; font-size: 14px; }
+.sec-head .linkish { text-decoration: none; font-size: 14px; }

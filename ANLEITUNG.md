@@ -280,6 +280,21 @@ Oben im Tab **„Maps“** gibt jeder pro Map 1–5 Sterne („wie gern und wie 
 - Die Stimmen liegen in derselben Sammlung wie die Planung (`weeks`, Dokument `mappool`). Es braucht **keine neue Firestore-Regel**, nur die Zeile aus Schritt 11.
 - Stimmen von Konten, die im Tab „Team“ als Managerin zugeordnet sind, zählen nicht.
 
+## Startseite „Diese Woche“ (Tab „Übersicht“)
+
+Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.
+
+## Ergebnis automatisch in Discord
+
+Unten im Match-Formular steht **„Nach dem Speichern in Discord posten“** (nur, wenn ein Discord-Kanal für Ergebnisse eingetragen ist). Ist es angehakt, geht das Ergebnis beim Speichern direkt raus, in denselben Kanal bzw. Forum-Beitrag wie beim Knopf „In Discord posten“.
+
+- Automatisch angehakt bei Matches der letzten 3 Tage, die noch nicht gepostet wurden. Beim Nachtragen alter Scrims ist es aus, damit Discord nicht vollläuft. Antippen schaltet es um.
+- Ohne Endstand wird nichts gepostet. Klappt das Posten nicht, ist das Match trotzdem gespeichert; auf der Match-Seite geht es dann von Hand.
+
+## Agenten-Erkennung (KI-Trainingsbilder)
+
+Seit 22.11.2026 merkt sich die App bei den Agents, die leicht verwechselt werden (Gekko, Waylay, Deadlock, Iso, Vyse, Fade, Hush), nicht nur Korrekturen, sondern auch die ersten zwei **richtig erkannten** Bilder. So hat die KI auf der Beispieltafel beide Seiten eines Paares nebeneinander zum Vergleichen. Pro Verwechslungs-Agent bis zu 5 Bilder (sonst 3), neue Bilder in besserer Auflösung. Ansehen und löschen: Tab „Team“ → „KI-Trainingsbilder“.
+
 ## Wochenziele (Tab „Planung“)
 
 Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Alle im Team dürfen Ziele anlegen, ändern, abhaken und löschen.

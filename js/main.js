@@ -12,6 +12,7 @@ import { opponentsView, opponentView } from "./views/opponents.js";
 import * as analysisPages from "./views/analysis.js";
 import * as goalPages from "./views/goals.js";
 import * as vetoPages from "./views/veto.js";
+import { homeView } from "./views/home.js";
 import { hideTip } from "./charts.js";
 import { setupView, errorView } from "./views/setup.js";
 import * as authPages from "./views/auth.js";
@@ -54,7 +55,8 @@ function viewHtml(r) {
     case "strats": return stratPages.stratsView(r.id);
     case "plan": return planPages.planView(r.id);
     case "team": return teamPages.teamView();
-    default: return matchesView();
+    case "matches": return matchesView();
+    default: return homeView();
   }
 }
 

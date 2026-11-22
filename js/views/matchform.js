@@ -8,6 +8,7 @@ import { roundInfo, sortMatches, cleanRounds } from "../stats.js";
 import { create, change, remove, listAdd } from "../data.js";
 import { run, setMsg, msgBox } from "./auth.js";
 import { learn } from "../agentrefs.js";
+import { anyHook, hookFor, postMatch } from "../discord.js";
 
 const SIDE = { atk: "Angriff", def: "Verteidigung" };
 const MAX_ROWS = 10;
@@ -83,6 +84,9 @@ function open(match) {
     scan: { board: null, line: null, busy: false, report: null },
     ask: [],            // unbekannte Namen: [{ key, name, choice }]
     confirm: null,      // Rückfrage in der Fußzeile: "delete" | "discard" | null
+    // Nach dem Speichern automatisch in Discord posten (Wunsch Tim, 22.11.2026)? null = automatisch entscheiden (autoPost),
+    // true/false = so hat es jemand im Formular eingestellt. Schon gepostet: merkt sich das Match (discordAt).
+    post: null, posted: Boolean(match && match.discordAt),
     busy: false,
     snap: "",
   };
@@ -292,6 +296,16 @@ function askHtml() {
     </div></section>`;
 }
 
+// Automatisch posten, wenn das Match noch nicht gepostet ist und nicht älter als 3 Tage (sonst würde jedes
+// nachgetragene alte Scrim in Discord landen). Im Formular lässt es sich umstellen.
+function autoPost() {
+  if (ed.posted) return false;
+  const d = new Date(); d.setDate(d.getDate() - 3);
+  const cut = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return String(ed.date || "") >= cut;
+}
+const wantPost = () => (ed.post === null ? autoPost() : ed.post);
+
 function footHtml() {
   if (ed.confirm === "delete") {
     // Die Clips werden nicht einzeln gelöscht: Sie hängen am Match und sind mit ihm weg (und mit ihm wieder da)
@@ -305,7 +319,10 @@ function footHtml() {
       <button class="btn small danger solid" type="button" id="ed-drop-yes" data-action="mf-discard">Verwerfen</button>
       <button class="btn small" type="button" id="ed-drop-no" data-action="mf-confirm-cancel">Weiter bearbeiten</button></div>`;
   }
+  const post = anyHook() ? `<button type="button" class="ed-post" id="ed-post" data-action="mf-post" aria-pressed="${wantPost()}">
+      <span class="ed-post-box" aria-hidden="true">${wantPost() ? "✓" : ""}</span>Nach dem Speichern in Discord posten${ed.posted ? " (schon gepostet)" : ""}</button>` : "";
   return `${ed.id ? '<button class="btn danger" type="button" id="ed-del" data-action="mf-ask-delete">Match löschen</button>' : ""}
+    ${post}
     <div class="foot-btns"><button class="btn ghost" type="button" id="ed-cancel" data-action="mf-close">Abbrechen</button>
       <button class="btn primary" type="button" id="ed-save" data-action="mf-save">Speichern</button></div>`;
 }
@@ -757,13 +774,36 @@ function save() {
 
       const w = count(mine.rounds, "W"), l = count(mine.rounds, "L");
       const off = mine.rounds && !mine.rounds.includes("?") && us !== null && (w !== us || l !== them);
+      // Ergebnis automatisch in Discord (nur mit Score und wenn für die Map ein Ziel eingetragen ist)
+      const send = anyHook() && wantPostOf(mine) && us !== null && them !== null;
       closeEditor();
-      toast((mine.id ? "Match gespeichert." : "Match eingetragen.") + (off ? " Hinweis: Der Rundenverlauf passt nicht zum Score." : ""));
+      const saved = (mine.id ? "Match gespeichert." : "Match eingetragen.") + (off ? " Hinweis: Der Rundenverlauf passt nicht zum Score." : "");
+      toast(saved);
       location.hash = "match-" + id;
+      if (send) autoSend(id, saved);
     } finally {
       mine.busy = false;
     }
   }, { demoOk: true });
+}
+
+// wantPost für ein Formular, das schon geschlossen wird (ed ist dann null)
+function wantPostOf(f) {
+  const keep = ed; ed = f;
+  try { return wantPost(); } finally { ed = keep; }
+}
+
+// Nach dem Speichern posten. Ein Fehler kostet nichts: Das Match ist gespeichert, posten geht auf der Match-Seite von Hand.
+async function autoSend(id, saved) {
+  const m = S.matches.find((x) => x.id === id);
+  if (!m || !hookFor(m)) return;
+  try {
+    await postMatch(m);
+    try { await change("matches", id, { discordAt: Date.now() }); } catch (e) { /* nur ein Merker */ }
+    toast(S.demo ? `${saved} Vorschau: Das Ergebnis ginge jetzt an Discord.` : `${saved} Ergebnis in Discord gepostet.`);
+  } catch (e) {
+    toast(`${saved} Discord: ${e && e.plain ? e.message : "Posten hat nicht geklappt."} Auf der Match-Seite geht es von Hand.`);
+  }
 }
 
 // ---------- Klicks ----------
@@ -779,6 +819,7 @@ export const actions = {
   },
   "mf-close": wantClose,
   "mf-save": save,
+  "mf-post": () => { ed.post = !wantPost(); const b = $("#ed-post"); if (b) { b.setAttribute("aria-pressed", String(ed.post)); b.querySelector(".ed-post-box").textContent = ed.post ? "✓" : ""; } },
 
   "mf-row-add": () => {
     if (ed.rows.length >= MAX_ROWS) return;

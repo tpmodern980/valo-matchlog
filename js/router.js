@@ -1,8 +1,8 @@
 // Seiten über den Teil hinter dem # in der Adresse:
-// #matches, #match-<id>, #players, #player-<id>, #maps, #veto, #analysis, #analysis-<pistols|comps|foes>, #opponents, #opponent-<name>, #strats, #strats-<Map>, #plan, #plan-<JJJJMMTT>, #team
+// #home (Startseite), #matches, #match-<id>, #players, #player-<id>, #maps, #veto, #analysis, #analysis-<pistols|comps|foes>, #opponents, #opponent-<name>, #strats, #strats-<Map>, #plan, #plan-<JJJJMMTT>, #team
 // (#plan-20261123 = Planung der Woche, die am Montag 23.11.2026 beginnt; so verlinken die Discord-Posts)
 
-const LISTS = ["matches", "players", "maps", "veto", "analysis", "opponents", "strats", "plan", "team"];
+const LISTS = ["home", "matches", "players", "maps", "veto", "analysis", "opponents", "strats", "plan", "team"];
 // Zu welchem Tab eine Detailseite gehört
 export const TAB_OF = { match: "matches", player: "players", opponent: "opponents", veto: "maps" };
 
@@ -18,5 +18,5 @@ export function route() {
   const detail = /^(match|player|opponent)-(.+)$/.exec(h);
   if (detail) return { name: detail[1], id: detail[2] };
   if (LISTS.includes(h)) return { name: h };
-  return { name: "matches" };
+  return { name: "home" };   // Startseite "Diese Woche" (seit 22.11.2026, vorher die Match-Liste)
 }
