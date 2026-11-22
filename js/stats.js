@@ -27,22 +27,30 @@ export function sortMatches(list) {
   return list.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
 }
 
-// Rundenverlauf auswerten. rounds = "WWLW…" (ein Zeichen pro Runde), startSide = "atk" | "def".
+// Rundenverlauf aufräumen: nur W, L und ? (Runde nicht eingetragen, seit 22.11.2026: bei alten Scrims lassen sich
+// z. B. nur die Pistols und Folgerunden nachtragen). Offene Runden am Ende fallen weg.
+export const cleanRounds = (v) => (typeof v === "string" ? v.toUpperCase().replace(/[^WL?]/g, "").replace(/\?+$/, "") : "");
+
+// Rundenverlauf auswerten. rounds = "WWLW…" (ein Zeichen pro Runde, ? = nicht eingetragen), startSide = "atk" | "def".
 // Runden 1–12 auf der Startseite, 13–24 auf der anderen, ab 25 (Overtime) Wechsel jede Runde.
-// Pistol-Runden sind Runde 1 und Runde 13. Gibt null zurück, wenn kein Verlauf eingetragen ist.
+// Pistol-Runden sind Runde 1 und Runde 13. Gibt null zurück, wenn keine einzige Runde eingetragen ist.
+// w, l: eingetragene Siege und Niederlagen; open: Runden mit "?"
 export function roundInfo(m) {
-  const r = typeof m.rounds === "string" ? m.rounds.toUpperCase().replace(/[^WL]/g, "") : "";
-  if (!r) return null;
+  const r = cleanRounds(m.rounds);
+  if (!/[WL]/.test(r)) return null;
   const start = m.startSide === "atk" || m.startSide === "def" ? m.startSide : null;
   const other = start === "atk" ? "def" : "atk";
   const sideOf = (i) => !start ? null : i < 12 ? start : i < 24 ? other : ((i - 24) % 2 === 0 ? start : other);
-  const info = { rounds: r, n: r.length, overtime: r.length > 24, atk: { w: 0, l: 0 }, def: { w: 0, l: 0 }, pistolW: 0, pistolN: 0, sides: [] };
+  const info = {
+    rounds: r, n: r.length, overtime: r.length > 24, atk: { w: 0, l: 0 }, def: { w: 0, l: 0 }, pistolW: 0, pistolN: 0, sides: [],
+    w: r.split("W").length - 1, l: r.split("L").length - 1, open: r.split("?").length - 1,
+  };
   for (let i = 0; i < r.length; i++) {
     const side = sideOf(i);
     info.sides.push(side);
-    if (side) info[side][r[i] === "W" ? "w" : "l"]++;
+    if (side && r[i] !== "?") info[side][r[i] === "W" ? "w" : "l"]++;
   }
-  for (const i of [0, 12]) if (r[i]) { info.pistolN++; if (r[i] === "W") info.pistolW++; }
+  for (const i of [0, 12]) if (r[i] === "W" || r[i] === "L") { info.pistolN++; if (r[i] === "W") info.pistolW++; }
   return info;
 }
 

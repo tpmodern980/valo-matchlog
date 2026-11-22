@@ -141,9 +141,10 @@ function roundsPanel(m) {
     let w = 0, l = 0;
     const cells = [];
     for (let i = from; i < Math.min(to, ri.n); i++) {
-      const won = ri.rounds[i] === "W", pistol = i === 0 || i === 12;
-      if (won) w++; else l++;
-      cells.push(`<span class="rd ${won ? "W" : "L"}${pistol ? " pistol" : ""}" title="Runde ${i + 1}${pistol ? " (Pistol)" : ""}: ${won ? "gewonnen" : "verloren"}">${won ? "S" : "N"}</span>`);
+      const v = ri.rounds[i], pistol = i === 0 || i === 12;
+      if (v === "W") w++; else if (v === "L") l++;
+      const [cls, txt, what] = v === "W" ? ["W", "S", "gewonnen"] : v === "L" ? ["L", "N", "verloren"] : ["U", "?", "nicht eingetragen"];
+      cells.push(`<span class="rd ${cls}${pistol ? " pistol" : ""}" title="Runde ${i + 1}${pistol ? " (Pistol)" : ""}: ${what}">${txt}</span>`);
     }
     if (!cells.length) return "";
     const side = to <= 24 ? ri.sides[from] : null;
@@ -156,11 +157,14 @@ function roundsPanel(m) {
   }
   if (ri.pistolN) facts.push(`<div><span>Pistols</span> <b>${ri.pistolW} von ${ri.pistolN}</b> <span>(${pct(ri.pistolW / ri.pistolN)})</span></div>`);
   // Passt der Verlauf nicht zum Endstand, steht das dabei (gespeichert werden darf es trotzdem)
-  const w = ri.rounds.split("W").length - 1, l = ri.n - w;
+  const w = ri.w, l = ri.l;
   const us = num(m.scoreUs), them = num(m.scoreThem);
-  const off = us !== null && them !== null && (w !== us || l !== them)
-    ? `<p class="notice">Der Verlauf ergibt ${w}:${l}, der Endstand ist ${us}:${them}. Über „Bearbeiten“ lässt sich das angleichen.</p>` : "";
-  return `<section class="panel"><div class="panel-head"><h2>Rundenverlauf</h2><span class="hint">S = Sieg, N = Niederlage · unterstrichen = Pistol-Runde</span></div>
+  // Teilweise eingetragen (z. B. nur Pistols und Folgerunden nachgetragen): kein Abgleich mit dem Endstand
+  const off = ri.open || (us !== null && them !== null && w + l < us + them && w <= us && l <= them)
+    ? `<p class="hint">Teilweise eingetragen: ${w + l} von ${us !== null && them !== null ? us + them : "?"} Runden. Gezählt wird nur, was eingetragen ist.</p>`
+    : us !== null && them !== null && (w !== us || l !== them)
+      ? `<p class="notice">Der Verlauf ergibt ${w}:${l}, der Endstand ist ${us}:${them}. Über „Bearbeiten“ lässt sich das angleichen.</p>` : "";
+  return `<section class="panel"><div class="panel-head"><h2>Rundenverlauf</h2><span class="hint">S = Sieg, N = Niederlage, ? = nicht eingetragen · unterstrichen = Pistol-Runde</span></div>
     <div class="panel-body halves">
       ${half("1. Hälfte", 0, 12)}${half("2. Hälfte", 12, 24)}${half("Overtime", 24, ri.n)}
       <div class="round-facts">${facts.join("")}</div>${off}

@@ -10,6 +10,7 @@ function count(t, res) { t.n++; if (res === "W") t.w++; else if (res === "L") t.
 export const winrate = (t) => (t.w + t.l + t.d) ? t.w / (t.w + t.l + t.d) : null;
 const rate = (w, n) => (n ? w / n : null);
 const oldestFirst = (list) => sortMatches(list).reverse();
+const known = (c) => c === "W" || c === "L";
 const byCount = (a, b) => b.n - a.n || (winrate(b) ?? -1) - (winrate(a) ?? -1);
 
 // ---------- Agents und Rollen ----------
@@ -34,9 +35,9 @@ function roleCounts(agents) {
   for (const a of agents) c[roleOf(a) || "?"]++;
   return c;
 }
-// "2 Duelist · 1 Initiator · 1 Controller · 1 Sentinel" (Rollen mit 0 fallen weg)
+// "2× Duelist · 1× Initiator · 1× Controller · 1× Sentinel" (Rollen mit 0 fallen weg)
 export function roleLabel(c) {
-  return [...AGENT_ROLE_LIST, "?"].filter((r) => c[r]).map((r) => `${c[r]} ${r === "?" ? "unbekannt" : r}`).join(" · ");
+  return [...AGENT_ROLE_LIST, "?"].filter((r) => c[r]).map((r) => `${c[r]}× ${r === "?" ? "unbekannt" : r}`).join(" · ");
 }
 // Kurz: "2-1-1-1" in der Reihenfolge Duelist-Initiator-Controller-Sentinel
 export const roleShort = (c) => AGENT_ROLE_LIST.map((r) => c[r]).join("-") + (c["?"] ? ` +${c["?"]}?` : "");
@@ -68,13 +69,13 @@ export function pistolStats(list) {
     const mp = out.maps.get(mk);
     let any = false;
     for (const p of [0, 12]) {
-      if (!r[p]) continue;
+      if (!known(r[p])) continue;
       any = true; seen++;
       const w = r[p] === "W", side = ri.sides[p];
       if (w) won++;
       for (const t of [out.all, mp.all]) { t.n++; if (w) t.w++; }
       if (side) for (const t of [out[side], mp[side]]) { t.n++; if (w) t.w++; }
-      const next = r[p + 1], third = r[p + 2];
+      const next = known(r[p + 1]) ? r[p + 1] : null, third = known(r[p + 2]) ? r[p + 2] : null;
       if (w) {
         out.afterWin.n++;
         if (next) { out.afterWin.r2n++; mp.r2n++; if (next === "W") { out.afterWin.r2w++; mp.r2w++; } }

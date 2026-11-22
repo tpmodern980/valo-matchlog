@@ -3,6 +3,7 @@ import { S } from "../state.js";
 import { RES_LABEL } from "../constants.js";
 import { esc, fmtDate, fmt0, fmt1, fmt2, pct } from "../util.js";
 import { filtered, playerStats, rowKey } from "../stats.js";
+import { agentPool } from "../analysis.js";
 import { lineChart, barChart, chartTable } from "../charts.js";
 import { filterBar, record, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
 
@@ -126,8 +127,15 @@ export function playerView(id) {
     barChart({ rows: s.agents.map((a) => ({ label: a.name, value: a.n, text: `${a.n} · ${pct(a.wr)}`, short: String(a.n), tip: `Bilanz ${record(a)}, Winrate ${pct(a.wr)}` })), room: 5.5, unit: "Matches", empty: "Noch kein Agent eingetragen." }),
     chartTable(["Agent", "Matches", "Bilanz", "Winrate"], s.agents.map((a) => [a.name, a.n, record(a), pct(a.wr)])));
 
+  // Agent-Pool (seit 22.11.2026, vorher im Tab "Analyse"): Rollen-Anteil und wer auf welcher Map was gespielt hat
+  const pool = agentPool(filtered()).find((x) => x.id === id);
+  const poolPanel = pool && pool.maps.length ? `<section class="panel"><div class="panel-head"><h2>Agent-Pool pro Map</h2>
+      <span class="hint">${pool.roles.map((r) => `${esc(r.role === "?" ? "Rolle unbekannt" : r.role)} ${pct(r.share)}`).join(" · ")}</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Map</th><th>Matches</th><th class="l">Agents</th></tr></thead>
+    <tbody>${pool.maps.map((mp) => `<tr><td class="name">${esc(mp.name)}</td><td>${mp.n}</td><td class="l">${mp.agents.map(([a, n]) => `<span class="tag">${esc(a)}${n > 1 ? ` ${n}×` : ""}</span>`).join("")}</td></tr>`).join("")}</tbody></table></div></section>` : "";
+
   const history = `<section class="sec"><div class="sec-head"><h2>Match-Historie</h2><span class="hint">${nMatches(s.n)}</span></div>
     <div class="match-list">${s.series.slice().reverse().map(historyRow).join("")}</div></section>`;
 
-  return back + head + cards + `<div class="chart-grid">${kprChart}${kdChart}${mapChart}${agentChart}</div>` + history;
+  return back + head + cards + `<div class="chart-grid">${kprChart}${kdChart}${mapChart}${agentChart}</div>` + poolPanel + history;
 }

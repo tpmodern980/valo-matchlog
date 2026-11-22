@@ -1,20 +1,32 @@
-// Ansicht "Analyse" (#analysis): Pistol-Runden genauer (Seite, Folgerunden, Einfluss aufs Ergebnis),
-// alle Kompositionen pro Map, Rollen-Verteilung, Agent-Pool pro Spieler und die Agents der Gegner.
+// Ansicht "Analyse" (#analysis, Unterseiten #analysis-pistols, #analysis-comps, #analysis-foes).
+// Überblick: die wichtigsten Erkenntnisse in ein paar Sätzen. Pistols: Seite, Folgerunden, Einfluss aufs Ergebnis.
+// Comps: die meistgespielten Kompositionen pro Map und die Rollen-Verteilung. Gegner: Agents und Comps der Gegner.
+// Der Agent-Pool steht auf der Detailseite jedes Spielers (js/views/player.js).
 // Die Zahlen kommen aus js/analysis.js. Es gelten die Filter oben (Art, Map, Zeitraum).
-import { S } from "../state.js";
+import { S, changed } from "../state.js";
 import { esc, pct } from "../util.js";
 import { filtered } from "../stats.js";
-import { pistolStats, compStats, agentPool, foeStats, roleLabel, roleShort } from "../analysis.js";
+import { pistolStats, compStats, foeStats, roleLabel } from "../analysis.js";
 import { barChart, chartTable } from "../charts.js";
-import { filterBar, record, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
+import { filterBar, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
+
+const SUBS = [["", "Überblick"], ["pistols", "Pistols"], ["comps", "Comps"], ["foes", "Gegner"]];
+const TOP = 3;              // so viele Comps pro Map, bevor "Alle anzeigen" kommt
+const SURE = 3;             // ab so vielen Matches gilt ein Wert als einigermaßen aussagekräftig
+const view = { allComps: false, singles: false };
 
 const cell = (label, value, cls = "") => `<td data-label="${esc(label)}"${cls ? ` class="${cls}"` : ""}>${value}</td>`;
 // "58 % (7 von 12)", ohne Werte "–"
 const share = (w, n) => (n ? `${pct(w / n)} <span class="muted">(${w} von ${n})</span>` : "–");
 const small = (w, n) => (n ? `${w} von ${n}` : "noch keine Werte");
 const agentTags = (agents) => agents.map((a) => `<span class="tag">${esc(a)}</span>`).join("");
+// "3 Siege, 1 Niederlage" statt "3–1": eindeutig, auch ohne Spaltentitel
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+export const wins = (t) => [t.w ? plural(t.w, "Sieg", "Siege") : "", t.l ? plural(t.l, "Niederlage", "Niederlagen") : "", t.d ? plural(t.d, "Unentschieden", "Unentschieden") : ""]
+  .filter(Boolean).join(", ") || "noch kein Ergebnis";
 // Wenige Matches: Winrate grau, damit 1–0 nicht wie eine sichere Sache aussieht
-const wrCell = (t) => cell("Winrate", t.wr === null ? "–" : t.n < 3 ? `<span class="muted" title="Erst ${nMatches(t.n)}: noch wenig aussagekräftig">${pct(t.wr)}</span>` : pct(t.wr), "strong");
+const wrCell = (t) => cell("Winrate", t.wr === null ? "–" : t.n < SURE ? `<span class="muted" title="Erst ${nMatches(t.n)}: noch wenig aussagekräftig">${pct(t.wr)}</span>` : pct(t.wr), "strong");
+const subLink = (sub) => "#analysis" + (sub ? "-" + sub : "");
 
 function section(title, hint, body) {
   return `<section class="panel"><div class="panel-head"><h2>${esc(title)}</h2>${hint ? `<span class="hint">${esc(hint)}</span>` : ""}</div>${body}</section>`;
@@ -25,124 +37,170 @@ const table = (cls, head, rows) => `<div class="table-wrap"><table class="rtable
 }).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
 const empty = (text) => `<p class="hint pad">${esc(text)}</p>`;
 
+// ---------- Überblick ----------
+
+// Ein paar Sätze aus den Zahlen. Jeder Satz nur, wenn genug Matches dahinterstehen.
+function insights(list) {
+  const p = pistolStats(list), c = compStats(list), f = foeStats(list), out = [];
+  const add = (tone, title, text, sub) => out.push({ tone, title, text, sub });
+
+  if (p.all.n >= 4) {
+    if (p.atk.n >= SURE && p.def.n >= SURE && Math.abs(p.atkRate - p.defRate) >= 0.15) {
+      const atkWeak = p.atkRate < p.defRate;
+      const [weakName, weak, weakRate, strongName, strongRate] = atkWeak
+        ? ["im Angriff", p.atk, p.atkRate, "in der Verteidigung", p.defRate]
+        : ["in der Verteidigung", p.def, p.defRate, "im Angriff", p.atkRate];
+      add("bad", `Pistol ${weakName} schwächer`, `Nur ${pct(weakRate)} gewonnen (${weak.w} von ${weak.n}), ${strongName} ${pct(strongRate)}.`, "pistols");
+    } else {
+      add(p.rate >= 0.5 ? "good" : "bad", `Pistols: ${pct(p.rate)} gewonnen`, `${p.all.w} von ${p.all.n} Pistol-Runden.`, "pistols");
+    }
+  }
+  if (p.afterWin.r2n >= SURE) {
+    add(p.convRate >= 0.7 ? "good" : "bad", `Runde nach Pistol-Sieg: ${pct(p.convRate)}`,
+      p.convRate >= 0.7 ? `Nach einer gewonnenen Pistol holt ihr meistens auch die nächste Runde (${p.afterWin.r2w} von ${p.afterWin.r2n}).`
+        : `Nach einer gewonnenen Pistol geht die nächste Runde oft verloren (nur ${p.afterWin.r2w} von ${p.afterWin.r2n} gewonnen). Üblich sind eher 70–80 %.`, "pistols");
+  }
+  if (p.afterLoss.r2n >= SURE && p.ecoRate !== null && p.ecoRate >= 0.4) {
+    add("good", `Eco/Force nach Pistol-Niederlage: ${pct(p.ecoRate)}`, `Nach einer verlorenen Pistol holt ihr Runde 2 trotzdem oft (${p.afterLoss.r2w} von ${p.afterLoss.r2n}).`, "pistols");
+  }
+  const both = p.impact[2], none = p.impact[0];
+  if (both.n >= 2 && none.n >= 2) {
+    add("info", "Pistols entscheiden mit", `Beide Pistols gewonnen: ${pct(both.wr)} der Matches gewonnen. Keine gewonnen: ${pct(none.wr)}.`, "pistols");
+  }
+  // Beste Comp pro Map (ab 2 Matches), höchstens drei Maps: die mit den meisten Matches
+  const best = new Map();
+  for (const x of c.comps) {
+    if (x.n < 2 || x.wr === null) continue;
+    const cur = best.get(x.map);
+    if (!cur || x.wr > cur.wr || (x.wr === cur.wr && x.n > cur.n)) best.set(x.map, x);
+  }
+  for (const x of [...best.values()].sort((a, b) => b.n - a.n).slice(0, 3)) {
+    add(x.wr >= 0.5 ? "good" : "bad", `Beste Comp auf ${x.map}`, `${x.agents.join(", ")}: ${wins(x)} (${pct(x.wr)}).`, "comps");
+  }
+  const hard = f.agents.filter((a) => a.n >= SURE && a.wr !== null && a.wr < 0.5).sort((a, b) => a.wr - b.wr || b.n - a.n)[0];
+  if (hard) add("bad", `Schwer gegen ${hard.name}`, `Wenn der Gegner ${hard.name} hatte: ${wins(hard)} (${pct(hard.wr)}).`, "foes");
+  return out;
+}
+
+function overview(list) {
+  const items = insights(list);
+  const cards = items.length
+    ? `<div class="an-cards">${items.map((x) => `<a class="an-card ${x.tone}" href="${subLink(x.sub)}"><b>${esc(x.title)}</b><span>${esc(x.text)}</span><small>Details →</small></a>`).join("")}</div>`
+    : '<div class="empty"><h2>Noch zu wenig Daten</h2><p>Für Erkenntnisse braucht es ein paar Matches mit Rundenverlauf und Agents. Die einzelnen Zahlen stehen trotzdem schon unter Pistols, Comps und Gegner.</p></div>';
+  return cards + '<p class="hint">Grün = läuft gut, Rot = da ist Luft nach oben. Ein Satz erscheint erst, wenn genug Matches dahinterstehen.</p>';
+}
+
 // ---------- Pistols ----------
 
-function pistolPart(list) {
+function pistolPage(list) {
   const p = pistolStats(list);
-  const title = '<div class="sec-head an-sec"><h2>Pistol-Runden</h2><span class="hint">Runde 1 und 13</span></div>';
-  if (!p.matches) return title + section("Pistols", "", empty("Noch kein Match mit Rundenverlauf. Trag beim Match den Verlauf ein (oder lies die Timeline aus), dann steht hier die Pistol-Analyse."));
-  const sideNote = p.noSide ? ` · ${p.noSide} ohne Startseite (zählen nicht bei Angriff/Verteidigung)` : "";
-  const cards = tiles([
+  if (!p.matches) return section("Pistols", "", empty("Noch kein Match mit Rundenverlauf. Trag beim Match die Runden ein (bei alten Matches reichen die Pistols 1 und 13 mit ihren Folgerunden), dann steht hier die Pistol-Analyse."));
+  const sideNote = p.noSide ? ` ${p.noSide} davon ohne Startseite: Die zählen nicht bei Angriff/Verteidigung.` : "";
+  const sides = tiles([
     ["Pistols gesamt", pct(p.rate), small(p.all.w, p.all.n)],
-    ["Pistol im Angriff", pct(p.atkRate), small(p.atk.w, p.atk.n)],
-    ["Pistol in Verteidigung", pct(p.defRate), small(p.def.w, p.def.n)],
-    ["Runde danach gewonnen", pct(p.convRate), "nach gewonnener Pistol · " + small(p.afterWin.r2w, p.afterWin.r2n)],
-    ["Beide Folgerunden", pct(p.bothRate), "nach gewonnener Pistol · " + small(p.afterWin.bothW, p.afterWin.bothN)],
-    ["Eco/Force geholt", pct(p.ecoRate), "Runde 2/14 nach verlorener Pistol · " + small(p.afterLoss.r2w, p.afterLoss.r2n)],
-    ["Erste volle Runde", pct(p.r3Rate), "Runde 3/15 nach verlorener Pistol · " + small(p.afterLoss.r3w, p.afterLoss.r3n)],
+    ["Im Angriff", pct(p.atkRate), small(p.atk.w, p.atk.n)],
+    ["In der Verteidigung", pct(p.defRate), small(p.def.w, p.def.n)],
   ]);
-  const imp = p.impact.filter((t) => t.n);
-  const impact = chartPanel("Pistols und Ergebnis", "Winrate nach Anzahl gewonnener Pistols im Match",
+  const follow = tiles([
+    ["Runde danach gewonnen", pct(p.convRate), "nach Pistol-Sieg · " + small(p.afterWin.r2w, p.afterWin.r2n)],
+    ["Beide Folgerunden", pct(p.bothRate), "nach Pistol-Sieg · " + small(p.afterWin.bothW, p.afterWin.bothN)],
+    ["Eco/Force geholt", pct(p.ecoRate), "nach Pistol-Niederlage · " + small(p.afterLoss.r2w, p.afterLoss.r2n)],
+    ["Erste volle Runde", pct(p.r3Rate), "nach Pistol-Niederlage · " + small(p.afterLoss.r3w, p.afterLoss.r3n)],
+  ]);
+  const label = ["Keine", "Eine", "Beide"];
+  const impact = chartPanel("Gewonnene Pistols und Ergebnis", "Wie viele Matches ihr gewinnt, je nachdem wie viele der zwei Pistols ihr holt (alle Matches mit beiden Pistols im Verlauf)",
     barChart({
       rows: p.impact.map((t) => ({
-        label: `${t.won} von 2 Pistols`, value: t.wr ?? 0, text: t.n ? `${pct(t.wr)} · ${record(t)}` : "kein Match", short: t.n ? pct(t.wr) : "–",
-        tip: t.n ? `Bilanz ${record(t)} in ${nMatches(t.n)}` : "Noch kein Match",
+        label: label[t.won], value: t.wr ?? 0,
+        text: t.n ? `${pct(t.wr)} · ${t.w} von ${t.n} Matches` : "noch kein Match", short: t.n ? pct(t.wr) : "–",
+        tip: t.n ? wins(t) : "Noch kein Match",
       })),
-      max: 1, room: 7.5, unit: "Winrate", empty: "Noch kein Match mit beiden Pistols im Verlauf.",
+      max: 1, room: 11, unit: "Winrate", empty: "Noch kein Match mit beiden Pistols im Verlauf.",
     }),
-    chartTable(["Pistols gewonnen", "Matches", "Bilanz", "Winrate"], p.impact.map((t) => [`${t.won} von 2`, t.n, record(t), pct(t.wr)])));
-  const maps = section("Pistols pro Map", "Angriff / Verteidigung aus der Startseite",
+    chartTable(["Pistols gewonnen", "Matches", "Ergebnis", "Winrate"], p.impact.map((t) => [label[t.won], t.n, wins(t), pct(t.wr)])));
+  const maps = section("Pro Map", "Prozent gewonnen (gewonnen von gespielt)",
     table("an-pistol", ["Map", "Pistols", "Angriff", "Verteidigung", ["Runde danach", "Pistol gewonnen → Runde 2/14 auch gewonnen"], ["Eco/Force", "Pistol verloren → Runde 2/14 trotzdem gewonnen"]],
       p.maps.map((mp) => `<tr><td class="name">${esc(mp.name)}</td>
         ${cell("Pistols", share(mp.all.w, mp.all.n), "span2")}${cell("Angriff", share(mp.atk.w, mp.atk.n), "span2")}
         ${cell("Verteidigung", share(mp.def.w, mp.def.n), "span2")}${cell("Runde danach", share(mp.r2w, mp.r2n), "span2")}
         ${cell("Eco/Force", share(mp.lr2w, mp.lr2n), "span2")}</tr>`)));
-  return title + `<p class="hint">Aus ${nMatches(p.matches)} mit Rundenverlauf${sideNote}.${imp.length ? "" : " Für „Pistols und Ergebnis“ braucht ein Match beide Pistol-Runden im Verlauf."}</p>`
-    + cards + `<div class="chart-grid">${impact}</div>` + maps;
+  return `<p class="hint">Aus ${nMatches(p.matches)} mit Rundenverlauf.${sideNote}</p>`
+    + '<h3 class="an-h">Pistol-Runden (1 und 13)</h3>' + sides
+    + '<h3 class="an-h">Nach der Pistol</h3>' + follow
+    + impact + maps;
 }
 
-// ---------- Comps (unser Team) ----------
+// ---------- Comps ----------
 
-function compPart(list) {
+function compPage(list) {
   const c = compStats(list);
-  const title = '<div class="sec-head an-sec"><h2>Kompositionen</h2><span class="hint">nur Matches mit allen fünf Agents</span></div>';
-  if (!c.withComp) return title + section("Kompositionen", "", empty("Noch kein Match mit fünf eingetragenen Agents."));
-  const comps = section("Alle Kompositionen", `${c.comps.length} verschiedene · aus ${nMatches(c.withComp)}`,
-    table("an-comp", [["Komposition", "", true], "Map", ["Rollen", "Duelist-Initiator-Controller-Sentinel"], "Bilanz", "Winrate"],
-      c.comps.map((x) => `<tr><td class="name tags">${agentTags(x.agents)}</td>
-        ${cell("Map", esc(x.map))}${cell("Rollen", `<span title="${esc(roleLabel(x.roles))}">${esc(roleShort(x.roles))}</span>`)}
-        ${cell("Bilanz", record(x))}${wrCell(x)}</tr>`)));
-  const roles = section("Rollen-Verteilung", S.filters.map === "alle" ? "alle Maps · Map oben wählen für eine Map" : S.filters.map,
-    table("an-roles", [["Rollen", "", true], "Matches", "Bilanz", "Winrate", ["Maps", "", true]],
+  if (!c.withComp) return section("Comps", "", empty("Noch kein Match mit fünf eingetragenen Agents."));
+  // Einmal gespielte Comps erst auf Wunsch. Gibt es noch gar keine Comp mit 2 Matches, stehen alle da.
+  const repeated = c.comps.filter((x) => x.n >= 2).length;
+  const singles = view.singles || !repeated;
+  const shown = c.comps.filter((x) => singles || x.n >= 2);
+  const hidden = repeated ? c.comps.length - repeated : 0;
+  // Pro Map: die meistgespielten zuerst, die Maps nach Anzahl Matches
+  const byMap = new Map();
+  for (const x of shown) { if (!byMap.has(x.map)) byMap.set(x.map, []); byMap.get(x.map).push(x); }
+  const total = (arr) => arr.reduce((s, x) => s + x.n, 0);
+  const maps = [...byMap.entries()].sort((a, b) => total(b[1]) - total(a[1]) || a[0].localeCompare(b[0], "de"));
+  let cut = 0;
+  const blocks = maps.map(([map, comps]) => {
+    const rows = view.allComps ? comps : comps.slice(0, TOP);
+    cut += comps.length - rows.length;
+    return `<tbody><tr class="grp"><th colspan="4">${esc(map)} <span>${nMatches(total(comps))}</span></th></tr>${rows.map((x) => `<tr><td class="name tags">${agentTags(x.agents)}</td>
+      ${cell("Rollen", esc(roleLabel(x.roles)), "l span2 an-wrap")}${cell("Ergebnis", esc(wins(x)), "an-wrap")}${wrCell(x)}</tr>`).join("")}</tbody>`;
+  }).join("");
+  const toggles = [
+    cut || view.allComps ? `<button type="button" class="btn small ghost" data-action="an-toggle" data-key="allComps">${view.allComps ? `Nur Top ${TOP} pro Map` : `Alle anzeigen (${cut} mehr)`}</button>` : "",
+    hidden ? `<button type="button" class="btn small ghost" data-action="an-toggle" data-key="singles">${view.singles ? "Einmal gespielte ausblenden" : `Einmal gespielte zeigen (${hidden})`}</button>` : "",
+  ].filter(Boolean).join("");
+  const compTable = section("Kompositionen pro Map", singles ? "meistgespielte zuerst" : "meistgespielte zuerst · nur ab 2 Matches",
+    (blocks
+      ? `<div class="table-wrap"><table class="rtable an-comp"><thead><tr><th class="l">Komposition</th><th class="l">Rollen</th><th>Ergebnis</th><th>Winrate</th></tr></thead>${blocks}</table></div>`
+      : empty("Noch keine Komposition, die mindestens zweimal gespielt wurde."))
+    + (toggles ? `<div class="an-more">${toggles}</div>` : ""));
+  const roles = section("Rollen-Verteilung", S.filters.map === "alle" ? "alle Maps · oben eine Map wählen für eine einzelne Map" : S.filters.map,
+    table("an-roles", [["Rollen", "", true], "Ergebnis", "Winrate", ["Maps (gewonnen/gespielt)", "", true]],
       c.roles.map((r) => `<tr><td class="name">${esc(r.label)}</td>
-        ${cell("Matches", r.n)}${cell("Bilanz", record(r))}${wrCell(r)}
-        ${cell("Maps", r.maps.map((mp) => `<span class="tag" title="Bilanz ${record(mp)}">${esc(mp.name)} ${record(mp)}</span>`).join(""), "l wide tags")}</tr>`)));
-  return title + comps + roles;
-}
-
-// ---------- Agent-Pool ----------
-
-const STATUS = { stamm: "", sub: "Sub", ex: "nicht mehr im Roster" };
-
-function poolPart(list) {
-  const pool = agentPool(list);
-  const title = '<div class="sec-head an-sec"><h2>Agent-Pool</h2><span class="hint">wer spielt was, und wie läuft es</span></div>';
-  if (!pool.length) return title + section("Agent-Pool", "", empty("Noch keine Agents eingetragen."));
-  const rows = pool.map((p) => {
-    const agents = p.agents.map((a) => `<span class="tag" title="${esc(a.role || "Rolle unbekannt")} · Bilanz ${record(a)}">${esc(a.name)} ${a.n}× · ${pct(a.wr)}</span>`).join("");
-    const roles = p.roles.map((r) => `${esc(r.role === "?" ? "unbekannt" : r.role)} ${pct(r.share)}`).join(" · ");
-    const maps = p.maps.map((mp) => `<div class="an-line"><b>${esc(mp.name)}</b> ${mp.agents.map(([a, n]) => esc(a) + (n > 1 ? ` ${n}×` : "")).join(", ")}</div>`).join("");
-    return `<tr><td class="name"><a class="plink" href="#player-${esc(encodeURIComponent(p.id))}">${esc(p.name)}</a>${STATUS[p.status] ? ` <span class="tag">${esc(STATUS[p.status])}</span>` : ""}</td>
-      ${cell("Matches", p.total)}${cell("Rollen", roles, "l span3 an-wrap")}
-      ${cell("Agents", agents, "l wide tags")}${cell("Pro Map", maps, "l wide")}</tr>`;
-  });
-  return title + section("Agents pro Spieler", "Winrate pro Agent · darunter, wer auf welcher Map was gespielt hat",
-    table("an-pool", ["Spieler", "Matches", ["Rollen", "", true], ["Agents", "", true], ["Pro Map", "", true]], rows));
+        ${cell("Ergebnis", esc(wins(r)), "span2 an-wrap")}${wrCell(r)}
+        ${cell("Maps (gewonnen/gespielt)", r.maps.map((mp) => `<span class="tag" title="${esc(wins(mp))}">${esc(mp.name)} ${mp.w}/${mp.n}</span>`).join(""), "l wide tags")}</tr>`)));
+  return `<p class="hint">Aus ${nMatches(c.withComp)} mit allen fünf Agents.</p>` + compTable + roles;
 }
 
 // ---------- Gegner ----------
 
-function foePart(list) {
+function foePage(list) {
   const f = foeStats(list);
-  const title = '<div class="sec-head an-sec"><h2>Gegner-Comps</h2><span class="hint">Bilanz = unsere Bilanz in diesen Matches</span></div>';
-  if (!f.withFoes) return title + section("Gegner-Comps", "", empty("Noch kein Match mit Scoreboard der Gegner. Das kommt automatisch, wenn ihr das Scoreboard auslest."));
-  const note = `<p class="hint">Aus ${f.withFoes} von ${nMatches(list.length)} mit Scoreboard der Gegner.</p>`;
-  const agents = section("Agents der Gegner", "sortiert nach Häufigkeit",
-    table("an-foes", [["Agent", "", true], "Rolle", ["Matches", "So oft hatte der Gegner diesen Agent"], "Bilanz", "Winrate"],
+  if (!f.withFoes) return section("Gegner", "", empty("Noch kein Match mit Scoreboard der Gegner. Das kommt automatisch dazu, wenn ihr das Scoreboard auslest."));
+  const note = `<p class="hint">Aus ${f.withFoes} von ${nMatches(list.length)} mit Scoreboard der Gegner. „Ergebnis“ und „Winrate“ sind immer eure Ergebnisse in diesen Matches.</p>`;
+  const agents = section("Agents der Gegner", "am häufigsten gesehen zuerst",
+    table("an-foes", [["Agent", "", true], "Rolle", ["Gesehen", "In so vielen Matches hatte der Gegner diesen Agent"], "Ergebnis", "Winrate"],
       f.agents.map((a) => `<tr><td class="name">${esc(a.name)}</td>
-        ${cell("Rolle", esc(a.role || "–"))}${cell("Matches", a.n)}${cell("Bilanz", record(a))}${wrCell(a)}</tr>`)));
-  const worst = f.agents.filter((a) => a.n >= 3 && a.wr !== null).sort((a, b) => a.wr - b.wr || b.n - a.n).slice(0, 3);
-  const warn = worst.length && worst[0].wr < 0.5
-    ? `<p class="hint">Schwer für euch (ab 3 Matches): ${worst.filter((a) => a.wr < 0.5).map((a) => `${esc(a.name)} ${pct(a.wr)}`).join(" · ")}</p>` : "";
+        ${cell("Rolle", esc(a.role || "–"))}${cell("Gesehen", nMatches(a.n))}${cell("Ergebnis", esc(wins(a)), "an-wrap")}${wrCell(a)}</tr>`)));
   const comps = f.comps.length
-    ? section("Kompositionen der Gegner", `${f.comps.length} verschiedene`,
-      table("an-comp", [["Komposition", "", true], "Map", ["Rollen", "Duelist-Initiator-Controller-Sentinel"], "Bilanz", "Winrate", ["Gegner", "", true]],
+    ? section("Comps der Gegner", "",
+      table("an-fcomp", [["Komposition", "", true], "Map", ["Gegner", "", true], "Ergebnis"],
         f.comps.map((x) => `<tr><td class="name tags">${agentTags(x.agents)}</td>
-          ${cell("Map", esc(x.map))}${cell("Rollen", `<span title="${esc(roleLabel(x.roles))}">${esc(roleShort(x.roles))}</span>`)}
-          ${cell("Bilanz", record(x))}${wrCell(x)}${cell("Gegner", esc(x.teams.join(", ") || "–"), "l wide an-wrap")}</tr>`)))
+          ${cell("Map", esc(x.map))}${cell("Gegner", esc(x.teams.join(", ") || "–"), "l an-wrap")}${cell("Ergebnis", esc(wins(x)), "span2 an-wrap")}</tr>`)))
     : "";
-  return title + note + warn + agents + comps;
+  return note + agents + comps;
 }
 
-export function analysisView() {
+export function analysisView(sub = "") {
+  const cur = SUBS.some(([k]) => k === sub) ? sub : "";
   const head = `<div class="view-head"><div><div class="eyebrow">Statistik</div><h1>Analyse</h1>
-    <p>Pistol-Runden im Detail, eure Kompositionen und Rollen, wer welche Agents spielt und gegen welche Agents es schwer wird.</p></div>
+    <p>Pistol-Runden, eure Kompositionen und gegen welche Agents es schwer wird. Den Agent-Pool jedes Spielers findest du auf seiner Spieler-Seite.</p></div>
     <div class="head-side">${filterBar(true)}</div></div>`;
-  if (!S.loaded.matches) return head + '<p class="loading">Lade Matches …</p>';
+  const nav = `<nav class="seg an-subs" aria-label="Analyse">${SUBS.map(([k, t]) => `<a href="${subLink(k)}"${k === cur ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>`;
+  if (!S.loaded.matches) return head + nav + '<p class="loading">Lade Matches …</p>';
   const list = filtered();
-  if (!list.length) return head + noMatches("Hier stehen dann Pistols, Comps und Agent-Pool.");
-  const jump = `<nav class="an-jump" aria-label="Abschnitte">${[["an-pistols", "Pistols"], ["an-comps", "Comps"], ["an-pool", "Agent-Pool"], ["an-foes", "Gegner-Comps"]].map(([id, t]) => `<button type="button" class="btn small ghost" data-action="an-jump" data-to="${id}">${t}</button>`).join("")}</nav>`;
-  return head + jump
-    + `<div id="an-pistols">${pistolPart(list)}</div>`
-    + `<div id="an-comps">${compPart(list)}</div>`
-    + `<div id="an-pool">${poolPart(list)}</div>`
-    + `<div id="an-foes">${foePart(list)}</div>`;
+  if (!list.length) return head + nav + noMatches("Hier stehen dann Pistols, Comps und die Agents der Gegner.");
+  const body = cur === "pistols" ? pistolPage(list) : cur === "comps" ? compPage(list) : cur === "foes" ? foePage(list) : overview(list);
+  return head + nav + body;
 }
 
-// Sprung zu einem Abschnitt (die Adresse hinter dem # gehört dem Router, deshalb kein Anker-Link)
 export const actions = {
-  "an-jump": (el) => {
-    const to = document.getElementById(el.dataset.to);
-    if (to) to.scrollIntoView({ behavior: "smooth", block: "start" });
-  },
+  "an-toggle": (el) => { view[el.dataset.key] = !view[el.dataset.key]; changed(); },
 };

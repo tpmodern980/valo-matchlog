@@ -55,6 +55,10 @@ function makeRounds(us, them, rand) {
   return shuffle([...fill(12, "W"), ...fill(12, "L")]).join("") + "WL".repeat(pairs) + winner + winner;
 }
 
+// Ein altes Match mit nachgetragenen Pistols und Folgerunden (Runde 1–3 und 13–15), der Rest offen ("?").
+// Der Verlauf wird trotzdem ganz erzeugt: So bleibt der Zufall für alle anderen Beispielzahlen gleich.
+const onlyPistols = (yes, r) => (yes ? [...r].map((c, i) => (i < 3 || (i >= 12 && i < 15) ? c : "?")).join("").replace(/\?+$/, "") : r);
+
 function makeRow(p, rounds, won, rand) {
   const kpr = 0.7 * p.skill * (0.72 + rand() * 0.56) * (won ? 1.06 : 0.94);
   const kills = Math.round(kpr * rounds);
@@ -120,7 +124,7 @@ export function loadDemo() {
       date: daysAgo(days), type, opponent, map, scoreUs: us, scoreThem: them,
       startSide: open ? null : (i % 2 ? "def" : "atk"),
       // Ein Match bewusst ohne Verlauf: Der Rundenverlauf ist freiwillig
-      rounds: open || i === 9 ? null : makeRounds(us, them, rand),
+      rounds: open || i === 9 ? null : onlyPistols(i === 13, makeRounds(us, them, rand)),
       notes: i === 0 ? "Gute Retakes auf B. Auf A zu oft einzeln gepeekt." : "",
       createdAt: now - days * 86400000, createdBy: null, deleted: false,
       players: open

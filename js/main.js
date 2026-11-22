@@ -45,7 +45,7 @@ function viewHtml(r) {
     case "players": return playerPages.playersView();
     case "player": return playerView(r.id);
     case "maps": return mapsView();
-    case "analysis": return analysisPages.analysisView();
+    case "analysis": return analysisPages.analysisView(r.id);
     case "opponents": return opponentsView();
     case "opponent": return opponentView(r.id);
     case "strats": return stratPages.stratsView(r.id);

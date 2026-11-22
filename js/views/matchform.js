@@ -4,7 +4,7 @@
 import { S } from "../state.js";
 import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL, AGENT_LOOKALIKE } from "../constants.js";
 import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
-import { roundInfo, sortMatches } from "../stats.js";
+import { roundInfo, sortMatches, cleanRounds } from "../stats.js";
 import { create, change, remove, listAdd } from "../data.js";
 import { run, setMsg, msgBox } from "./auth.js";
 import { learn } from "../agentrefs.js";
@@ -71,7 +71,7 @@ function open(match) {
     them: m.scoreThem === null || m.scoreThem === undefined ? "" : String(m.scoreThem),
     notes: m.notes || "",
     startSide: m.startSide === "atk" || m.startSide === "def" ? m.startSide : null,
-    rounds: typeof m.rounds === "string" ? m.rounds.toUpperCase().replace(/[^WL]/g, "") : "",
+    rounds: cleanRounds(m.rounds),
     rows,
     // Scoreboard der Gegner (freiwillig): dieselben Zeilen, aber ohne Roster und ohne Statistik
     foes: match ? (Array.isArray(m.opponents) ? m.opponents : []).map(rowOf) : [],
@@ -206,7 +206,7 @@ function cellCount(rounds, us, them) {
 
 function roundsInner() {
   const us = scoreOf(ed.us), them = scoreOf(ed.them);
-  const r = ed.rounds, len = r.length, w = count(r, "W"), l = len - w;
+  const r = ed.rounds, len = r.length, w = count(r, "W"), l = count(r, "L"), open = count(r, "?");
   const cells = cellCount(r, us, them), full = len >= cells;
   const start = ed.startSide, other = start === "atk" ? "def" : "atk";
 
@@ -217,7 +217,8 @@ function roundsInner() {
       const v = r[i] || "", pistol = i === 0 || i === 12;
       if (v === "W") hw++; else if (v === "L") hl++;
       const state = v === "W" ? "Sieg" : v === "L" ? "Niederlage" : "offen";
-      out += `<button type="button" class="rd rdb ${v || "E"}${pistol ? " pistol" : ""}${i === len ? " next" : ""}" id="ed-rd-${i}" data-action="mf-cell" data-i="${i}"${i > len ? " disabled" : ""} aria-label="Runde ${i + 1}${pistol ? " (Pistol)" : ""}: ${state}"><small>${i + 1}</small><b>${v === "W" ? "S" : v === "L" ? "N" : ""}</b></button>`;
+      // Jedes Feld lässt sich antippen, auch weiter hinten: Die Runden dazwischen bleiben offen ("?")
+      out += `<button type="button" class="rd rdb ${v === "W" || v === "L" ? v : "E"}${pistol ? " pistol" : ""}${i === len ? " next" : ""}" id="ed-rd-${i}" data-action="mf-cell" data-i="${i}" aria-label="Runde ${i + 1}${pistol ? " (Pistol)" : ""}: ${state}"><small>${i + 1}</small><b>${v === "W" ? "S" : v === "L" ? "N" : ""}</b></button>`;
     }
     return `<div class="half"><div class="half-head"><span>${label}${side ? " · " + SIDE[side] : ""}</span><b>${hw}:${hl}</b></div><div class="rounds rd-grid">${out}</div></div>`;
   };
@@ -233,7 +234,11 @@ function roundsInner() {
   // Hinweis, wenn Verlauf und Score nicht zusammenpassen. Speichern bleibt erlaubt.
   let note = "";
   const take = (text) => `<button class="linkish" type="button" id="ed-take" data-action="mf-score-from-rounds">${text}</button>`;
-  if (len) {
+  if (open) {
+    note = `<p class="hint">${open === 1 ? "1 Runde ist" : `${open} Runden sind`} offen (nicht eingetragen). Das ist in Ordnung: Gezählt wird nur, was eingetragen ist.</p>`;
+    if (us !== null && them !== null && (w > us || l > them)) note = `<p class="notice">Eingetragen sind ${w} Siege und ${l} Niederlagen, der Score ist aber nur ${us}:${them}. Speichern geht trotzdem.</p>` + note;
+    if (!start) note += '<p class="hint">Ohne Startseite zählt der Verlauf nur für die Pistol-Runden, nicht für Angriff und Verteidigung.</p>';
+  } else if (len) {
     if (us === null || them === null) note = `<p class="notice">Es ist noch kein Score eingetragen. ${take(`Score ${w}:${l} aus dem Verlauf übernehmen`)}</p>`;
     else if (w === us && l === them) note = `<p class="rd-ok">Passt zum Score ${us}:${them}.</p>`;
     else if (w <= us && l <= them) {
@@ -244,7 +249,7 @@ function roundsInner() {
   }
 
   const now = full
-    ? `<b>${len} Runden eingetragen</b><span>Stand ${w}:${l}</span>`
+    ? `<b>${w + l} Runden eingetragen</b><span>Stand ${w}:${l}</span>`
     : `<b>Runde ${len + 1}${len === 0 || len === 12 ? " · Pistol" : ""}</b><span>${len ? `Stand ${w}:${l}` : "Sieg oder Niederlage?"}</span>`;
 
   return `<div class="panel-head"><h2>Rundenverlauf</h2><span class="hint">freiwillig</span></div>
@@ -265,7 +270,7 @@ function roundsInner() {
       </div>
       ${facts.length ? `<div class="round-facts">${facts.join("")}</div>` : ""}
       ${note}
-      <p class="hint">Tipp auf „Sieg“ oder „Niederlage“ für die nächste Runde. Ein Feld antippen dreht die Runde um. Unterstrichen = Pistol-Runde.${len ? ' <button class="linkish" type="button" id="ed-rd-clear" data-action="mf-rounds-clear">Verlauf leeren</button>' : ""}</p>
+      <p class="hint">Tipp auf „Sieg“ oder „Niederlage“ für die nächste Runde. Oder tipp direkt auf ein Feld: einmal = Sieg, zweimal = Niederlage, dreimal = wieder offen. So lassen sich bei alten Matches auch nur einzelne Runden nachtragen (z. B. die Pistols 1 und 13 mit ihren Folgerunden), der Rest bleibt offen. Unterstrichen = Pistol-Runde.${len ? ' <button class="linkish" type="button" id="ed-rd-clear" data-action="mf-rounds-clear">Verlauf leeren</button>' : ""}</p>
     </div>`;
 }
 
@@ -318,7 +323,7 @@ const quote = (s) => `„${s}“`;
 // Steht die Zeile noch im Formular (bei uns oder bei den Gegnern)?
 const alive = (row) => ed.rows.includes(row) || ed.foes.includes(row);
 const hasValues = (row) => Boolean(clean(row.agent)) || ALL_STAT_FIELDS.some(([f]) => clean(row[f]));
-const roundsText = (r) => { const w = count(r, "W"); return `${r.length} ${r.length === 1 ? "Runde" : "Runden"} (${w}:${r.length - w})`; };
+const roundsText = (r) => { const w = count(r, "W"), l = count(r, "L"); return `${w + l} ${w + l === 1 ? "Runde" : "Runden"} (${w}:${l})`; };
 
 // Geprüfte Werte aus js/scan.js ins Modell füllen. Regel: Leere Felder werden gefüllt. Steht in einem Feld
 // schon etwas anderes, bleibt es stehen und kommt als "Abweichung" in den Bericht (der Nutzer entscheidet).
@@ -750,8 +755,8 @@ function save() {
       // Scheitert es (z. B. weil die Firestore-Regel dafür fehlt), ist das Match trotzdem gespeichert.
       learn([...mine.rows, ...mine.foes]).catch((e) => console.warn("Agenten-Beispiele:", e.message || e));
 
-      const w = count(mine.rounds, "W"), l = mine.rounds.length - w;
-      const off = mine.rounds && us !== null && (w !== us || l !== them);
+      const w = count(mine.rounds, "W"), l = count(mine.rounds, "L");
+      const off = mine.rounds && !mine.rounds.includes("?") && us !== null && (w !== us || l !== them);
       closeEditor();
       toast((mine.id ? "Match gespeichert." : "Match eingetragen.") + (off ? " Hinweis: Der Rundenverlauf passt nicht zum Score." : ""));
       location.hash = "match-" + id;
@@ -763,7 +768,8 @@ function save() {
 
 // ---------- Klicks ----------
 
-const flip = (ch) => ch === "W" ? "L" : "W";
+// Feld antippen: offen → Sieg → Niederlage → offen
+const next = (ch) => ch === "W" ? "L" : ch === "L" ? "?" : "W";
 
 export const actions = {
   "mf-new": () => open(null),
@@ -807,19 +813,21 @@ export const actions = {
     ed.rounds += el.dataset.r === "L" ? "L" : "W";
     drawRounds();
   },
-  // Feld antippen: eingetragene Runde umdrehen, das nächste offene Feld wird ein Sieg (zweimal tippen = Niederlage)
+  // Feld antippen: offen → Sieg → Niederlage → offen. Ein Feld weiter hinten geht auch: Die Runden dazwischen
+  // bleiben offen ("?"), so lassen sich bei alten Matches z. B. nur die Pistols und Folgerunden nachtragen.
   "mf-cell": (el) => {
     const i = Number(el.dataset.i), r = ed.rounds;
-    if (i < r.length) ed.rounds = r.slice(0, i) + flip(r[i]) + r.slice(i + 1);
-    else if (i === r.length) ed.rounds = r + "W";
+    if (i < r.length) ed.rounds = r.slice(0, i) + next(r[i]) + r.slice(i + 1);
+    else ed.rounds = r + "?".repeat(i - r.length) + "W";
+    ed.rounds = cleanRounds(ed.rounds);
     drawRounds();
   },
-  "mf-round-undo": () => { ed.rounds = ed.rounds.slice(0, -1); drawRounds(); },
+  "mf-round-undo": () => { ed.rounds = cleanRounds(ed.rounds.slice(0, -1)); drawRounds(); },
   "mf-rounds-clear": () => { ed.rounds = ""; drawRounds(); },
   "mf-score-from-rounds": () => {
     const w = count(ed.rounds, "W");
     $("#ed-us").value = String(w);
-    $("#ed-them").value = String(ed.rounds.length - w);
+    $("#ed-them").value = String(count(ed.rounds, "L"));
     drawRounds();
   },
 
