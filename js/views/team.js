@@ -13,7 +13,7 @@ import { buildCsv, buildJson, download, fileName, readImport, applyImport } from
 import { result } from "../stats.js";
 import { errorText } from "../auth.js";
 import { run, setMsg, msgBox } from "./auth.js";
-import { approve, decline } from "../access.js";
+import { approve, decline, setAccessHook, validAccessHook } from "../access.js";
 
 // ---------- Erster Start: Team anlegen ----------
 
@@ -278,6 +278,12 @@ function discordPanel() {
         <h3 class="group">Planungs-Kanal (Tab „Planung“)</h3>
         <p class="hint">Hierhin kündigt die App neue Umfragen an und postet den Wochenplan. Ein normaler Text-Kanal (kein Forum): eigenen Webhook für diesen Kanal anlegen.</p>
         ${field("dh-plan", "plan", "Webhook des Planungs-Kanals", planHook, "https://discord.com/api/webhooks/…")}
+        <div class="actions"><button class="btn primary" type="submit">Speichern</button></div>
+      </form>
+      <form class="dc-hooks" data-form="access-hook" novalidate>
+        <h3 class="group">Zugangs-Anfragen</h3>
+        <p class="hint">Hierhin meldet die App jede neue Zugangs-Anfrage. Nimm einen <b>privaten Kanal</b>, den nur die Admins sehen: Diese Adresse können auch Leute lesen, die noch nicht freigeschaltet sind. Braucht die Regel für <code>config/public</code> (ANLEITUNG.md, Schritt 13).</p>
+        ${field("dh-access", "access", "Webhook des Zugangs-Kanals", S.accessHook || "", "https://discord.com/api/webhooks/…")}
         <div class="actions"><button class="btn primary" type="submit">Speichern</button></div>
       </form>
     </div></section>`;
@@ -560,6 +566,13 @@ export const changes = {
 };
 
 export const forms = {
+  "access-hook": async (form) => {
+    if (!S.isAdmin) return;
+    const url = String(new FormData(form).get("access") || "").trim();
+    if (url && !validAccessHook(url)) return toast("Das ist keine Webhook-Adresse von Discord. Sie beginnt mit https://discord.com/api/webhooks/");
+    try { await setAccessHook(url); toast(url ? "Gespeichert. Neue Zugangs-Anfragen kommen jetzt in Discord an." : "Zugangs-Kanal entfernt."); }
+    catch (e) { toast(e && e.code === "permission-denied" ? "Speichern ging nicht: In den Firestore-Regeln fehlt die Zeile für config/public (ANLEITUNG.md, Schritt 13)." : (errorText(e) || "Speichern hat nicht geklappt.")); }
+  },
   "season-add": async (form) => {
     if (!S.isAdmin) return;
     const data = new FormData(form);

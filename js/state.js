@@ -30,6 +30,7 @@ export const S = {
   agentRefs: [],        // KI-Trainingsbilder fürs Screenshot-Auslesen (js/agentrefs.js)
   weeks: [],            // Umfrage und Wochenplan pro Woche (Tab "Planung", js/views/plan.js)
   requests: [],         // offene Zugangs-Anfragen, nur für Admins (js/access.js)
+  accessHook: "",       // Discord-Webhook für Zugangs-Meldungen (config/public, nur für Admins geladen)
   loaded: { players: false, matches: false, clips: false, agentRefs: false, weeks: false },
   filters: loadFilters(),
 };

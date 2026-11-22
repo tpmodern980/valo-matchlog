@@ -274,12 +274,15 @@ Neue Spieler müssen ihre E-Mail nicht mehr per Hand schicken: Wer angemeldet is
 Dafür in der Firebase-Konsole unter **Firestore → Regeln** diesen Block einfügen (direkt unter der Zeile `match /config/team …`), dann **Veröffentlichen**:
 
 ```
+    match /config/public { allow read: if verified(); allow write: if isAdmin() && stamped(); }
     match /requests/{uid} {
       allow read: if isAdmin() || (verified() && request.auth.uid == uid);
       allow create, update: if verified() && request.auth.uid == uid && request.resource.data.email == email();
       allow delete: if isAdmin();
     }
 ```
+
+**Discord-Meldung bei neuen Anfragen (freiwillig):** In Discord einen **privaten** Kanal anlegen (z. B. #zugang, nur für die Admins sichtbar), dort einen Webhook erstellen und im Tab **„Team“ → „Discord“ → „Webhook des Zugangs-Kanals“** eintragen. Dann postet die App bei jeder Anfrage dorthin. Diese eine Adresse liegt in `config/public` und ist für jeden Angemeldeten lesbar (die Anfragenden sind ja noch keine Mitglieder): Wer sie ausliest, könnte in diesen Kanal schreiben, sonst nichts. Bei Missbrauch den Webhook in Discord löschen und einen neuen eintragen.
 
 Nach dem Anfragen erscheint beim Neuen **„Admin Bescheid geben“**: Das öffnet das Teilen-Menü des Handys (WhatsApp, Discord, SMS …) mit einer fertigen Nachricht samt Link, am PC wird sie kopiert. Eine automatische Benachrichtigung an die Admins gibt es nicht (dafür bräuchte es einen eigenen Server).
 
