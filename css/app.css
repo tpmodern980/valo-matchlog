@@ -1279,3 +1279,18 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .notice.side-ask { display: flex; gap: 10px 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px; }
 .notice.side-ask > span:first-child { flex: 1 1 260px; }
 .side-btns { display: flex; gap: 8px; }
+
+/* Wochenplan: ein Kasten pro Tag, mehrere Termine darin untereinander */
+.pl-day { display: grid; grid-template-columns: 96px minmax(0, 1fr); border: 1px solid var(--line); background: var(--surface-2); }
+.pl-day.rest { border-style: dashed; background: var(--surface); }
+.pl-day-label { padding: 10px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.pl-day-label small { color: var(--muted); font-size: 12px; }
+.pl-items { min-width: 0; }
+.pl-items .pl-row { border: 0; background: none; }
+.pl-items .pl-row + .pl-row { border-top: 1px solid var(--line); }
+.pl-items .pl-row.editing { background: var(--surface); }
+.pl-items .pl-when { min-width: 48px; }
+@media (max-width: 640px) {
+  .pl-day { grid-template-columns: 1fr; }
+  .pl-day-label { border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; align-items: baseline; justify-content: space-between; padding: 8px 10px; }
+}

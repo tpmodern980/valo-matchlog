@@ -339,10 +339,11 @@ function entryForm(w, e) {
 function planPanel(w) {
   const plan = (w.plan || []).slice().sort(byTime);
   const todayIso = isoDate(new Date());
-  const rows = plan.map((e) => {
+  // Ein Kasten pro Tag (Wunsch Tim, 22.11.2026): Mehrere Termine am selben Tag stehen untereinander im selben Kasten
+  const item = (e) => {
     if (editId === e.id) return `<div class="pl-row editing">${entryForm(w, e)}</div>`;
     if (isRest(e)) {
-      return `<div class="pl-row rest"><div class="pl-main"><div class="pl-when"><b>${esc(dayLabel(e.date))}</b><span>frei</span></div>
+      return `<div class="pl-row rest"><div class="pl-main"><div class="pl-when"><span>frei</span></div>
         <div class="pl-what"><span class="tag rest">Ruhetag</span>${e.note ? `<small>${esc(e.note)}</small>` : ""}</div></div>
         ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}</div>`;
     }
@@ -356,13 +357,17 @@ function planPanel(w) {
     else if (noMatchType(e.type)) status = "";
     else if (e.date < todayIso) status = '<span class="pl-st muted">noch kein Match eingetragen</span>';
     else status = '<span class="pl-st muted">geplant</span>';
-    const main = `<div class="pl-when"><b>${esc(dayLabel(e.date))}</b><span>${esc(e.time || "")}</span></div>
+    const main = `<div class="pl-when"><b>${esc(e.time || "–")}</b></div>
       <div class="pl-what"><span class="tag">${esc(e.type)}</span>${e.opponent ? ` vs ${esc(e.opponent)}` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</div>`;
     return `<div class="pl-row${e.status === "cancelled" ? " cancelled" : ""}">
       ${m ? `<a class="pl-main" href="#match-${esc(m.id)}">${main}</a>` : `<div class="pl-main">${main}</div>`}
       ${status}
       ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}</div>`;
-  }).join("");
+  };
+  const days = [];
+  for (const e of plan) { const d = days[days.length - 1]; if (d && d.date === e.date) d.list.push(e); else days.push({ date: e.date, list: [e] }); }
+  const rows = days.map((d) => `<div class="pl-day${d.list.every(isRest) ? " rest" : ""}"><div class="pl-day-label"><b>${esc(dayLabel(d.date))}</b>${d.list.length > 1 ? `<small>${d.list.length} Termine</small>` : ""}</div>
+      <div class="pl-items">${d.list.map(item).join("")}</div></div>`).join("");
   const add = !S.isAdmin ? ""
     : editId === "new" ? `<div class="pl-row editing">${entryForm(w, null)}</div>`
     : editId === "rest" ? `<div class="pl-row editing">${restForm(w, null)}</div>`

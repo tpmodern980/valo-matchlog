@@ -214,14 +214,24 @@ export const postPoll = (w) => sendPlanHook(buildPollPost(w));
 export function buildPlanPost(w) {
   const link = appUrl() + planLink(w.start);
   const plan = (w.plan || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.time || "").localeCompare(String(b.time || "")));
-  const lines = plan.map((e) => {
-    if (e.type === REST) return `💤 **${dayLabel(e.date)}** · Ruhetag${e.note ? ` – ${md(e.note)}` : ""}`;
-    const text = `**${dayLabel(e.date)}**${e.time ? ` ${e.time}` : ""} · ${md(e.type)}${e.opponent ? ` vs ${md(e.opponent)}` : ""}${e.note ? ` – ${md(e.note)}` : ""}`;
+  // Mehrere Termine am selben Tag: der Tag einmal, die Termine darunter eingerückt
+  const perDay = (d) => plan.filter((e) => e.date === d).length;
+  const shown = new Set();
+  const lines = plan.flatMap((e) => {
+    const many = perDay(e.date) > 1, head = many && !shown.has(e.date) ? [`**${dayLabel(e.date)}**`] : [];
+    shown.add(e.date);
+    const one = line(e, many);
+    return [...head, many ? ` ${one}` : one];
+  });
+  function line(e, many) {
+    const day = many ? "" : `**${dayLabel(e.date)}**`;
+    if (e.type === REST) return `💤 ${day ? day + " · " : ""}Ruhetag${e.note ? ` – ${md(e.note)}` : ""}`;
+    const text = `${day}${e.time ? `${day ? " " : ""}${e.time}` : ""} · ${md(e.type)}${e.opponent ? ` vs ${md(e.opponent)}` : ""}${e.note ? ` – ${md(e.note)}` : ""}`;
     if (e.status === "cancelled") return `❌ ~~${text}~~ (abgesagt)`;
     const m = linkedMatch(e, w);
     if (m) return result(m) === "Q" ? `✅ ${text} (gespielt)` : `✅ ${text} → ${num(m.scoreUs)}:${num(m.scoreThem)} ${HEAD[result(m)].word}`;
     return `▫️ ${text}`;
-  });
+  }
   // Wochenziele (js/goals.js) unter den Terminen
   const goals = goalLines(w.start, false, isoToday());
   if (goals.length) lines.push("", "**Wochenziele**", ...goals);
