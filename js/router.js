@@ -4,7 +4,8 @@
 
 const LISTS = ["home", "matches", "players", "maps", "veto", "analysis", "opponents", "strats", "plan", "team"];
 // Zu welchem Tab eine Detailseite gehört
-export const TAB_OF = { match: "matches", player: "players", opponent: "opponents", veto: "maps" };
+// Maps, Gegner und Veto gehören seit 22.11.2026 zum Bereich "Analyse"
+export const TAB_OF = { match: "matches", player: "players", opponent: "analysis", opponents: "analysis", maps: "analysis", veto: "analysis" };
 
 export function route() {
   let h = location.hash.slice(1);

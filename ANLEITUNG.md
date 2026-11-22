@@ -261,7 +261,7 @@ Der Tab **„Strats“** zeigt eure Taktik-Screenshots direkt aus einem Google-D
 
 Link und Schlüssel liegen in Firestore (`config/team`), nicht im öffentlichen Code. Eine neue Firestore-Regel braucht es nicht.
 
-Ist der Ordner verbunden, gibt es auf jeder Match-Seite und bei jeder Map im Tab „Maps“ einen Knopf **„Strats“**. Im Tab „Strats“ steht bei jeder Map eure Bilanz und das Ergebnis der Map-Pool-Umfrage. Die **Map-Pool-Umfrage** (oben im Tab „Maps“) nimmt die aktiven Map-Ordner als Pool.
+Ist der Ordner verbunden, gibt es auf jeder Match-Seite und bei jeder Map im Bereich „Analyse“ → „Maps“ einen Knopf **„Strats“**. Im Tab „Strats“ steht bei jeder Map eure Bilanz und das Ergebnis der Map-Pool-Umfrage. Die **Map-Pool-Umfrage** (oben im Bereich „Analyse“ → „Maps“) nimmt die aktiven Map-Ordner als Pool.
 
 **Hinweise:** Beim ersten Öffnen dauert das Laden ein paar Sekunden (eine Abfrage pro Ordner). Danach zeigt die App sofort den letzten Stand und holt Neues im Hintergrund. Mit **„Aktualisieren“** holt sie es sofort. Ein Bild antippen öffnet es groß. Blättern geht mit den Pfeilen, mit Wischen oder mit den Pfeiltasten. **„In Drive“** öffnet das Original.
 
@@ -271,14 +271,20 @@ Ist der Ordner verbunden, gibt es auf jeder Match-Seite und bei jeder Map im Tab
 
 Bei jeder Woche mit Matches steht im Tab „Planung“ ein **Wochenrückblick**: Bilanz, Ø Rundendifferenz, Pistols, Vergleich zur Vorwoche, alle Ergebnisse, Spieler der Woche (beste K/D unter allen, die mindestens die Hälfte der Matches gespielt haben), meiste Kills und First Bloods, meistgespielte und beste Map und wie viele geplante Termine gespielt wurden. Bei vergangenen Wochen steht er ganz oben. Ist der Planungs-Kanal eingetragen (Schritt 10), postet ein Admin ihn mit **„Rückblick in Discord posten“**. Das geht auch für Wochen ohne Umfrage.
 
-## Map-Pool-Umfrage (Tab „Maps“)
+## Map-Pool-Umfrage (Bereich „Analyse“ → „Maps“)
 
-Oben im Tab **„Maps“** gibt jeder pro Map 1–5 Sterne („wie gern und wie gut spiele ich sie“) und kann Maps zum **Bannen** vorschlagen. Darunter steht die Rangliste: Ø Sterne, wer bannen will und eure echte Bilanz auf der Map. So seht ihr, welche Maps ihr im Turnier spielen und welche ihr bannen wollt, und wo „mögen wir“ und „gewinnen wir“ auseinandergehen. Unter „Wer hat was gewählt?“ steht jede einzelne Stimme.
+Oben im Bereich **„Analyse“ → „Maps“** gibt jeder pro Map 1–5 Sterne („wie gern und wie gut spiele ich sie“) und kann Maps zum **Bannen** vorschlagen. Darunter steht die Rangliste: Ø Sterne, wer bannen will und eure echte Bilanz auf der Map. So seht ihr, welche Maps ihr im Turnier spielen und welche ihr bannen wollt, und wo „mögen wir“ und „gewinnen wir“ auseinandergehen. Unter „Wer hat was gewählt?“ steht jede einzelne Stimme.
 
 - Der Pool sind die aktiven Maps aus dem Strats-Ordner (Schritt 12, Ordner ohne „(inactiv)“). Ohne verbundenen Ordner stehen alle Maps zur Wahl.
 - Ändern geht jederzeit. Admins können die Umfrage zurücksetzen (z. B. wenn sich der Map-Pool ändert).
 - Die Stimmen liegen in derselben Sammlung wie die Planung (`weeks`, Dokument `mappool`). Es braucht **keine neue Firestore-Regel**, nur die Zeile aus Schritt 11.
 - Stimmen von Konten, die im Tab „Team“ als Managerin zugeordnet sind, zählen nicht.
+
+## Menü (seit 22.11.2026)
+
+Übersicht · Matches · Spieler · Analyse · Strats · Planung · Team. **Maps** und **Gegner** stehen jetzt als Unterreiter in **Analyse** (zusammen mit Überblick, Pistols, Comps). Auf der Gegner-Seite stehen unten auch die Agents und Comps der Gegner. Im Filter „Zeitraum“ gibt es zusätzlich **Letzte 7 Tage** und **Letzte 10 Matches**.
+
+**Form-Trend:** In der Spieler-Tabelle und auf jeder Spieler-Seite zeigt ein Pfeil, wie die letzten 5 Matches im Vergleich zum Schnitt laufen (KPR, ab ±10 % ↑ bzw. ↓; die K/D steht im Tooltip). Braucht mindestens 6 Matches mit Kills und Score.
 
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
@@ -306,7 +312,7 @@ Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Al
 - **„Ziele in Discord posten“** schickt die Ziele einzeln in den Planungs-Kanal (Schritt 10), ab Wochenbeginn mit dem aktuellen Stand. Das darf jeder. Außerdem stehen sie beim Wochenplan-Post und mit ✅/❌ im Wochenrückblick.
 - Gespeichert in `weeks` (Dokument `goals-JJJJMMTT`). Es braucht **keine neue Firestore-Regel**, nur die Zeile aus Schritt 11.
 
-## Map-Veto-Helfer (Tab „Maps“ → „Map-Veto-Helfer“)
+## Map-Veto-Helfer (Analyse → Maps → „Map-Veto-Helfer“)
 
 - **Rangliste:** welche Maps ihr picken und welche ihr bannen solltet. Zählt vor allem eure **Map-Pool-Umfrage** (Sterne und Bann-Wünsche), dazu eure Winrate auf der Map und, wenn ein Gegner eingetragen ist, eure Bilanz gegen ihn.
 - **Live-Veto:** Art (Premier, Turnier, Scrim) und Format selbst wählen: **BO1** = abwechselnd bannen, bis eine Map übrig ist; **BO3** = Ban, Ban, Pick, Pick, dann bannen bis zum Decider; **BO5** = bannen bis 5 Maps übrig sind, dann vier Picks und der Decider. Dazu, wer anfängt. Bei euren Schritten schlägt die App eine Map vor, beim Gegner tippt ihr an, was er gewählt hat.

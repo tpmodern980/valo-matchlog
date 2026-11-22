@@ -2,7 +2,7 @@
 import { S } from "../state.js";
 import { RES_LABEL } from "../constants.js";
 import { esc, fmtDate, fmt0, fmt1, fmt2, pct } from "../util.js";
-import { filtered, playerStats, rowKey } from "../stats.js";
+import { filtered, playerStats, rowKey, formOf, FORM_N } from "../stats.js";
 import { agentPool } from "../analysis.js";
 import { lineChart, barChart, chartTable } from "../charts.js";
 import { filterBar, record, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
@@ -16,6 +16,18 @@ const byKpr = (a, b) => (b.kpr ?? -1) - (a.kpr ?? -1) || b.n - a.n || a.name.loc
 const kda = (s) => ["kills", "deaths", "assists"].map((f) => s.series.some((x) => x[f] !== null) ? s[f] : "–").join(" / ");
 const link = (s) => `<a class="plink" href="#player-${esc(encodeURIComponent(s.id))}">${esc(s.name)}</a>`;
 
+// Form-Trend: Pfeil und Änderung der KPR der letzten 5 Matches gegenüber dem Schnitt
+const ARROW = { up: "↑", down: "↓", flat: "→" };
+const signedPct = (d) => { const p = Math.round(d * 100); return `${p > 0 ? "+" : p < 0 ? "−" : "±"}${Math.abs(p)} %`; };
+function formTip(f) {
+  return `Letzte ${f.n} Matches: KPR ${fmt2(f.kpr.recent)} (Schnitt ${fmt2(f.kpr.all)})${f.kd ? `, K/D ${fmt2(f.kd.recent)} (Schnitt ${fmt2(f.kd.all)})` : ""}`;
+}
+export function formBadge(s) {
+  const f = formOf(s);
+  if (!f) return `<span class="form none" title="Braucht mindestens ${FORM_N + 1} Matches mit Kills und Score">–</span>`;
+  return `<span class="form ${f.dir}" title="${esc(formTip(f))}">${ARROW[f.dir]} ${signedPct(f.delta)}</span>`;
+}
+
 // ---------- Tabelle im Spieler-Tab ----------
 
 // Am Handy wird aus jeder Zeile eine Karte: Die Beschriftung steht dann über dem Wert (data-label)
@@ -24,7 +36,7 @@ const cell = (label, value, cls = "") => `<td data-label="${esc(label)}"${cls ? 
 function statRow(s) {
   const agents = s.agents.slice(0, 3).map((a) => `${esc(a.name)} <span class="muted">${a.n}</span>`).join(" · ") || "–";
   return `<tr><td class="name">${link(s)}</td>
-    ${cell("Matches", s.n)}${cell("Win%", pct(s.wr))}${cell("K/D", fmt2(s.kd), "strong")}${cell("KPR", fmt2(s.kpr), "strong")}
+    ${cell("Matches", s.n)}${cell("Win%", pct(s.wr))}${cell("K/D", fmt2(s.kd), "strong")}${cell("KPR", fmt2(s.kpr), "strong")}${cell("Form", formBadge(s))}
     ${cell("K/D/A", s.n ? kda(s) : "–", "span2")}
     ${cell("FB/Match", fmt1(s.fbPer))}${cell("Plants", s.plantsN ? fmt0(s.plants) : "–")}${cell("Defuses", s.defusesN ? fmt0(s.defuses) : "–")}
     ${cell("Agents", agents, "l span3")}</tr>`;
@@ -39,11 +51,11 @@ export function playerTable() {
   const blocks = BLOCKS.map(([status, title]) => {
     const rows = stats.filter((s) => s.status === status).sort(byKpr);
     if (!rows.length) return "";
-    return `<tbody><tr class="grp"><th colspan="10">${title} <span>${rows.length}</span></th></tr>${rows.map(statRow).join("")}</tbody>`;
+    return `<tbody><tr class="grp"><th colspan="11">${title} <span>${rows.length}</span></th></tr>${rows.map(statRow).join("")}</tbody>`;
   }).join("");
   const table = `<section class="panel"><div class="panel-head"><h2>Statistik</h2><span class="hint">${nMatches(list.length)} · Tipp auf einen Namen für die Detailseite</span></div>
     <div class="table-wrap"><table class="rtable pstats">
-      <thead><tr><th>Spieler</th><th>Matches</th><th>Win%</th><th>K/D</th><th title="Kills pro Runde">KPR</th><th title="Kills / Deaths / Assists, zusammengezählt">K/D/A</th>
+      <thead><tr><th>Spieler</th><th>Matches</th><th>Win%</th><th>K/D</th><th title="Kills pro Runde">KPR</th><th title="KPR der letzten ${FORM_N} Matches gegenüber dem Schnitt">Form</th><th title="Kills / Deaths / Assists, zusammengezählt">K/D/A</th>
         <th title="First Bloods pro Match">FB/Match</th><th>Plants</th><th>Defuses</th><th class="l">Agents</th></tr></thead>
       ${blocks}</table></div></section>`;
 
@@ -96,6 +108,10 @@ export function playerView(id) {
       : noMatches("Hier stehen dann Kennzahlen und Diagramme."));
   }
 
+  const f = formOf(s);
+  const formTile = f
+    ? `<div class="stat form-tile ${f.dir}"><span>Form (letzte ${f.n})</span><b>${ARROW[f.dir]} ${signedPct(f.delta)}</b><small>${esc(formTip(f))}</small></div>`
+    : `<div class="stat form-tile"><span>Form (letzte ${FORM_N})</span><b>–</b><small>braucht mindestens ${FORM_N + 1} Matches mit Kills und Score</small></div>`;
   const cards = tiles([
     ["K/D", fmt2(s.kd), s.kdN ? `${s.kdK} Kills : ${s.kdD} Deaths` : "keine Werte eingetragen"],
     ["KPR", fmt2(s.kpr), s.kprR ? `${s.kprK} Kills in ${s.kprR} Runden` : "braucht Score und Kills"],
@@ -104,6 +120,7 @@ export function playerView(id) {
     ["Defuses/Match", fmt1(s.defusesPer), s.defusesN ? `${s.defuses} Defuses` : "keine Werte eingetragen"],
     ["Winrate", pct(s.wr), `${record(s)} in ${nMatches(s.n)}`],
   ]);
+  const cardsWithForm = cards.replace(/<\/div>$/, formTile + "</div>");
 
   // Diagramme: älteste Matches links. Die Tabellen darunter: neueste oben, wie überall in der App.
   const point = (x, value) => {
@@ -137,5 +154,5 @@ export function playerView(id) {
   const history = `<section class="sec"><div class="sec-head"><h2>Match-Historie</h2><span class="hint">${nMatches(s.n)}</span></div>
     <div class="match-list">${s.series.slice().reverse().map(historyRow).join("")}</div></section>`;
 
-  return back + head + cards + `<div class="chart-grid">${kprChart}${kdChart}${mapChart}${agentChart}</div>` + poolPanel + history;
+  return back + head + cardsWithForm + `<div class="chart-grid">${kprChart}${kdChart}${mapChart}${agentChart}</div>` + poolPanel + history;
 }

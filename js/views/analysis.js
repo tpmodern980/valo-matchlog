@@ -10,8 +10,13 @@ import { pistolStats, compStats, foeStats, roleLabel } from "../analysis.js";
 import { AGENT_ROLE_LIST } from "../constants.js";
 import { barChart, chartTable } from "../charts.js";
 import { filterBar, nMatches, tiles, chartPanel, noMatches } from "./parts.js";
+import { opponentsView } from "./opponents.js";
+import { mapsView } from "./maps.js";
 
-const SUBS = [["", "Überblick"], ["pistols", "Pistols"], ["comps", "Comps"], ["foes", "Gegner"]];
+// Unterreiter des Bereichs "Analyse". Maps und Gegner sind eigene Seiten (#maps, #opponents), stehen aber seit
+// 22.11.2026 hier mit drin (Wunsch Tim: weniger Bereiche im Menü). Die Agents/Comps der Gegner stehen auf #opponents.
+const SUBS = [["", "Überblick", "#analysis"], ["pistols", "Pistols", "#analysis-pistols"], ["comps", "Comps", "#analysis-comps"], ["maps", "Maps", "#maps"], ["foes", "Gegner", "#opponents"]];
+export const analysisNav = (cur) => `<nav class="seg an-subs" aria-label="Analyse">${SUBS.map(([k, t, href]) => `<a href="${href}"${k === cur ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>`;
 const TOP = 3;              // so viele Comps pro Map, bevor "Alle anzeigen" kommt
 const SURE = 3;             // ab so vielen Matches gilt ein Wert als einigermaßen aussagekräftig
 const view = { allComps: false, singles: false, allFoeComps: false };
@@ -27,7 +32,7 @@ export const wins = (t) => [t.w ? plural(t.w, "Sieg", "Siege") : "", t.l ? plura
   .filter(Boolean).join(", ") || "noch kein Ergebnis";
 // Wenige Matches: Winrate grau, damit 1–0 nicht wie eine sichere Sache aussieht
 const wrCell = (t) => cell("Winrate", t.wr === null ? "–" : t.n < SURE ? `<span class="muted" title="Erst ${nMatches(t.n)}: noch wenig aussagekräftig">${pct(t.wr)}</span>` : pct(t.wr), "strong");
-const subLink = (sub) => "#analysis" + (sub ? "-" + sub : "");
+const subLink = (sub) => (SUBS.find(([k]) => k === sub) || SUBS[0])[2];
 
 function section(title, hint, body) {
   return `<section class="panel"><div class="panel-head"><h2>${esc(title)}</h2>${hint ? `<span class="hint">${esc(hint)}</span>` : ""}</div>${body}</section>`;
@@ -175,7 +180,8 @@ function compPage(list) {
 // Farbe nach eurer Winrate: grün ab 50 %, rot darunter, grau bei weniger als SURE Matches
 const tone = (t) => (t.wr === null || t.n < SURE ? "few" : t.wr >= 0.5 ? "good" : "bad");
 
-function foePage(list) {
+// Agents und Comps der Gegner: steht auf der Gegner-Seite (js/views/opponents.js)
+export function foePage(list) {
   const f = foeStats(list);
   if (!f.withFoes) return section("Gegner", "", empty("Noch kein Match mit Scoreboard der Gegner. Das kommt automatisch dazu, wenn ihr das Scoreboard auslest."));
   const note = `<p class="hint">Aus ${f.withFoes} von ${nMatches(list.length)} mit Scoreboard der Gegner. Die Prozente sind immer eure Winrate in den Matches, in denen der Gegner das hatte.</p>`;
@@ -206,13 +212,15 @@ function foePage(list) {
 export function analysisView(sub = "") {
   const cur = SUBS.some(([k]) => k === sub) ? sub : "";
   const head = `<div class="view-head"><div><div class="eyebrow">Statistik</div><h1>Analyse</h1>
-    <p>Pistol-Runden, eure Kompositionen und gegen welche Agents es schwer wird. Den Agent-Pool jedes Spielers findest du auf seiner Spieler-Seite.</p></div>
+    <p>Erkenntnisse, Pistol-Runden, eure Kompositionen, Maps und Gegner. Den Agent-Pool jedes Spielers findest du auf seiner Spieler-Seite.</p></div>
     <div class="head-side">${filterBar(true)}</div></div>`;
-  const nav = `<nav class="seg an-subs" aria-label="Analyse">${SUBS.map(([k, t]) => `<a href="${subLink(k)}"${k === cur ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>`;
+  if (cur === "foes") return opponentsView();   // alte Adresse #analysis-foes
+  if (cur === "maps") return mapsView();
+  const nav = analysisNav(cur);
   if (!S.loaded.matches) return head + nav + '<p class="loading">Lade Matches …</p>';
   const list = filtered();
   if (!list.length) return head + nav + noMatches("Hier stehen dann Pistols, Comps und die Agents der Gegner.");
-  const body = cur === "pistols" ? pistolPage(list) : cur === "comps" ? compPage(list) : cur === "foes" ? foePage(list) : overview(list);
+  const body = cur === "pistols" ? pistolPage(list) : cur === "comps" ? compPage(list) : overview(list);
   return head + nav + body;
 }
 

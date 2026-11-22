@@ -103,8 +103,8 @@ code { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; font-siz
   font-family: var(--font-display); font-weight: 600; font-size: 14px; letter-spacing: .06em; text-transform: uppercase;
   text-decoration: none; color: var(--muted); padding: 6px 12px; border-bottom: 2px solid transparent;
 }
-/* 9 Tabs (seit der Startseite "Übersicht"): etwas enger, damit Logo, Tabs und Status in eine Zeile passen */
-@media (min-width: 641px) { .tabs { gap: 0; } .tab { padding: 6px 9px; font-size: 13.5px; letter-spacing: .04em; } }
+/* 7 Tabs: etwas enger als früher, damit Logo, Tabs und Status in eine Zeile passen */
+@media (min-width: 641px) { .tabs { gap: 0; } .tab { padding: 6px 10px; } }
 .tab:hover { color: var(--ink); }
 .tab[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 .top-right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
@@ -974,7 +974,9 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 }
 
 /* ---------- Tab "Analyse" (js/views/analysis.js) ---------- */
-.an-subs { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 560px; }
+.an-subs { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 640px; }
+@media (max-width: 640px) { .an-subs a { padding: 8px 2px; font-size: 13px; } }
+.view-head + .an-subs { margin-top: -4px; }
 .an-subs a { text-align: center; text-decoration: none; padding: 8px 6px; font-weight: 600; color: var(--muted); border-radius: 3px; }
 .an-subs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .an-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
@@ -1123,3 +1125,11 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .hm-goal-t small { font-weight: 400; color: var(--muted); font-size: 13px; }
 .panel-head .linkish { text-decoration: none; font-size: 14px; }
 .sec-head .linkish { text-decoration: none; font-size: 14px; }
+
+/* Form-Trend der Spieler (js/views/player.js) */
+.form { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.form.up { color: var(--win); }
+.form.down { color: var(--loss); }
+.form.flat, .form.none { color: var(--muted); }
+.stat.form-tile.up b { color: var(--win); }
+.stat.form-tile.down b { color: var(--loss); }

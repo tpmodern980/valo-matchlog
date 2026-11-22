@@ -3,6 +3,7 @@ import { S } from "../state.js";
 import { esc, fmtDate, pct, signed1 } from "../util.js";
 import { filtered, opponentStats, oppKey } from "../stats.js";
 import { filterBar, record, nMatches, tiles, matchRow, noMatches } from "./parts.js";
+import { analysisNav, foePage } from "./analysis.js";
 
 // Die Adresse trägt den Namen in der jüngsten Schreibweise; verglichen wird ohne Groß/Klein und Leerzeichen
 const href = (s) => "#opponent-" + encodeURIComponent(s.key === "-" ? "-" : s.name);
@@ -23,9 +24,9 @@ function row(s) {
 }
 
 export function opponentsView() {
-  const head = `<div class="view-head"><div><div class="eyebrow">Statistik</div><h1>Gegner</h1>
-    <p>Gegen wen läuft es gut, gegen wen nicht? Tipp auf einen Gegner für alle Matches gegen ihn.</p></div>
-    <div class="head-side">${filterBar(true)}</div></div>`;
+  const head = `<div class="view-head"><div><div class="eyebrow">Analyse</div><h1>Gegner</h1>
+    <p>Gegen wen läuft es gut, gegen wen nicht? Tipp auf einen Gegner für alle Matches gegen ihn. Darunter die Agents und Comps der Gegner.</p></div>
+    <div class="head-side">${filterBar(true)}</div></div>` + analysisNav("foes");
   if (!S.loaded.matches) return head + '<p class="loading">Lade Matches …</p>';
   const list = filtered();
   if (!list.length) return head + noMatches("Hier steht dann die Bilanz gegen jeden Gegner.");
@@ -33,7 +34,9 @@ export function opponentsView() {
   return head + `<section class="panel"><div class="panel-head"><h2>Alle Gegner</h2><span class="hint">${stats.length} Gegner · ${nMatches(list.length)}</span></div>
     <div class="table-wrap"><table class="rtable ostats">
       <thead><tr><th>Gegner</th><th>Bilanz</th><th>Winrate</th><th title="Durchschnittliche Rundendifferenz pro Match">Ø Rundendiff.</th><th>Matches</th><th>Letzte Begegnung</th><th class="l">Maps</th></tr></thead>
-      <tbody>${stats.map(row).join("")}</tbody></table></div></section>`;
+      <tbody>${stats.map(row).join("")}</tbody></table></div></section>`
+    // Agents und Comps der Gegner (vorher Unterreiter in "Analyse", js/views/analysis.js)
+    + `<div class="sec-head an-sec"><h2>Agents und Comps der Gegner</h2></div>` + foePage(list);
 }
 
 export function opponentView(name) {

@@ -13,13 +13,17 @@ export function result(m) {
 
 // Matches nach den Filtern oben (Art, Map, Zeitraum). Gelöschte sind schon vorher aussortiert.
 // anyMap: Die Maps-Seite vergleicht alle Maps, dort gilt der Map-Filter nicht (und wird auch nicht angezeigt).
+// Zeitraum: "alle", eine Zahl Tage ("7", "30", "90") oder "last10" = die 10 neuesten Matches (nach Art und Map gefiltert).
+export const RANGES = [["alle", "Gesamt"], ["7", "Letzte 7 Tage"], ["30", "Letzte 30 Tage"], ["90", "Letzte 90 Tage"], ["last10", "Letzte 10 Matches"]];
 export function filtered({ anyMap = false } = {}) {
   const f = S.filters;
-  const cutoff = f.range !== "alle" ? daysAgo(Number(f.range)) : null;
-  return S.matches.filter((m) =>
+  const days = /^\d+$/.test(f.range) ? Number(f.range) : null;
+  const cutoff = days ? daysAgo(days) : null;
+  const list = S.matches.filter((m) =>
     (f.type === "alle" || m.type === f.type) &&
     (anyMap || f.map === "alle" || norm(m.map) === norm(f.map)) &&
     (!cutoff || (m.date || "") >= cutoff));
+  return f.range === "last10" ? sortMatches(list).slice(0, 10) : list;
 }
 
 // Neueste zuerst
@@ -165,6 +169,25 @@ export function playerStats(list, roster = S.players) {
     agents: [...s.agents.values()].map((a) => ({ ...a, wr: winrate(a) })).sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, "de")),
     maps: [...s.maps.values()].map((mp) => ({ ...mp, wr: winrate(mp), kd: mp.kdN ? mp.k / Math.max(mp.d, 1) : null })),
   }));
+}
+
+// Form-Trend eines Spielers (Wunsch Tim, 22.11.2026): die letzten FORM_N Matches gegen seinen Schnitt in der Liste.
+// s = Zeile aus playerStats. Liefert null bei zu wenigen Matches (mindestens FORM_N + 1 mit Werten), sonst
+// { n, kpr: { recent, all, delta }, kd: { … }, dir: "up" | "down" | "flat", delta } (delta = KPR-Änderung als Anteil).
+// Gewertet wird die KPR (hängt nicht davon ab, wie lang ein Match war), die K/D steht als Zusatz dabei.
+export const FORM_N = 5;
+export function formOf(s) {
+  const withKpr = s.series.filter((x) => x.kpr !== null);
+  if (withKpr.length < FORM_N + 1 || !s.kpr) return null;
+  const last = withKpr.slice(-FORM_N);
+  const k = last.reduce((a, x) => a + x.kills, 0), r = last.reduce((a, x) => a + x.rounds, 0);
+  const recent = r ? k / r : null;
+  if (recent === null) return null;
+  const withKd = s.series.filter((x) => x.kd !== null).slice(-FORM_N);
+  const kk = withKd.reduce((a, x) => a + x.kills, 0), dd = withKd.reduce((a, x) => a + x.deaths, 0);
+  const kd = withKd.length && s.kd ? { recent: kk / Math.max(dd, 1), all: s.kd } : null;
+  const delta = recent / s.kpr - 1;
+  return { n: last.length, kpr: { recent, all: s.kpr }, kd, delta, dir: delta >= 0.1 ? "up" : delta <= -0.1 ? "down" : "flat" };
 }
 
 // Eine Zeile pro Map, die in der Liste vorkommt.
