@@ -1,5 +1,6 @@
 // Ansicht "Match-Detail": Kopf mit Ergebnis, Scoreboard, Rundenverlauf, Notizen, Clips.
 // (Die Clips stehen in clips.js, das Formular zum Bearbeiten in matchform.js.)
+import { run } from "./auth.js";
 import { badgeUps, TIERS } from "../badges.js";
 import { seriesInfo, formatLabel } from "../series.js";
 import { S, changed } from "../state.js";
@@ -59,6 +60,11 @@ function discordPanel(m) {
 }
 
 export const actions = {
+  "md-side": (el) => {
+    const id = el.dataset.id, side = el.dataset.side;
+    if (side !== "atk" && side !== "def") return;
+    run(async () => { await change("matches", id, { startSide: side }); toast("Startseite gespeichert."); }, { demoOk: true });
+  },
   "dc-open": (el) => { dcOpen = el.dataset.id; changed(); },
   "dc-cancel": () => { dcOpen = null; changed(); },
   "dc-send": async (el) => {
@@ -172,6 +178,9 @@ function vetoPanel(m) {
     <div class="panel-body">${vetoSteps(x)}</div></section>`;
 }
 
+// Seite einer Hälfte gut sichtbar: farbiges Schild statt nur Text
+export const sideTag = (side) => `<span class="side-tag ${side}">${side === "atk" ? "⚔️ Angriff" : "🛡️ Verteidigung"}</span>`;
+
 function roundsPanel(m) {
   const ri = roundInfo(m);
   if (!ri) return "";
@@ -186,7 +195,7 @@ function roundsPanel(m) {
     }
     if (!cells.length) return "";
     const side = to <= 24 ? ri.sides[from] : null;
-    return `<div><div class="half-head"><span>${label}${side ? " · " + SIDE[side] : ""}</span><b>${w}:${l}</b></div><div class="rounds">${cells.join("")}</div></div>`;
+    return `<div><div class="half-head"><span>${label}${side ? sideTag(side) : ""}</span><b>${w}:${l}</b></div><div class="rounds">${cells.join("")}</div></div>`;
   };
   const facts = [];
   if (ri.sides[0]) {
@@ -202,9 +211,13 @@ function roundsPanel(m) {
     ? `<p class="hint">Teilweise eingetragen: ${w + l} von ${us !== null && them !== null ? us + them : "?"} Runden. Gezählt wird nur, was eingetragen ist.</p>`
     : us !== null && them !== null && (w !== us || l !== them)
       ? `<p class="notice">Der Verlauf ergibt ${w}:${l}, der Endstand ist ${us}:${them}. Über „Bearbeiten“ lässt sich das angleichen.</p>` : "";
+  // Ohne Startseite weiß die App nicht, welche Hälfte Angriff war: direkt hier nachtragen (Wunsch Tim, 22.11.2026)
+  const ask = ri.sides[0] ? "" : `<div class="notice side-ask"><span><b>Auf welcher Seite habt ihr angefangen?</b> Dann stehen Angriff und Verteidigung pro Hälfte da und zählen in der Analyse.</span>
+      <span class="side-btns"><button class="btn small" type="button" data-action="md-side" data-id="${esc(m.id)}" data-side="atk">⚔️ Angriff</button>
+      <button class="btn small" type="button" data-action="md-side" data-id="${esc(m.id)}" data-side="def">🛡️ Verteidigung</button></span></div>`;
   return `<section class="panel"><div class="panel-head"><h2>Rundenverlauf</h2><span class="hint">S = Sieg, N = Niederlage, ? = nicht eingetragen · unterstrichen = Pistol-Runde</span></div>
     <div class="panel-body halves">
-      ${half("1. Hälfte", 0, 12)}${half("2. Hälfte", 12, 24)}${half("Overtime", 24, ri.n)}
+      ${ask}${half("1. Hälfte", 0, 12)}${half("2. Hälfte", 12, 24)}${half("Overtime", 24, ri.n)}
       <div class="round-facts">${facts.join("")}</div>${off}
     </div></section>`;
 }

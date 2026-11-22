@@ -1271,3 +1271,11 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .bdg-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--tc, var(--line)); border-radius: 999px; font-size: 13px; margin: 0 6px 6px 0; }
 @media (max-width: 640px) { .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; gap: 8px; } .badge-val { font-size: 17px; } }
 .bdg-chip { text-decoration: none; color: inherit; }
+
+/* Seite im Rundenverlauf (Angriff / Verteidigung) */
+.side-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; font-weight: 700; }
+.side-tag.atk { background: var(--loss-soft); color: var(--loss); }
+.side-tag.def { background: var(--win-soft); color: var(--win); }
+.notice.side-ask { display: flex; gap: 10px 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px; }
+.notice.side-ask > span:first-child { flex: 1 1 260px; }
+.side-btns { display: flex; gap: 8px; }

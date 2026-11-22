@@ -1,6 +1,7 @@
 // Formular "Match eintragen / bearbeiten". Es liegt als Überlagerung im Bereich #editor (außerhalb von #view),
 // damit Eingaben erhalten bleiben, wenn die Seite darunter neu gezeichnet wird.
 // Alle Eingaben stehen als Text in "ed" (dem Modell). Vor jedem Neuzeichnen holt pull() die Felder dorthin.
+import { sideTag } from "./match.js";
 import { S } from "../state.js";
 import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL, AGENT_LOOKALIKE } from "../constants.js";
 import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
@@ -236,7 +237,7 @@ function roundsInner() {
       // Jedes Feld lässt sich antippen, auch weiter hinten: Die Runden dazwischen bleiben offen ("?")
       out += `<button type="button" class="rd rdb ${v === "W" || v === "L" ? v : "E"}${pistol ? " pistol" : ""}${i === len ? " next" : ""}" id="ed-rd-${i}" data-action="mf-cell" data-i="${i}" aria-label="Runde ${i + 1}${pistol ? " (Pistol)" : ""}: ${state}"><small>${i + 1}</small><b>${v === "W" ? "S" : v === "L" ? "N" : ""}</b></button>`;
     }
-    return `<div class="half"><div class="half-head"><span>${label}${side ? " · " + SIDE[side] : ""}</span><b>${hw}:${hl}</b></div><div class="rounds rd-grid">${out}</div></div>`;
+    return `<div class="half"><div class="half-head"><span>${label}${side ? sideTag(side) : ""}</span><b>${hw}:${hl}</b></div><div class="rounds rd-grid">${out}</div></div>`;
   };
 
   const ri = roundInfo({ rounds: r, startSide: start });

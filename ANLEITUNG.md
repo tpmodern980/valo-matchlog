@@ -406,6 +406,8 @@ Bei jeder Woche gibt es im Tab **„Planung“** den Bereich **Wochenziele**. Al
 
 Im Rundenverlauf eines Matches lässt sich **jede Runde direkt antippen** (einmal = Sieg, zweimal = Niederlage, dreimal = wieder offen). So reicht es bei alten Scrims, z. B. nur die Pistols (Runde 1 und 13) und ihre Folgerunden einzutragen. Offene Runden stehen als „?“ da und zählen in keiner Statistik.
 
+
+**Startseite fehlt?** Ist bei einem Match nicht eingetragen, ob ihr im Angriff oder in der Verteidigung angefangen habt, fragt die Match-Seite direkt über dem Rundenverlauf danach (⚔️ Angriff / 🛡️ Verteidigung). Ein Tipp genügt, dann steht die Seite an jeder Hälfte und zählt in der Analyse.
 ## Wenn etwas nicht klappt
 
 | Was du siehst | Woran es meist liegt |
