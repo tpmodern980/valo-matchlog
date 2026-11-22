@@ -1241,3 +1241,32 @@ tr.grp th span { color: var(--muted); margin-left: 4px; font-variant-numeric: ta
 .sc-row > span { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
 .sc-row .tag { margin: 0 4px 4px 0; }
 @media (max-width: 640px) { .sc-row { grid-template-columns: 1fr; gap: 2px; } }
+.notice.hm-recap { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.notice.hm-recap span { flex: 1 1 240px; }
+
+/* Abzeichen (js/views/badges.js): Farben der Stufen wie die Ränge in Valorant */
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; padding: 14px 16px 16px; }
+.badge { --tc: var(--muted); border: 1px solid var(--line); border-top: 3px solid var(--tc); background: var(--surface); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.badge-top { display: flex; gap: 10px; align-items: center; }
+.badge-icon { font-size: 24px; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--tc) 18%, transparent); flex: none; }
+.badge-top b { display: block; font-size: 14px; }
+.badge-top small { display: block; color: var(--tc); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.badge-val { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.badge-val span { font-family: inherit; font-size: 12px; font-weight: 500; color: var(--muted); }
+.badge-bar { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.badge-bar i { display: block; height: 100%; background: var(--tc); }
+.badge-next { color: var(--muted); font-size: 12px; }
+.badge.locked { opacity: .6; }
+.badge.locked .badge-icon { filter: grayscale(1); }
+.badge.t0, .bdg-chip.t0 { --tc: #7d7d7d; }
+.badge.t1, .bdg-chip.t1 { --tc: #a86f3d; }
+.badge.t2, .bdg-chip.t2 { --tc: #8f9ba6; }
+.badge.t3, .bdg-chip.t3 { --tc: #d1a12a; }
+.badge.t4, .bdg-chip.t4 { --tc: #2f9eaa; }
+.badge.t5, .bdg-chip.t5 { --tc: #a36bd8; }
+.badge.t6, .bdg-chip.t6 { --tc: #c8374e; }
+.badge.t7, .bdg-chip.t7 { --tc: #e3b83f; }
+.badge.t7 { box-shadow: 0 0 0 1px #e3b83f55, 0 0 14px #e3b83f33; }
+.bdg-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--tc, var(--line)); border-radius: 999px; font-size: 13px; margin: 0 6px 6px 0; }
+@media (max-width: 640px) { .badges { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; gap: 8px; } .badge-val { font-size: 17px; } }
+.bdg-chip { text-decoration: none; color: inherit; }

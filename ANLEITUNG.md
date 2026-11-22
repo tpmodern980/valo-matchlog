@@ -345,6 +345,29 @@ Im Match-Formular gibt es das Feld **„Serie (BO3/BO5)“**. Für Map 1 „Neue
 
 Oben auf jeder Gegner-Seite (Analyse → Gegner → Name) steht der **Steckbrief**: Bilanz gegen sie (auch Serien), eure Bewertung, gespielte Maps, ihre Agents und häufigste Comp (aus den Gegner-Scoreboards), ein Veto-Vorschlag aus Map-Pool-Umfrage und Bilanz, und eure häufigsten Baustellen gegen sie. **„In Discord posten“** schickt ihn in den Planungs-Kanal (derselbe wie die Wochenziele). Es zählen immer alle Matches gegen den Gegner, die Filter oben gelten für den Steckbrief nicht.
 
+## Abzeichen
+
+Auf jeder Spieler-Seite stehen **Abzeichen** mit Stufen wie die Ränge in Valorant: **Eisen, Bronze, Silber, Gold, Platin, Diamant, Unsterblich, Radiant**. Sie zählen immer alle Matches und steigen von selbst auf:
+
+| Abzeichen | Zählt | Eisen … Radiant |
+|---|---|---|
+| 🔫 Killer | Kills insgesamt | 50 … 4000 |
+| 🎮 Dauerbrenner | Matches gespielt | 5 … 250 |
+| 🏆 Sieger | Siege | 3 … 170 |
+| ⚡ Eröffner | First Bloods | 10 … 600 |
+| 🤝 Teamplayer | Assists | 30 … 1800 |
+| ⭐ MVP | Meiste Kills im Team | 1 … 40 |
+| 💣 Spike-Profi | Plants + Defuses | 5 … 250 |
+| 🔥 Siegesserie | Siege am Stück | 2 … 12 |
+| 💥 Bombe | Meiste Kills in einem Match | 15 … 50 |
+| 🎭 Allrounder | Verschiedene Agents | 2 … 12 |
+
+Jede Kachel zeigt, wie viel bis zur nächsten Stufe fehlt. Steigt jemand mit einem Match auf, steht das auf der Match-Seite unter **„Neue Abzeichen“** und im Discord-Post zum Ergebnis.
+
+## Hinweis „Wochenrückblick noch nicht gepostet“
+
+Admins sehen auf der Startseite einen Hinweis, solange der Rückblick der Vorwoche (mit Matches) noch nicht in Discord ist, mit **„Jetzt posten“**. Nach dem Posten verschwindet er.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.

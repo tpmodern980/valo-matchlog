@@ -9,7 +9,8 @@ import { avatar } from "./profile.js";
 import { installHint } from "./install.js";
 import { matchesOfWeek } from "../recap.js";
 import { goalsOf, goalTitle, goalStatus } from "../goals.js";
-import { mondayOf, addDays, weekLabel, weekOf, dayLabel, planLink, REST } from "./plan.js";
+import { mondayOf, addDays, weekLabel, weekOf, dayLabel, planLink, REST, recapPostedAt } from "./plan.js";
+import { planHookOn } from "../discord.js";
 import { insights } from "./analysis.js";
 import { workItems } from "../review.js";
 import { tiles, matchRow, record } from "./parts.js";
@@ -84,5 +85,11 @@ export function homeView() {
   // Admins: offene Zugangs-Anfragen (js/access.js)
   const reqs = S.isAdmin ? (S.requests || []).length : 0;
   const reqNote = reqs ? `<a class="hm-next hm-req" href="#team"><span>Zugang</span><b>${reqs} ${reqs === 1 ? "offene Anfrage" : "offene Anfragen"}</b><small>Im Tab „Team“ freischalten</small></a>` : "";
-  return head + installHint() + reqNote + nextPanel + cards + goalPanel + workPanel + formPanel + results + tipPanel;
+  // Rückblick der Vorwoche noch nicht gepostet (nur Admins, nur mit Planungs-Kanal): Hinweis mit Knopf
+  const prevStart = addDays(start, -7), prevN = matchesOfWeek(prevStart).length;
+  const recapNote = S.isAdmin && S.loaded.weeks && planHookOn() && prevN && !recapPostedAt(prevStart)
+    ? `<div class="notice hm-recap"><span><b>Wochenrückblick ${esc(weekLabel(prevStart))}</b> ist noch nicht in Discord (${prevN} ${prevN === 1 ? "Match" : "Matches"}).
+        <a class="linkish" href="${planLink(prevStart)}">Ansehen</a></span>
+        <button class="btn small primary" type="button" data-action="plan-post-recap" data-start="${prevStart}">Jetzt posten</button></div>` : "";
+  return head + installHint() + reqNote + recapNote + nextPanel + cards + goalPanel + workPanel + formPanel + results + tipPanel;
 }

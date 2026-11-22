@@ -1,5 +1,6 @@
 // Ansicht "Match-Detail": Kopf mit Ergebnis, Scoreboard, Rundenverlauf, Notizen, Clips.
 // (Die Clips stehen in clips.js, das Formular zum Bearbeiten in matchform.js.)
+import { badgeUps, TIERS } from "../badges.js";
 import { seriesInfo, formatLabel } from "../series.js";
 import { S, changed } from "../state.js";
 import { clipsPanel } from "./clips.js";
@@ -101,7 +102,15 @@ export function matchView(id) {
   const notes = good || work || m.notes ? `<section class="panel"><div class="panel-head"><h2>Review</h2></div><div class="panel-body">
       ${good || work ? `<div class="rv-cols">${good ? `<div><h3 class="rv-h good">Lief gut</h3>${good}</div>` : ""}${work ? `<div><h3 class="rv-h work">Üben wir</h3>${work}</div>` : ""}</div>` : ""}
       ${m.notes ? `<div class="notes-text">${esc(m.notes)}</div>` : ""}</div></section>` : "";
-  return top + head + seriesPanel(m) + discordPanel(m) + scoreboard(m) + roundsPanel(m) + vetoPanel(m) + notes + clipsPanel(m);
+  return top + head + seriesPanel(m) + upsPanel(m) + discordPanel(m) + scoreboard(m) + roundsPanel(m) + vetoPanel(m) + notes + clipsPanel(m);
+}
+
+// Abzeichen, die mit diesem Match eine Stufe höher gingen (js/badges.js)
+function upsPanel(m) {
+  const ups = badgeUps(m);
+  if (!ups.length) return "";
+  return `<section class="panel"><div class="panel-head"><h2>Neue Abzeichen</h2><span class="hint">mit diesem Match aufgestiegen</span></div>
+    <div class="panel-body">${ups.map((u) => `<a class="bdg-chip t${u.badge.tier}" href="#player-${esc(encodeURIComponent(u.id))}">${u.badge.icon} <b>${esc(u.name)}</b> ${esc(u.badge.name)} ${TIERS[u.badge.tier]}</a>`).join("")}</div></section>`;
 }
 
 // Teil einer Serie (BO3/BO5, js/series.js): alle Maps mit Ergebnis, die aktuelle fett

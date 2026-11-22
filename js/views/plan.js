@@ -15,7 +15,7 @@ import { S, changed } from "../state.js";
 import { TYPES, RES_LABEL } from "../constants.js";
 import { $, esc, norm, toast, isoDate, fmtDate, pct, signed1, fmt2 } from "../util.js";
 import { weekRecap } from "../recap.js";
-import { create, change, remove, setPath } from "../data.js";
+import { create, change, remove, setPath, upsertPath } from "../data.js";
 import { result } from "../stats.js";
 import { postPoll, postPlan, postRecap, planHookOn } from "../discord.js";
 import { errorText } from "../auth.js";
@@ -52,6 +52,15 @@ let creating = false;   // Formular "Umfrage erstellen" offen
 let editId = null;      // Plan-Eintrag, der gerade bearbeitet wird ("new" = neuer)
 let busy = false;
 window.addEventListener("hashchange", () => { creating = false; editId = null; });
+
+// Wann wurde der Rückblick einer Woche gepostet? Steht am Wochenplan (recapPostedAt) und, seit 22.11.2026, auch in
+// weeks/recaps (posted.w<JJJJMMTT>): Wochen ohne Plan in der App haben kein eigenes Dokument (Hinweis auf der Startseite).
+const RECAPS_ID = "recaps";
+const recapKey = (start) => "w" + start.replace(/-/g, "");
+export function recapPostedAt(start) {
+  const w = weekOf(start), doc = S.weeks.find((x) => x.id === RECAPS_ID && !x.deleted);
+  return Math.max((w && w.recapPostedAt) || 0, (doc && doc.posted && doc.posted[recapKey(start)]) || 0) || null;
+}
 
 export const weekOf = (start) => S.weeks.filter((w) => w.start === start).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
 const uid = () => (S.user ? S.user.uid : "");
@@ -186,7 +195,7 @@ function recapPanel(start, w) {
   const when = (t) => (t ? fmtDate(isoDate(new Date(t))).full : "");
   const btn = S.isAdmin && planHookOn()
     ? `<div class="actions"><button class="btn" type="button" data-action="plan-post-recap" data-start="${start}"${busy ? " disabled" : ""}>Rückblick in Discord posten</button></div>
-      ${w && w.recapPostedAt ? `<p class="hint">Zuletzt gepostet am ${esc(when(w.recapPostedAt))}.</p>` : ""}` : "";
+      ${recapPostedAt(start) ? `<p class="hint">Zuletzt gepostet am ${esc(when(recapPostedAt(start)))}.</p>` : ""}` : "";
   return `<section class="panel rc"><div class="panel-head"><h2>Wochenrückblick</h2><span class="hint">${r.list.length} ${r.list.length === 1 ? "Match" : "Matches"}</span></div>
     <div class="panel-body">
       <div class="rc-facts">${facts}</div>${types}
@@ -420,6 +429,7 @@ export const actions = {
     try {
       await postRecap(start, w);
       if (w) await change("weeks", w.id, { recapPostedAt: Date.now() });
+      await upsertPath("weeks", RECAPS_ID, ["posted", recapKey(start)], Date.now(), { kind: "recaps" });
       toast(S.demo ? "Vorschau: Rückblick würde jetzt in Discord gepostet." : "Wochenrückblick in Discord gepostet.");
     } catch (e) { fail(e); }
     finally { busy = false; changed(); }

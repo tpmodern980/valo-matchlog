@@ -1,4 +1,5 @@
 // Statistik der Spieler: die Tabelle im Spieler-Tab (Stamm, Subs) und die Detailseite #player-<id>.
+import { badgePanel } from "./badges.js";
 import { S } from "../state.js";
 import { RES_LABEL } from "../constants.js";
 import { esc, fmtDate, fmt0, fmt1, fmt2, pct } from "../util.js";
@@ -155,5 +156,5 @@ export function playerView(id) {
   const history = `<section class="sec"><div class="sec-head"><h2>Match-Historie</h2><span class="hint">${nMatches(s.n)}</span></div>
     <div class="match-list">${s.series.slice().reverse().map(historyRow).join("")}</div></section>`;
 
-  return back + head + cardsWithForm + `<div class="chart-grid">${kprChart}${kdChart}${mapChart}${agentChart}</div>` + poolPanel + history;
+  return back + head + cardsWithForm + badgePanel(s.id) + `<div class="chart-grid">${kprChart}${kdChart}${mapChart}${agentChart}</div>` + poolPanel + history;
 }

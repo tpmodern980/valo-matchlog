@@ -7,6 +7,7 @@
 //     pro Map: Webhooks lassen sich nur fürs ganze Forum anlegen (das ist dann der Standard-Webhook), in den
 //     Beitrag geht es über ?thread_id=<ID des Beitrags>.
 // Discord nimmt Webhook-Posts direkt aus dem Browser an (geprüft am 19.11.2026), ein eigener Server ist nicht nötig.
+import { badgeUps, TIERS } from "./badges.js";
 import { seriesInfo, formatLabel } from "./series.js";
 import { S } from "./state.js";
 import { num, fmt2, fmtDate, norm } from "./util.js";
@@ -101,6 +102,9 @@ export function buildPost(m) {
     fields.push({ name: `${formatLabel(ser.format)}${ser.name ? " · " + md(ser.name) : ""}`, value: `Map ${no || ser.maps.length} · ${state} **${ser.w}:${ser.l}**` });
   }
   if (lines.length) fields.push({ name: "Scoreboard", value: cut(lines.join("\n"), 1024) });
+  // Abzeichen, die mit diesem Match aufgestiegen sind (js/badges.js)
+  const ups = badgeUps(m);
+  if (ups.length) fields.push({ name: "🏅 Neue Abzeichen", value: cut(ups.map((u) => `${u.badge.icon} **${md(u.name)}**: ${md(u.badge.name)} ${TIERS[u.badge.tier]}`).join("\n"), 1024) });
   const ri = roundInfo(m);
   if (ri) {
     const parts = [];
