@@ -18,7 +18,7 @@ import { goalLines, goalsOf, weekStarted } from "./goals.js";
 import { points } from "./review.js";
 // Planung: Datums- und Auswertungs-Helfer (Kreis-Import plan.js <-> discord.js ist in Ordnung: beide Seiten
 // benutzen die Funktionen der anderen erst beim Aufruf, nie beim Laden)
-import { KIND_LABEL, SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST, mondayOf } from "./views/plan.js";
+import { lineupOf, lineupNames, KIND_LABEL, SLOTS, slotLabel, weekLabel, dayLabel, planLink, linkedMatch, REST, mondayOf } from "./views/plan.js";
 
 // Webhook-Adressen von Discord (auch die Test-Versionen ptb/canary und die alte discordapp.com)
 const WEBHOOK = /^https:\/\/(?:(?:ptb|canary)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
@@ -221,6 +221,10 @@ export function buildPlanPost(w) {
   for (const e of plan) {
     if (!lines.length || lines.lastDay !== e.date) { lines.push(`### ${dayLabel(e.date)}`); lines.lastDay = e.date; }
     lines.push(line(e));
+    // Wer spielt (Aufstellung aus der Umfrage oder von Hand, js/views/plan.js)
+    const lu = lineupOf(w, e);
+    if (lu.ids.length) lines.push(`\u2003👥 ${lineupNames(lu.ids).map(md).join(", ")}`);
+    else if (lu.need) lines.push(`\u2003👥 ${lu.avail.length} können, Aufstellung folgt`);
   }
   function line(e) {
     if (e.type === REST) return `💤 Ruhetag${e.note ? ` – ${md(e.note)}` : ""}`;

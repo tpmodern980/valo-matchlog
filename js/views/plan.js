@@ -54,7 +54,8 @@ export const planLink = (start) => "#plan-" + compact(start);
 let creating = false;   // Formular "Umfrage erstellen" offen
 let editId = null;      // Plan-Eintrag, der gerade bearbeitet wird ("new" = neuer)
 let busy = false;
-let oppId = null;       // Plan-Eintrag, bei dem gerade "+ Gegner" offen ist (Gegner erst am Spieltag bekannt)
+let oppId = null;
+let lineupId = null;    // Plan-Eintrag, bei dem gerade die Aufstellung gewählt wird       // Plan-Eintrag, bei dem gerade "+ Gegner" offen ist (Gegner erst am Spieltag bekannt)
 window.addEventListener("hashchange", () => { creating = false; editId = null; });
 
 // Wann wurde der Rückblick einer Woche gepostet? Steht am Wochenplan (recapPostedAt) und, seit 22.11.2026, auch in
@@ -80,6 +81,7 @@ function myPlayer(w) {
   for (const x of S.weeks) { const v = x.votes && x.votes[uid()]; if (v && "playerId" in v) return v.playerId || "none"; }
   try { return localStorage.getItem("valo-plan-me") || ""; } catch (e) { return ""; }
 }
+const byName = (a, b) => String(a.name).localeCompare(String(b.name), "de");
 const playerName = (id) => { const p = S.players.find((x) => x.id === id); return p ? p.name : ""; };
 // Feste Zuordnung Konto -> Spieler aus dem Tab "Team" (config/team.links): Spieler-ID oder "manager"
 const links = () => (S.team && S.team.links) || {};
@@ -117,6 +119,51 @@ function dayStats(w, day) {
   const open = S.players.filter((p) => p.status !== "staff" && !answered.has(p.id)).map((p) => p.name);
   return { slots, no, open };
 }
+// ---------- Aufstellung pro Termin (Wunsch Tim, 22.11.2026) ----------
+// Wer spielt? Von Hand gewählt (entry.lineup = [playerId, …]), sonst aus der Umfrage: alle, die zur Uhrzeit des Termins
+// können. Passt die Uhrzeit zu keinem Umfrage-Zeitpunkt, gilt der letzte Zeitpunkt davor (sonst der erste des Tages).
+// Mehr als 5 verfügbar: ein Admin wählt die 5 von Hand.
+export const TEAM_SIZE = 5;
+const hasLineup = (e) => !isRest(e) && !noMatchType(e.type) && e.status !== "cancelled";
+function slotFor(day, time) {
+  const slots = SLOTS[day.kind] || SLOTS.scrim;
+  const t = (x) => (x.includes(":") ? x : x + ":00").padStart(5, "0");
+  const at = String(time || "");
+  return slots.find((x) => t(x) === at) || slots.filter((x) => t(x) <= at).pop() || slots[0];
+}
+// Spieler-IDs, die laut Umfrage zum Termin können (in Reihenfolge des Rosters: Stamm vor Subs)
+export function availableFor(w, e) {
+  const day = (w.days || []).find((d) => d.date === e.date);
+  if (!day) return [];
+  const slot = slotFor(day, e.time), ids = new Set();
+  for (const v of Object.values(w.votes || {})) {
+    const pid = votePid(v), picks = (v.picks || {})[e.date] || [];
+    if (pid && picks.includes(slot) && S.players.some((p) => p.id === pid && p.status !== "staff")) ids.add(pid);
+  }
+  const rank = (id) => ((S.players.find((p) => p.id === id) || {}).status === "sub" ? 1 : 0);
+  return [...ids].sort((a, b) => rank(a) - rank(b) || playerName(a).localeCompare(playerName(b), "de"));
+}
+// { ids, manual, need }: need = true, wenn mehr als 5 können und noch keiner gewählt hat
+export function lineupOf(w, e) {
+  if (!hasLineup(e)) return { ids: [], manual: false, need: false, avail: [] };
+  const avail = availableFor(w, e);
+  const manual = Array.isArray(e.lineup) && e.lineup.length ? e.lineup.filter((id) => S.players.some((p) => p.id === id)) : null;
+  if (manual) return { ids: manual, manual: true, need: false, avail };
+  if (avail.length > TEAM_SIZE) return { ids: [], manual: false, need: true, avail };
+  return { ids: avail, manual: false, need: false, avail };
+}
+export const lineupNames = (ids) => ids.map(playerName).filter(Boolean);
+// Für das Match-Formular: geplante Aufstellung eines Tages (erster Termin mit Spielern)
+export function plannedLineup(date) {
+  const w = weekOf(mondayOf(date));
+  if (!w) return [];
+  for (const e of (w.plan || []).filter((x) => x.date === date).sort(byTime)) {
+    const l = lineupOf(w, e);
+    if (l.ids.length) return l.ids;
+  }
+  return [];
+}
+
 // Bester Zeitpunkt eines Tages (für den Vorschlag beim Planen)
 function bestSlot(w, day) {
   const st = dayStats(w, day);
@@ -369,12 +416,33 @@ function planPanel(w) {
           <button class="btn small primary" type="submit">OK</button><button class="btn small ghost" type="button" data-action="plan-opp-cancel">✕</button></form>`
       : open ? `<button class="btn small ghost" type="button" data-action="plan-opp" data-id="${esc(e.id)}">${e.opponent ? "Gegner ändern" : "+ Gegner"}</button>` : "";
     const scoutLink = known && !m && e.status !== "cancelled" ? `<a class="linkish pl-scout" href="#opponent-${esc(encodeURIComponent(e.opponent))}">🔎 Steckbrief</a>` : "";
+    // Aufstellung: wer spielt (aus der Umfrage oder von Hand), bei mehr als 5 wählt ein Admin
+    const lu = lineupOf(w, e);
+    let lineupHtml = "";
+    if (lineupId === e.id) {
+      const pool = [...lu.avail, ...S.players.filter((p) => p.status !== "staff" && !lu.avail.includes(p.id)).sort(byName).map((p) => p.id)];
+      const chosen = new Set(lu.manual ? lu.ids : lu.ids.length ? lu.ids : lu.avail.slice(0, TEAM_SIZE));
+      lineupHtml = `<form class="pl-lineup-form" data-form="plan-lineup" data-week="${esc(w.id)}" data-id="${esc(e.id)}" novalidate>
+          <p class="hint">Wähl die ${TEAM_SIZE} Spieler. Oben die, die laut Umfrage können.</p>
+          <div class="pl-pick">${pool.map((id) => `<label class="check${lu.avail.includes(id) ? "" : " muted"}"><input type="checkbox" name="p" value="${esc(id)}"${chosen.has(id) ? " checked" : ""}> ${esc(playerName(id))}${lu.avail.includes(id) ? "" : " <small>(nicht abgestimmt)</small>"}</label>`).join("")}</div>
+          <div class="actions"><button class="btn small primary" type="submit">Speichern</button>
+            <button class="btn small ghost" type="button" data-action="plan-lineup-cancel">Abbrechen</button>
+            ${lu.manual ? '<button class="btn small ghost" type="button" data-action="plan-lineup-auto" data-week="' + esc(w.id) + '" data-id="' + esc(e.id) + '">Wieder aus der Umfrage</button>' : ""}</div></form>`;
+    } else if (hasLineup(e) && (lu.ids.length || lu.need || S.isAdmin)) {
+      const names = lineupNames(lu.ids);
+      const text = lu.need ? `<b>${lu.avail.length} können</b> · Aufstellung noch wählen`
+        : names.length ? `👥 ${names.map(esc).join(", ")}${names.length < TEAM_SIZE ? ` <span class="muted">(noch ${TEAM_SIZE - names.length} offen)</span>` : ""}${lu.manual ? "" : ' <span class="muted">· aus der Umfrage</span>'}`
+        : '<span class="muted">Noch niemand eingetragen</span>';
+      const btn = S.isAdmin ? `<button class="linkish" type="button" data-action="plan-lineup" data-id="${esc(e.id)}">${lu.need ? "Jetzt wählen" : "Ändern"}</button>` : "";
+      lineupHtml = `<div class="pl-lineup${lu.need ? " need" : ""}">${text} ${btn}</div>`;
+    }
     const main = `<div class="pl-when"><b>${esc(e.time || "–")}</b></div>
       <div class="pl-what"><span class="tag">${esc(e.type)}</span>${e.opponent ? ` vs ${esc(e.opponent)}` : ""}${e.note ? `<small>${esc(e.note)}</small>` : ""}</div>`;
     return `<div class="pl-row${e.status === "cancelled" ? " cancelled" : ""}">
       ${m ? `<a class="pl-main" href="#match-${esc(m.id)}">${main}</a>` : `<div class="pl-main">${main}</div>`}
       ${status}${scoutLink}${oppTools}
-      ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}</div>`;
+      ${S.isAdmin ? `<button class="btn small ghost" type="button" data-action="plan-entry-edit" data-id="${esc(e.id)}">Bearbeiten</button>` : ""}
+      ${lineupHtml}</div>`;
   };
   const days = [];
   for (const e of plan) { const d = days[days.length - 1]; if (d && d.date === e.date) d.list.push(e); else days.push({ date: e.date, list: [e] }); }
@@ -436,6 +504,15 @@ export const actions = {
   "plan-entry-new": () => { editId = "new"; changed(); },
   "plan-opp": (el) => { oppId = el.dataset.id; changed(); const f = document.getElementById("pl-opp-" + oppId); if (f) f.focus(); },
   "plan-opp-cancel": () => { oppId = null; changed(); },
+  "plan-lineup": (el) => { lineupId = el.dataset.id; changed(); },
+  "plan-lineup-cancel": () => { lineupId = null; changed(); },
+  "plan-lineup-auto": async (el) => {
+    const w = wk(el);
+    if (!w || !S.isAdmin) return;
+    const plan = (w.plan || []).map((e) => (e.id === el.dataset.id ? { ...e, lineup: null } : e));
+    try { await change("weeks", w.id, { plan }); lineupId = null; changed(); toast("Aufstellung kommt wieder aus der Umfrage."); }
+    catch (e) { fail(e); }
+  },
   "plan-rest-new": () => { editId = "rest"; changed(); },
   "plan-entry-edit": (el) => { editId = el.dataset.id; changed(); },
   "plan-entry-cancel": () => { editId = null; changed(); },
@@ -489,6 +566,17 @@ async function postNow(w, what) {
 }
 
 export const forms = {
+  // Aufstellung von Hand (Admins): genau die angehakten Spieler
+  "plan-lineup": async (form) => {
+    const w = S.weeks.find((x) => x.id === form.dataset.week);
+    if (!w || !S.isAdmin) return;
+    const ids = new FormData(form).getAll("p").map(String);
+    if (!ids.length) return toast("Bitte mindestens einen Spieler anhaken.");
+    if (ids.length > TEAM_SIZE) return toast(`Das sind ${ids.length}. Bitte genau ${TEAM_SIZE} anhaken.`);
+    const plan = (w.plan || []).map((e) => (e.id === form.dataset.id ? { ...e, lineup: ids } : e));
+    try { await change("weeks", w.id, { plan }); lineupId = null; changed(); toast(ids.length < TEAM_SIZE ? `Gespeichert (${ids.length} von ${TEAM_SIZE}).` : "Aufstellung gespeichert."); }
+    catch (e) { fail(e); }
+  },
   // Gegner am Spieltag nachtragen: darf jeder im Team (nur dieses Feld ändert sich)
   "plan-opp": async (form) => {
     const w = S.weeks.find((x) => x.id === form.dataset.week);

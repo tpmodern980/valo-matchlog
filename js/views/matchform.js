@@ -2,6 +2,7 @@
 // damit Eingaben erhalten bleiben, wenn die Seite darunter neu gezeichnet wird.
 // Alle Eingaben stehen als Text in "ed" (dem Modell). Vor jedem Neuzeichnen holt pull() die Felder dorthin.
 import { sideTag } from "./match.js";
+import { plannedLineup } from "./plan.js";
 import { S } from "../state.js";
 import { MAPS, AGENTS, TYPES, ALL_STAT_FIELDS, statFields, TINY_LABEL, AGENT_LOOKALIKE } from "../constants.js";
 import { $, esc, norm, today, toast, fmtDate, copyText } from "../util.js";
@@ -53,6 +54,9 @@ function rowOf(seed = {}) {
 
 // Vorschlag für ein neues Match: die Aufstellung des letzten Matches, sonst die Stammspieler
 function lineup() {
+  // Steht für heute eine Aufstellung im Wochenplan, ist das der Vorschlag
+  const planned = plannedLineup(today()).map((id) => S.players.find((p) => p.id === id)).filter(Boolean);
+  if (planned.length) return planned.slice(0, 5).map((p) => ({ playerId: p.id, name: p.name }));
   const last = sortMatches(S.matches).find((m) => (m.players || []).length);
   const known = last ? last.players.filter((r) => r.name && S.players.some((p) => p.id === r.playerId)) : [];
   if (known.length) return known.slice(0, 5).map((r) => ({ playerId: r.playerId, name: r.name }));

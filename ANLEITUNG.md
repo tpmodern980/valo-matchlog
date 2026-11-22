@@ -388,6 +388,10 @@ Im Tab **Team → Discord** gibt es unter dem Planungs-Kanal das Feld **„Webho
 
 Beim Anlegen eines Termins darf der Gegner leer bleiben. Sobald er feststeht, im Wochenplan beim Termin auf **„+ Gegner“** tippen, Namen eintragen, **OK**. Das darf jeder im Team, nicht nur Admins. Kennt die App den Gegner schon aus früheren Matches, steht dort **„🔎 Steckbrief“** und führt direkt zu Bilanz, Maps, Agents und Veto-Vorschlag.
 
+## Aufstellung im Wochenplan (wer spielt)
+
+Unter jedem Termin steht **👥 wer spielt**. Das kommt automatisch aus der Umfrage: alle, die zur Uhrzeit des Termins können (passt die Uhrzeit zu keinem Umfrage-Zeitpunkt, zählt der letzte davor). Können **mehr als 5**, steht dort „6 können · Aufstellung noch wählen“: Ein Admin tippt **„Jetzt wählen“** und hakt die 5 an. Mit **„Ändern“** lässt sich jede Aufstellung von Hand setzen, „Wieder aus der Umfrage“ macht das rückgängig. Die Spieler stehen auch im **Discord-Post** vom Wochenplan unter dem Termin, und beim Match eintragen schlägt die App die geplante Aufstellung des Tages vor.
+
 ## Startseite „Diese Woche“ (Tab „Übersicht“)
 
 Beim Öffnen zeigt ScrimStar die laufende Woche: Bilanz, Winrate, Rundendifferenz und Pistols der Woche, den nächsten Termin (falls ein Wochenplan in der App steht), den Stand der Wochenziele, die Ergebnisse der Woche und bis zu drei Erkenntnisse aus den letzten 30 Tagen. Oben: **„Match eintragen“** und **„Wochenziele“**.
