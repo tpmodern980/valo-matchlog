@@ -18,7 +18,16 @@ const JPEG_QUALITY = 0.9;
 // Ausweich-Modelle, falls Google das eingestellte Modell abschaltet (Stand 14.11.2026, PLAN.md Abschnitt 2)
 const FALLBACK_MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"];
 
-let goodModel = "";   // das Modell, das in dieser Sitzung zuletzt geantwortet hat
+// Das Modell, das zuletzt geantwortet hat. Seit 25.11.2026 für den Rest des Tages gemerkt (auch nach dem Neuladen):
+// War das eingestellte Modell zu langsam und ein Ausweich-Modell hat übernommen, fragt die App am selben Tag gleich
+// dieses, statt wieder erst 45 Sekunden auf das langsame zu warten. Am nächsten Tag geht es wieder mit dem eingestellten los.
+const GOOD_KEY = "valo-ai-good";
+let goodModel = (() => {
+  try {
+    const v = JSON.parse(localStorage.getItem(GOOD_KEY) || "null");
+    return v && v.day === new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles" }).format(new Date()) ? String(v.model || "") : "";
+  } catch (e) { return ""; }
+})();
 
 const clean = (s) => String(s ?? "").trim().replace(/\s+/g, " ");
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
@@ -547,6 +556,7 @@ async function ask(kind, jpegs, sheet = false) {
         const raw = parseJson(result.response.text());
         if (goodModel !== name) console.info(`Screenshot-Auslesen: Modell „${name}“ antwortet.`);
         goodModel = name;
+        try { localStorage.setItem(GOOD_KEY, JSON.stringify({ day: quotaDay(), model: name })); } catch (e) { /* nur für diese Sitzung */ }
         return { raw, model: name, spent, busy };
       } catch (e) {
         const k = kindOf(e);
