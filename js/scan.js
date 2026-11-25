@@ -9,7 +9,7 @@ import { cfg } from "./config.js";
 import { S } from "./state.js";
 import { MAPS, AGENTS } from "./constants.js";
 import { norm } from "./util.js";
-import { loadAi } from "./firebase.js";
+import { loadAi, resetAi } from "./firebase.js";
 import { refSheet, PIC_SIDE } from "./agentrefs.js";
 
 // Längste Seite des Bildes, das an die KI geht (größere Bilder werden verkleinert, kleinere bleiben so)
@@ -24,6 +24,20 @@ const clean = (s) => String(s ?? "").trim().replace(/\s+/g, " ");
 const wait = (ms) => new Promise((done) => setTimeout(done, ms));
 // Eigener Fehler mit einer festen Art (siehe TEXT unten)
 const fail = (kind, more = {}) => Object.assign(new Error(kind), { scan: kind, ...more });
+
+// ---------- Zeitlimits und Fortschritt (seit 25.11.2026: "lädt unendlich lange") ----------
+// Hängt ein Schritt (KI-Bibliothek laden, App Check / reCAPTCHA, Antwort der KI), bricht er nach dieser Zeit mit einer
+// klaren Meldung ab, statt ewig zu laden.
+const LIMIT = { start: 25000, check: 20000, model: 45000, total: 110000 };
+function withTimeout(promise, ms, kind) {
+  let timer;
+  return Promise.race([promise, new Promise((_, no) => { timer = setTimeout(() => no(fail(kind)), ms); })]).finally(() => clearTimeout(timer));
+}
+// Fortschritt fürs Formular: step(was, Modell) -> onStep({ kind, step, model })
+let onStep = null;
+export const setProgress = (fn) => { onStep = fn; };
+const step = (kind, what, model = "") => { try { if (onStep) onStep({ kind, step: what, model }); } catch (e) { /* egal */ } };
+let checkedAt = 0;   // App Check zuletzt erfolgreich geprüft (dann nicht bei jedem Bild erneut)
 
 // ---------- Bild verkleinern ----------
 
@@ -500,7 +514,18 @@ async function ask(kind, jpegs, sheet = false) {
     return { raw: DEMO[kind], model: "" };
   }
   if (navigator.onLine === false) throw fail("offline");
-  const { ai, AIM, check } = await loadAi();
+  step(kind, "start");
+  const { ai, AIM, check } = await withTimeout(loadAi(), LIMIT.start, "start-timeout").catch((e) => { if (e.scan === "start-timeout") resetAi(); throw e; });
+  // Erst prüfen, ob App Check (reCAPTCHA) überhaupt antwortet: Hängt das, hängt sonst die ganze Anfrage ohne Meldung
+  if (check.mode !== "off" && Date.now() - checkedAt > 5 * 60000) {
+    step(kind, "check");
+    try { await withTimeout(check.probe(), LIMIT.check, "appcheck-timeout"); checkedAt = Date.now(); }
+    catch (e) {
+      if (e.scan) { resetAi(); throw e; }
+      throw Object.assign(e, { appCheck: { mode: check.mode, token: check.token, probeError: e } });
+    }
+  }
+  const started = Date.now();
   const prompt = kind === "board" ? boardPrompt(sheet) : LINE_PROMPT;
   const images = jpegs.map((j) => ({ inlineData: { data: j.base64, mimeType: j.mimeType } }));
   const tried = [], spent = [], busy = [];
@@ -508,19 +533,30 @@ async function ask(kind, jpegs, sheet = false) {
   try {
     for (const name of modelNames()) {
       tried.push(name);
+      const left = LIMIT.total - (Date.now() - started);
+      if (left < 8000) { busyError = busyError || fail("timeout"); break; }
+      step(kind, "ai", name);
       try {
         // Keine "temperature": Die Modelle ab Gemini 3 beachten sie laut Firebase-Doku nicht mehr.
+        const ms = Math.min(LIMIT.model, left);
         const model = AIM.getGenerativeModel(ai, {
           model: name,
           generationConfig: { responseMimeType: "application/json", responseSchema: schemaOf(kind, AIM.Schema) },
-        });
-        const result = await model.generateContent([prompt, ...images]);
+        }, { timeout: ms });
+        const result = await withTimeout(model.generateContent([prompt, ...images]), ms + 2000, "timeout");
         const raw = parseJson(result.response.text());
         if (goodModel !== name) console.info(`Screenshot-Auslesen: Modell „${name}“ antwortet.`);
         goodModel = name;
         return { raw, model: name, spent, busy };
       } catch (e) {
         const k = kindOf(e);
+        if (k === "timeout") {
+          // Dieses Modell hat zu lange gebraucht: das nächste probieren (solange noch Zeit ist)
+          console.warn(`Screenshot-Auslesen: „${name}“ antwortet nicht rechtzeitig, probiere das nächste Modell.`);
+          busy.push(name);
+          busyError = e;
+          continue;
+        }
         if (k === "quota-day") {
           // Tageskontingent dieses Modells aufgebraucht: nächstes Modell (und bis morgen nicht mehr fragen)
           console.warn(`Screenshot-Auslesen: Tageskontingent von „${name}“ aufgebraucht, probiere das nächste Modell.`);
@@ -572,7 +608,9 @@ const TEXT = {
   "bad-json": () => "Die Antwort der KI war nicht lesbar (kein gültiges JSON). Tipp noch einmal auf „Auslesen“.",
   blocked: () => "Die KI hat zu diesem Bild keine Antwort geliefert. Probier es noch einmal oder mit einem anderen Screenshot.",
   offline: () => "Keine Verbindung: Das Auslesen braucht das Internet. Blockiert bei dir ein Werbeblocker Adressen von Google, schalt ihn für diese Seite aus." + BY_HAND,
-  timeout: () => "Die KI hat zu lange gebraucht. Versuch es gleich noch einmal." + BY_HAND,
+  timeout: () => "Die KI hat nicht rechtzeitig geantwortet (auch die Ausweich-Modelle nicht). Meist ist Google gerade langsam: In ein paar Minuten noch einmal versuchen." + BY_HAND,
+  "start-timeout": () => "Die KI-Bibliothek von Firebase ließ sich nicht laden (keine Antwort). Verbindung prüfen, die Seite neu laden und noch einmal versuchen." + BY_HAND,
+  "appcheck-timeout": () => "Die Sicherheitsprüfung (App Check mit reCAPTCHA von Google) antwortet nicht. Häufigste Ursache: Ein Werbeblocker, Tracking-Schutz oder Datensparmodus blockiert reCAPTCHA. Für diese Seite ausschalten oder einen anderen Browser probieren." + BY_HAND,
   overloaded: () => "Die KI ist gerade überlastet oder gestört, auch die Ausweich-Modelle. Versuch es in ein paar Minuten noch einmal." + BY_HAND,
   "quota-minute": () => "Zu viele Anfragen kurz hintereinander. Warte eine Minute und tipp dann noch einmal auf „Auslesen“.",
   "quota-day": () => "Das kostenlose Tageskontingent der KI ist aufgebraucht, auch bei den Ausweich-Modellen. Ein neues gibt es täglich gegen 9 Uhr morgens." + BY_HAND,

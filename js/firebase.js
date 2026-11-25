@@ -142,6 +142,10 @@ function loadAppCheck() {
 
 // Liefert { ai, AIM, check }. AIM ist das Modul "firebase-ai" mit seinen Funktionen, check kommt aus loadAppCheck().
 // App Check muss vor der KI gestartet sein: Die KI merkt sich beim Start, ob es App Check gibt.
+// Nach einer Zeitüberschreitung: beim nächsten Versuch KI und App Check frisch laden (ein hängendes Laden bliebe sonst
+// für immer im Speicher und jeder weitere Versuch würde wieder warten)
+export function resetAi() { ki = null; guard = null; }
+
 export function loadAi() {
   if (!ki) {
     ki = (async () => {

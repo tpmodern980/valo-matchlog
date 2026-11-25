@@ -578,7 +578,7 @@ function scanHtml() {
       ${file ? `<button class="alias-x" type="button" id="ed-scan-drop-${kind}" data-action="mf-scan-drop" data-kind="${kind}" aria-label="${title}-Bild entfernen" title="Bild entfernen"${off}>×</button>` : ""}
     </div>`;
   };
-  const note = sc.busy ? "Das dauert meist 10 bis 40 Sekunden, manchmal länger. Du kannst unten schon weiterschreiben."
+  const note = sc.busy ? `<span id="ed-scan-step">${esc(stepText(sc))}</span>`
     : S.demo ? "Vorschau: Es wird nichts an die KI geschickt, es kommen Beispielwerte."
     : "Die Bilder gehen verkleinert an die KI von Google (Gemini). Die App speichert sie nirgends.";
   return `<section class="scan" id="ed-scan" aria-labelledby="ed-scan-title">
@@ -591,16 +591,28 @@ function scanHtml() {
   </section>`;
 }
 
+// Was passiert gerade beim Auslesen? (mit Sekunden, damit man sieht, wo es hängt)
+const STEP = { start: "KI wird gestartet", check: "Sicherheitsprüfung (App Check)", ai: "Die KI liest" };
+function stepText(sc) {
+  const secs = sc.since ? Math.round((Date.now() - sc.since) / 1000) : 0;
+  const what = Object.values(sc.steps || {}).map((x) => `${x.kind === "board" ? "Scoreboard" : "Timeline"}: ${STEP[x.step] || "Bild wird vorbereitet"}${x.model ? ` (${x.model})` : ""}`).join(" · ");
+  return `${what || "Bild wird vorbereitet"} … ${secs} s. Meist 10 bis 40 Sekunden, nach spätestens 2 Minuten kommt eine Meldung. Du kannst unten schon weiterschreiben.`;
+}
+
 async function runScan() {
   if (!ed || ed.scan.busy || !(ed.scan.board || ed.scan.line)) return;
   const mine = ed, sc = ed.scan;
   pull();
   sc.busy = true;
   sc.report = null;
+  sc.since = Date.now();
+  sc.steps = {};
   draw();
+  const tick = setInterval(() => { const el = $("#ed-scan-step"); if (el && ed === mine) el.textContent = stepText(sc); }, 1000);
   let res;
   try {
-    const { scanImages } = await import("../scan.js");
+    const { scanImages, setProgress } = await import("../scan.js");
+    setProgress((p) => { sc.steps[p.kind] = p; const el = $("#ed-scan-step"); if (el && ed === mine) el.textContent = stepText(sc); });
     res = await scanImages({ board: sc.board, line: sc.line });
   } catch (e) {
     // Hierhin kommt es nur, wenn sich js/scan.js nicht laden ließ
@@ -608,6 +620,7 @@ async function runScan() {
     const err = { kind: "offline", text: "Das Auslesen ließ sich nicht starten. Prüf deine Verbindung und versuch es noch einmal. Von Hand eintragen geht immer.", token: "" };
     res = { board: null, line: null, demo: false, errors: { board: sc.board ? err : null, line: sc.line ? err : null } };
   }
+  clearInterval(tick);
   sc.busy = false;
   if (ed !== mine) return;   // Formular wurde inzwischen geschlossen oder gespeichert
   pull();                    // was getippt wurde, während die KI las
